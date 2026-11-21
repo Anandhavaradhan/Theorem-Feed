@@ -1,0 +1,22 @@
+{
+  "app.title": "TheoremFeed",
+  "nav.home": "Home",
+  "home.title": "Your study feed",
+  "home.empty.title": "Upload your material",
+  "home.empty.body": "Your feed only shows videos for concepts in your study material. Upload a text-based PDF of your notes or textbook to get started.",
+  "home.empty.cta": "Upload material",
+  "home.empty.cta_soon": "Material upload arrives in the next build.",
+  "home.error": "Couldn't load your feed.",
+  "home.retry": "Try again",
+  "gap.title": "No videos yet: {concept}",
+  "gap.body": "You're studying this concept but have no videos for it yet.",
+  "gap.find": "Find videos for this concept",
+  "card.duration": "{min} min",
+  "player.resolving": "Preparing ad-free playback…",
+  "player.failed": "Couldn't load this video.",
+  "player.retry_in": "Retrying in {sec}s",
+  "player.retry": "Retry now",
+  "player.quality": "Quality",
+  "player.captions_on": "Captions on",
+  "player.captions_off": "Captions off"
+}
