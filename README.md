@@ -44,7 +44,7 @@ Search runs entirely on the device, so it always works offline, with or without 
    when a concept in your material has no videos, and prerequisite-gap cards with *Find videos*. A query outside your
    universe gets an out-of-scope card ("Not in your material…") with *Search theorem pool instead*. Never a silent empty.
 
-- **Speed and cache.** About a millisecond per query here (target < 150 ms). Results are cached for an hour, keyed
+- **Speed and cache.** About 8 ms per query on a desktop CPU in the tests (target < 150 ms); expect a few times that on a phone. Results are cached for an hour, keyed
   by a signature of the library, so any change to material, videos or judgements invalidates them at once.
 - **Golden set (§11.8).** `test/search_eval_test.dart` runs 20 queries (exact, alias, typo, natural language, formula,
   theorem pool, multi-concept, coverage gap, out-of-scope) against a fixture library on the real graph.
