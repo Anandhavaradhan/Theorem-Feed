@@ -10,6 +10,8 @@ import '../services/llm.dart';
 import '../services/local_llm.dart';
 import '../services/material/material_service.dart';
 import '../services/material/pdf_text.dart';
+import '../services/relevance/evaluation.dart';
+import '../services/relevance/relevance_service.dart';
 import '../services/concept_service.dart';
 import '../services/feed_service.dart';
 import '../services/gates.dart';
@@ -80,12 +82,14 @@ final speechProbeProvider = Provider<SpeechLanguageProbe?>((ref) => WhisperSpeec
 enum IngestionStatus { idle, preparingModel, running, done, failed }
 
 class IngestionState {
-  const IngestionState({this.status = IngestionStatus.idle, this.label = '', this.report, this.message, this.modelProgress});
+  const IngestionState(
+      {this.status = IngestionStatus.idle, this.label = '', this.report, this.message, this.modelProgress, this.ranking = false});
   final IngestionStatus status;
   final String label; // concept currently being searched
   final IngestReport? report;
   final String? message;
   final double? modelProgress; // 0..1 while the model downloads
+  final bool ranking; // judging relevance (after finding videos)
   bool get isBusy => status == IngestionStatus.preparingModel || status == IngestionStatus.running;
 }
 
@@ -112,7 +116,8 @@ class IngestionController extends Notifier<IngestionState> {
     }
   }
 
-  Future<void> _run(Future<IngestReport> Function(IngestionService s, IngestProgress p) job, {bool quiet = false}) async {
+  Future<void> _run(Future<IngestReport> Function(IngestionService s, IngestProgress p) job,
+      {bool quiet = false, bool rank = true}) async {
     if (state.isBusy) return;
     if (!await prepareModel()) return;
     _cancel = false;
@@ -129,6 +134,14 @@ class IngestionController extends Notifier<IngestionState> {
         // Show new shorts as soon as they're accepted.
         ref.invalidate(shortsFeedProvider);
       });
+      // §9: judge the new candidates for your material's concepts (cached; only new pairs reach the model).
+      if (rank && !_cancel) {
+        await RelevanceService(ref.read(databaseProvider), ref.read(jsonModelProvider)).rankActiveConcepts(
+          isCancelled: () => _cancel,
+          onProgress: (concept, _) =>
+              state = IngestionState(status: IngestionStatus.running, label: concept, report: report, ranking: true),
+        );
+      }
       state = quiet ? const IngestionState() : IngestionState(status: IngestionStatus.done, report: report);
     } catch (e) {
       state = IngestionState(status: IngestionStatus.failed, report: state.report, message: '$e');
@@ -145,8 +158,10 @@ class IngestionController extends Notifier<IngestionState> {
       _run((s, p) => s.buildTheoremPool(onProgress: p, isCancelled: () => _cancel));
 
   /// Path B for the next couple of theorems: the Shorts tab calls this as you scroll.
-  Future<void> fillShorts({int theorems = 2}) =>
-      _run((s, p) => s.buildTheoremPool(onProgress: p, isCancelled: () => _cancel, maxTheorems: theorems), quiet: true);
+  Future<void> fillShorts({int theorems = 2}) => _run(
+      (s, p) => s.buildTheoremPool(onProgress: p, isCancelled: () => _cancel, maxTheorems: theorems),
+      quiet: true,
+      rank: false);
 
   /// "Find videos" for one concept: Path A for material concepts, Path B for pool theorems.
   Future<void> findVideos(String conceptId) => _run((s, p) => s.ingestForConcept(conceptId, onProgress: p));
@@ -311,3 +326,58 @@ class SelectedTab extends Notifier<int> {
 }
 
 final tabProvider = NotifierProvider<SelectedTab, int>(SelectedTab.new);
+
+// --- Relevance evaluation (§9.3) -------------------------------------------------
+
+final evaluationServiceProvider = Provider<EvaluationService>((ref) => EvaluationService(ref.watch(databaseProvider)));
+
+final goldenProgressProvider =
+    FutureProvider.autoDispose<GoldenProgress>((ref) async => ref.watch(evaluationServiceProvider).progress());
+
+final goldenLabelProvider = FutureProvider.autoDispose.family<GoldenLabel?, (String, String)>(
+  (ref, key) async => ref.watch(evaluationServiceProvider).labelOf(key.$1, key.$2),
+);
+
+enum EvalStatus { idle, running, done, failed }
+
+class EvalState {
+  const EvalState({this.status = EvalStatus.idle, this.done = 0, this.total = 0, this.report, this.message});
+  final EvalStatus status;
+  final int done;
+  final int total;
+  final EvalReport? report;
+  final String? message;
+}
+
+class EvaluationController extends Notifier<EvalState> {
+  @override
+  EvalState build() => const EvalState();
+
+  void label(String conceptId, String videoId, GoldenLabel? label) {
+    ref.read(evaluationServiceProvider).setLabel(conceptId, videoId, label);
+    ref.invalidate(goldenLabelProvider);
+    ref.invalidate(goldenProgressProvider);
+  }
+
+  /// Judges the labelled concepts (cache misses only) and computes the metrics.
+  Future<void> run() async {
+    if (state.status == EvalStatus.running) return;
+    final eval = ref.read(evaluationServiceProvider);
+    final concepts = eval.labelledConcepts();
+    state = EvalState(status: EvalStatus.running, total: concepts.length);
+    try {
+      await ref.read(modelLoaderProvider)((_) {});
+      final relevance = RelevanceService(ref.read(databaseProvider), ref.read(jsonModelProvider));
+      for (var i = 0; i < concepts.length; i++) {
+        await relevance.rankConcept(concepts[i]);
+        state = EvalState(status: EvalStatus.running, done: i + 1, total: concepts.length);
+      }
+      state = EvalState(status: EvalStatus.done, report: eval.evaluate(relevance));
+      ref.invalidate(longformFeedProvider);
+    } catch (e) {
+      state = EvalState(status: EvalStatus.failed, message: '$e');
+    }
+  }
+}
+
+final evaluationControllerProvider = NotifierProvider<EvaluationController, EvalState>(EvaluationController.new);

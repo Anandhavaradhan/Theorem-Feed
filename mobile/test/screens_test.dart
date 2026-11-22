@@ -11,7 +11,9 @@ import 'package:theoremfeed/screens/concept_detail_screen.dart';
 import 'package:theoremfeed/screens/shorts_screen.dart';
 import 'package:theoremfeed/services/llm.dart';
 import 'package:theoremfeed/services/youtube_source.dart';
+import 'package:theoremfeed/services/active_concepts.dart';
 import 'package:theoremfeed/services/graph_seed.dart';
+import 'package:theoremfeed/services/relevance/evaluation.dart';
 
 import 'support/factories.dart';
 
@@ -25,6 +27,8 @@ void main() {
       'concept.out_of_scope': 'Not in scope',
       'concept.prerequisites': 'Prerequisites',
       'ingest.done': 'Done: {accepted} added from {checked} checked.',
+      'golden.good': 'Good example for this concept',
+      'card.duration': '{min} min',
     });
     db = AppDatabase.inMemory();
     loadGraphSeed(db, File(graphSeedAsset).readAsStringSync());
@@ -80,6 +84,27 @@ void main() {
     expect(find.text('Find some'), findsNothing);
     expect(find.text('Not in scope'), findsOneWidget);
   });
+
+  testWidgets('long-press a material concept\'s video to label it for the relevance check', (tester) async {
+    final ibp = id('Integration by Parts');
+    final m = addMaterial(db);
+    addMaterialConcept(db, m, ibp);
+    recomputeUserActiveConcepts(db);
+    final v = addVideo(db, 'ibp1');
+    tag(db, v, ibp);
+
+    await tester.pumpWidget(app(ConceptDetailScreen(conceptId: ibp)));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Video ibp1'), 300);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Video ibp1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Good example for this concept'));
+    await tester.pumpAndSettle();
+    expect(EvaluationService(db).labelOf(ibp, v), GoldenLabel.good);
+    expect(find.byIcon(Icons.thumb_up), findsOneWidget);
+  });
 }
 
 class _NoModel implements JsonModel {
@@ -97,4 +122,3 @@ class _EmptySource implements VideoSource {
   @override
   Future<String?> downloadAudioClip(String id, {Duration length = const Duration(seconds: 30)}) async => null;
 }
-

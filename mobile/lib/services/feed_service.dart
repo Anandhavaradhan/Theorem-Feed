@@ -10,6 +10,7 @@ library;
 
 import '../data/app_database.dart';
 import '../models/feed.dart';
+import 'relevance/relevance_service.dart' show offTopicFit;
 
 const longformPerConceptCap = 3;
 const shortsMaterialShare = 0.65;
@@ -27,6 +28,7 @@ class FeedRow {
     required this.finalScore,
     required this.fromMaterial,
     this.order = 0,
+    this.why,
   });
 
   final String videoId;
@@ -40,6 +42,7 @@ class FeedRow {
   final double? finalScore; // cached LLM-judge score
   final bool fromMaterial;
   final int order; // curated pool order
+  final String? why; // the judge's short reason, when judged
 
   /// relevance_scores.final desc; cold start falls back to concept priority (§10.4).
   int compareTo(FeedRow o) {
@@ -60,6 +63,7 @@ class FeedRow {
         conceptName: conceptName,
         fromMaterial: fromMaterial,
         score: finalScore,
+        why: why,
       );
 }
 
@@ -72,14 +76,14 @@ class FeedService {
   List<FeedRow> _materialRows({required bool isShort}) => [
         for (final r in _db.select('''
           SELECT v.id, v.title, v.thumbnail_url, v.duration_sec, v.is_short,
-                 c.id AS concept_id, c.canonical_name, uac.priority, rs.final
+                 c.id AS concept_id, c.canonical_name, uac.priority, rs.final, rs.reason
           FROM videos v
           JOIN video_concepts vc ON vc.video_id = v.id AND vc.is_primary = 1
           JOIN user_active_concepts uac ON uac.concept_id = vc.concept_id
           JOIN concepts c ON c.id = vc.concept_id
           LEFT JOIN relevance_scores rs ON rs.video_id = v.id AND rs.concept_id = vc.concept_id
-          WHERE v.status = 'active' AND v.is_short = ?
-        ''', [boolInt(isShort)]))
+          WHERE v.status = 'active' AND v.is_short = ? AND (rs.topic_fit IS NULL OR rs.topic_fit > ?)
+        ''', [boolInt(isShort), offTopicFit]))
           FeedRow(
             videoId: r['id'] as String,
             title: r['title'] as String,
@@ -91,20 +95,22 @@ class FeedService {
             priority: (r['priority'] as num).toDouble(),
             finalScore: (r['final'] as num?)?.toDouble(),
             fromMaterial: true,
+            why: r['reason'] as String?,
           ),
       ];
 
   List<FeedRow> _theoremPoolRows() => [
         for (final r in _db.select('''
           SELECT v.id, v.title, v.thumbnail_url, v.duration_sec,
-                 c.id AS concept_id, c.canonical_name, c.pool_order, rs.final
+                 c.id AS concept_id, c.canonical_name, c.pool_order, rs.final, rs.reason
           FROM videos v
           JOIN video_concepts vc ON vc.video_id = v.id AND vc.is_primary = 1
           JOIN concepts c ON c.id = vc.concept_id
           LEFT JOIN relevance_scores rs ON rs.video_id = v.id AND rs.concept_id = vc.concept_id
           WHERE v.status = 'active' AND v.is_short = 1 AND v.in_theorem_pool = 1 AND v.subject = 'math'
+            AND (rs.topic_fit IS NULL OR rs.topic_fit > ?)
           ORDER BY coalesce(c.pool_order, 1e9), v.created_at
-        '''))
+        ''', [offTopicFit]))
           FeedRow(
             videoId: r['id'] as String,
             title: r['title'] as String,
@@ -117,6 +123,7 @@ class FeedService {
             finalScore: (r['final'] as num?)?.toDouble(),
             fromMaterial: false,
             order: (r['pool_order'] as int?) ?? 1 << 30,
+            why: r['reason'] as String?,
           ),
       ];
 
@@ -128,9 +135,11 @@ class FeedService {
           WHERE NOT EXISTS (
             SELECT 1 FROM video_concepts vc JOIN videos v ON v.id = vc.video_id
             WHERE vc.concept_id = c.id AND vc.is_primary = 1 AND v.status = 'active' AND v.is_short = 0
+              AND NOT EXISTS (SELECT 1 FROM relevance_scores rs
+                              WHERE rs.video_id = v.id AND rs.concept_id = c.id AND rs.topic_fit <= ?)
           )
           ORDER BY uac.priority DESC, c.canonical_name COLLATE NOCASE
-        '''))
+        ''', [offTopicFit]))
           CoverageGap(conceptId: r['id'] as String, concept: r['canonical_name'] as String),
       ];
 

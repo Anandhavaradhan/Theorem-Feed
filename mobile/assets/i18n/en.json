@@ -95,5 +95,22 @@
   "upload.already": "\"{title}\" is already uploaded.",
   "upload.reactivated": "\"{title}\" was uploaded before; it's active again.",
   "upload.rules_only": "The AI model wasn't available, so only labelled theorems and definitions were read. Re-upload later for a full read.",
-  "upload.failed": "Couldn't add the PDF: {message}"
+  "upload.failed": "Couldn't add the PDF: {message}",
+  "ingest.ranking": "Ranking videos for: {concept}",
+  "golden.title": "Example for the relevance check",
+  "golden.good": "Good example for this concept",
+  "golden.bad": "Bad example for this concept",
+  "golden.clear": "Not an example",
+  "golden.hint": "Long-press a video to mark it as a good or bad example for the relevance check.",
+  "eval.title": "Relevance check",
+  "eval.body": "Measures how well your feed's top 10 videos match your judgement. On a concept's page, long-press videos to mark good and bad examples. The spec's set is {concepts} concepts with {videos} videos each (half good, half bad).",
+  "eval.progress": "{concepts} of {target} concepts labelled · {videos} videos marked",
+  "eval.run": "Run relevance check",
+  "eval.running": "Checking: concept {done} of {total}",
+  "eval.none": "Mark at least one good and one bad video for a concept first.",
+  "eval.result": "Precision@10: {precision} (target ≥ 0.70) · Bad-video rate: {bad} (target ≤ 0.10)",
+  "eval.pass": "Passes the targets.",
+  "eval.fail": "Below target.",
+  "eval.concept": "{name}: {good} good, {bad} bad of {shown} shown",
+  "eval.failed": "Couldn't run the check: {message}"
 }

@@ -10,6 +10,7 @@ class FeedCard {
     required this.conceptName,
     required this.fromMaterial,
     this.score,
+    this.why,
   });
 
   final String videoId;
@@ -21,6 +22,9 @@ class FeedCard {
   final String conceptName;
   final bool fromMaterial; // false → curated math theorem pool
   final double? score;
+
+  /// The on-device judge's short reason (e.g. "derives the formula, worked examples").
+  final String? why;
 
   String get reasonLabel => fromMaterial ? 'From your material: $conceptName' : 'Math theorem: $conceptName';
 }

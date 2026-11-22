@@ -4,7 +4,9 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/i18n.dart';
 import '../providers/providers.dart';
+import '../models/feed.dart';
 import '../services/concept_service.dart';
+import '../services/relevance/evaluation.dart';
 import '../widgets/ingestion_banner.dart';
 import '../widgets/video_card.dart';
 import 'player_screen.dart';
@@ -112,13 +114,12 @@ class _Body extends ConsumerWidget {
             Text(t('concept.out_of_scope'), style: theme.textTheme.bodySmall),
         ],
       ]),
-      for (final v in d.videos)
-        VideoCard(
-          card: v,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => PlayerScreen(videoId: v.videoId, title: v.title, reasonLabel: v.reasonLabel),
-          )),
+      if (d.videos.isNotEmpty && d.inMaterial)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Text(t('golden.hint'), style: theme.textTheme.bodySmall),
         ),
+      for (final v in d.videos) _LabelledVideo(card: v, conceptId: d.id, canLabel: d.inMaterial),
     ]);
   }
 }
@@ -137,6 +138,63 @@ class _Section extends StatelessWidget {
         const SizedBox(height: 8),
         ...children,
       ]),
+    );
+  }
+}
+
+/// A concept video that can be long-pressed to mark it as a good or bad
+/// example for the relevance check (§9.3).
+class _LabelledVideo extends ConsumerWidget {
+  const _LabelledVideo({required this.card, required this.conceptId, required this.canLabel});
+  final FeedCard card;
+  final String conceptId;
+  final bool canLabel;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final label = canLabel ? ref.watch(goldenLabelProvider((conceptId, card.videoId))).value : null;
+    return VideoCard(
+      card: card,
+      badge: label == null
+          ? null
+          : CircleAvatar(
+              radius: 14,
+              backgroundColor: label == GoldenLabel.good ? Colors.green : Colors.red,
+              child: Icon(label == GoldenLabel.good ? Icons.thumb_up : Icons.thumb_down, size: 16, color: Colors.white),
+            ),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => PlayerScreen(videoId: card.videoId, title: card.title, reasonLabel: card.reasonLabel),
+      )),
+      onLongPress: !canLabel
+          ? null
+          : () async {
+              final picked = await showModalBottomSheet<String>(
+                context: context,
+                builder: (ctx) => SafeArea(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    ListTile(title: Text(t('golden.title'), style: Theme.of(ctx).textTheme.titleMedium)),
+                    ListTile(
+                      leading: const Icon(Icons.thumb_up, color: Colors.green),
+                      title: Text(t('golden.good')),
+                      onTap: () => Navigator.pop(ctx, 'good'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.thumb_down, color: Colors.red),
+                      title: Text(t('golden.bad')),
+                      onTap: () => Navigator.pop(ctx, 'bad'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.clear),
+                      title: Text(t('golden.clear')),
+                      onTap: () => Navigator.pop(ctx, 'clear'),
+                    ),
+                  ]),
+                ),
+              );
+              if (picked == null) return;
+              ref.read(evaluationControllerProvider.notifier).label(
+                  conceptId, card.videoId, picked == 'clear' ? null : GoldenLabel.values.byName(picked));
+            },
     );
   }
 }

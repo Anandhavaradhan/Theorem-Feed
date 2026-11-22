@@ -13,7 +13,7 @@
 /// Soft-delete only: user data changes status, it is never DELETEd.
 library;
 
-const int schemaVersion = 2;
+const int schemaVersion = 3;
 
 const List<String> migrationV1 = [
   '''
@@ -187,4 +187,38 @@ const List<String> migrationV2 = [
     concept_id TEXT,
     checked_at INTEGER NOT NULL
   )''',
+];
+
+/// v3 (Phase D): keyword index over transcripts too (the on-device stand-in for
+/// statement embeddings in relevance retrieval), and golden labels for the
+/// precision@10 evaluation.
+const List<String> migrationV3 = [
+  'DROP TRIGGER videos_ai',
+  'DROP TRIGGER videos_au',
+  'DROP TABLE videos_fts',
+  """
+  CREATE VIRTUAL TABLE videos_fts USING fts5(
+    title, description, transcript, content='videos', content_rowid='rowid', tokenize='porter unicode61'
+  )""",
+  """
+  CREATE TRIGGER videos_ai AFTER INSERT ON videos BEGIN
+    INSERT INTO videos_fts(rowid, title, description, transcript)
+      VALUES (new.rowid, new.title, new.description, new.transcript);
+  END""",
+  """
+  CREATE TRIGGER videos_au AFTER UPDATE OF title, description, transcript ON videos BEGIN
+    INSERT INTO videos_fts(videos_fts, rowid, title, description, transcript)
+      VALUES ('delete', old.rowid, old.title, old.description, old.transcript);
+    INSERT INTO videos_fts(rowid, title, description, transcript)
+      VALUES (new.rowid, new.title, new.description, new.transcript);
+  END""",
+  "INSERT INTO videos_fts(videos_fts) VALUES ('rebuild')",
+  """
+  CREATE TABLE golden_labels (
+    concept_id TEXT NOT NULL REFERENCES concepts(id),
+    video_id   TEXT NOT NULL REFERENCES videos(id),
+    label      TEXT NOT NULL CHECK (label IN ('good','bad')),
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (concept_id, video_id)
+  )""",
 ];

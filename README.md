@@ -23,9 +23,34 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 | On-device AI model | [llamadart](https://pub.dev/packages/llamadart) (llama.cpp) running **Qwen3.5 0.8B, 4-bit** (about 0.5 GB, downloaded once from Hugging Face). Its output is constrained to a JSON schema, so even this small model gives well-formed answers. Free, offline after the download, no limits. |
 | Knowledge graph | `assets/graph/graph_seed_v1.json`: 364 concepts across math, physics and CS, 520 prerequisite edges, and 71 curated theorems. |
 | PDF reading (Phase C) | [pdfrx](https://pub.dev/packages/pdfrx) (Google's PDFium) extracts the text layer on the device. Labelled results ("Theorem 7.1 (Integration by Parts). …") are read by rules; the on-device model reads each section for the rest. |
-| Relevance judging (Phase D) | The same on-device model, plus an on-device embedding model. |
+| Relevance (Phase D) | Retrieval from concept tags, keyword search (BM25) on your material's statement over video transcripts, and prerequisite videos. Then the same on-device model judges each video (topic, level, depth, prerequisites) and the scores are cached. |
 
-## Status: Phase C (material system) ✅
+## Status: Phase D (relevance engine) ✅
+
+- **Layer A: retrieval (§9.1).** For each concept in your material, candidates come from three signals:
+  - its explicit concept tag;
+  - your material's *statement* of it, matched against video titles, descriptions and **transcripts** with BM25
+    (the keyword index now covers transcripts). This is the on-device stand-in for statement embeddings,
+    with no second model to download. A match needs the concept's name or at least two distinctive statement
+    words, and generic words like "function" don't count.
+  - videos for its prerequisites, from the knowledge graph.
+- **Layer B: the judge (§9.2).** The on-device model grades the top 12 candidates per concept, 4 at a time, on topic fit,
+  level fit, depth fit and prerequisites. Scores are constrained to integers 0–10, and
+  `final = (0.5·topic + 0.2·level + 0.2·depth + 0.1·prereq) / 10`. Each (video, concept) pair is judged once and cached.
+  Ranking runs automatically after every video search.
+- **Effect on the feed.** Long-form cards are ordered by the judge's score and show its short reason under the title.
+  Videos judged clearly off-topic (topic fit ≤ 2) are hidden; a concept left with no videos gets a coverage-gap card.
+  A video found by its statement match that the judge rates as on-topic (topic fit ≥ 7) is tagged to the concept
+  and joins its feed.
+- **Layer C: evaluation (§9.3).** On a concept's page, long-press a video to mark it as a good or bad example.
+  The spec's golden set is 5 concepts × 10 videos (5 good, 5 bad). Then Settings → **Run relevance check** computes,
+  on what the feed would show for each concept (top 10, after ranking and filtering):
+  - **precision@10** = good shown ÷ labelled shown (target ≥ 0.7)
+  - **bad-video rate@10** = bad shown ÷ all shown (target ≤ 0.1)
+
+  Run it again after any change to retrieval or the judge.
+
+### Phase C (material system) ✅
 
 - **Upload a text-native PDF** from the My Material tab, or from Home's empty state. Scanned PDFs are rejected with
   "This PDF has no text layer" (§6). Uploading the same file again doesn't re-process it; an archived copy is reactivated.
@@ -77,8 +102,8 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 - Home feed and native player (quality, speed, captions).
 - 5 seed videos, written on first launch through a labelled sample material.
 
-Next: **Phase D**, the relevance engine: multi-signal retrieval, on-device judging and caching,
-the precision@10 evaluation with a golden set, and live reason labels.
+Next: **Phase E**, search: the five-stage pipeline (intent → scope → hybrid retrieval → re-rank → group),
+grouped results with coverage-gap and out-of-scope cards, and the 20-query search evaluation.
 
 ## Using it
 
@@ -143,6 +168,10 @@ The guardrail tests run on every change:
 - **Keeping up with YouTube.** YouTube changes often, and stream extraction can break until the
   `youtube_explode_dart` package is updated. With no server, the fix means rebuilding the app with
   the updated package: `flutter pub upgrade youtube_explode_dart && flutter build apk`.
+- **Golden set built in the app.** The spec ships a hand-picked golden list in a test file. Picking real videos
+  needs YouTube and your judgement, so labelling happens on the device instead. The metric arithmetic is unit-tested
+  with synthetic judges that pass and fail.
+- **12 judged candidates per concept, not ~20.** This keeps on-device judging to three short model calls per concept.
 - **Concept merging without embeddings.** §6.4 dedupes and maps concepts with embeddings (cosine 0.9 and 0.85).
   Until the embedding model arrives in Phase D, this uses fuzzy name and alias matching (token_set_ratio),
   backed by the 364-concept graph's aliases.

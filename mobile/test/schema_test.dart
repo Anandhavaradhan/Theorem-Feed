@@ -4,7 +4,7 @@ import 'package:theoremfeed/data/app_database.dart';
 void main() {
   test('migrates, enforces checks, FTS5 + trigram indexes stay in sync', () {
     final db = AppDatabase.inMemory();
-    expect(db.select('PRAGMA user_version').first.columnAt(0), 2);
+    expect(db.select('PRAGMA user_version').first.columnAt(0), 3);
 
     db.execute(
         "INSERT INTO videos (id, source, source_id, title, description, created_at) VALUES ('v1','youtube','abc','Integration by parts intro','A technique for integrals',0)");
@@ -29,6 +29,15 @@ void main() {
     );
     expect(() => db.execute("INSERT INTO video_concepts (video_id, concept_id) VALUES ('nope','c1')"),
         throwsA(anything)); // foreign keys on
+  });
+
+  test('v3: transcripts are keyword-searchable and stay in sync', () {
+    final db = AppDatabase.inMemory();
+    db.execute(
+        "INSERT INTO videos (id, source, source_id, title, transcript, created_at) VALUES ('v1','youtube','a','Lecture 4','today we use the product rule backwards',0)");
+    expect(db.select("SELECT rowid FROM videos_fts WHERE videos_fts MATCH 'backwards'").length, 1);
+    db.execute("UPDATE videos SET transcript = 'nothing here' WHERE id = 'v1'");
+    expect(db.select("SELECT rowid FROM videos_fts WHERE videos_fts MATCH 'backwards'").length, 0);
   });
 
   test('embedding blob round-trip', () {

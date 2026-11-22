@@ -5,13 +5,17 @@ import '../models/feed.dart';
 
 /// Long-form recommendation card. The reason label is always visible.
 class VideoCard extends StatelessWidget {
-  const VideoCard({super.key, required this.card, required this.onTap, this.onConceptTap});
+  const VideoCard({super.key, required this.card, required this.onTap, this.onConceptTap, this.onLongPress, this.badge});
 
   final FeedCard card;
   final VoidCallback onTap;
 
   /// Tapping the reason label opens the concept.
   final VoidCallback? onConceptTap;
+  final VoidCallback? onLongPress;
+
+  /// Small marker shown on the thumbnail (e.g. a golden-set label).
+  final Widget? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +26,7 @@ class VideoCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -38,6 +43,7 @@ class VideoCard extends StatelessWidget {
                     )
                   else
                     ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
+                  if (badge != null) Positioned(left: 8, top: 8, child: badge!),
                   if (minutes != null)
                     Positioned(
                       right: 8,
@@ -66,6 +72,10 @@ class VideoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(card.title, style: theme.textTheme.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (card.why != null && card.why!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(card.why!, style: theme.textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
                 ],
               ),
             ),

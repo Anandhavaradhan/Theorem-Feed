@@ -20,6 +20,7 @@ class IngestionBanner extends ConsumerWidget {
               : t('model.downloading', {'percent': (s.modelProgress! * 100).round()}),
           true
         ),
+      IngestionStatus.running when s.ranking => (t('ingest.ranking', {'concept': s.label}), true),
       IngestionStatus.running => (
           '${t('ingest.searching', {'concept': s.label})}\n'
               '${t('ingest.progress', {'checked': r?.checked ?? 0, 'accepted': r?.accepted ?? 0})}',
