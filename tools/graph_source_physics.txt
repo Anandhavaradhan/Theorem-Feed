@@ -1,0 +1,90 @@
+# name | aliases | type | description | requires   (subject: physics)
+# requires may name concepts from any subject file.
+
+## Mechanics
+Kinematics | equations of motion; suvat | formula | Constant-acceleration motion: v = u + at, s = ut + ½at², v² = u² + 2as. | Derivative
+Projectile Motion | projectiles | concept | Motion under constant gravity: independent horizontal (uniform) and vertical (accelerated) motion. | Kinematics; Sine and Cosine
+Newton's First Law | law of inertia | theorem | A body stays at rest or in uniform motion unless acted on by a net force. |
+Newton's Second Law | F = ma | theorem | F_net = ma = dp/dt. | Newton's First Law; Derivative
+Newton's Third Law | action and reaction | theorem | Forces come in equal and opposite pairs. | Newton's First Law
+Free Body Diagram | free-body diagrams | technique | Drawing every force on one object to apply Newton's second law. | Newton's Second Law; Vector
+Friction | static friction; kinetic friction | concept | f ≤ μₛN when static, f = μₖN when sliding. | Newton's Second Law
+Uniform Circular Motion | centripetal acceleration; centripetal force | concept | a = v²/r = ω²r, directed toward the centre. | Kinematics; Radian
+Work-Energy Theorem | work energy theorem | theorem | Net work equals the change in kinetic energy: W = ΔK. | Newton's Second Law; Definite Integral; Dot Product
+Kinetic Energy | | definition | K = ½mv². | Work-Energy Theorem
+Potential Energy | gravitational potential energy | definition | Energy of position; U = mgh near Earth's surface; F = −dU/dx. | Work-Energy Theorem
+Conservation of Energy | energy conservation | theorem | In an isolated system total energy is constant; with conservative forces K + U is constant. | Kinetic Energy; Potential Energy
+Power (Physics) | power | definition | P = dW/dt = F · v. | Work-Energy Theorem
+Momentum | linear momentum | definition | p = mv. | Newton's Second Law
+Conservation of Momentum | momentum conservation | theorem | With no external force, total momentum is constant. | Momentum; Newton's Third Law
+Impulse | impulse momentum theorem | theorem | J = ∫ F dt = Δp. | Momentum; Definite Integral
+Elastic and Inelastic Collisions | collisions | concept | Momentum is always conserved; kinetic energy only in elastic collisions. | Conservation of Momentum; Kinetic Energy
+Center of Mass | centre of mass | definition | r_cm = Σ mᵢrᵢ / Σ mᵢ; it moves as if all external forces acted there. | Momentum
+Torque | moment of a force | definition | τ = r × F. | Cross Product; Newton's Second Law
+Moment of Inertia | rotational inertia | definition | I = Σ mr² (or ∫ r² dm). | Center of Mass; Definite Integral
+Parallel Axis Theorem | steiner's theorem | theorem | I = I_cm + Md². | Moment of Inertia
+Angular Momentum | | definition | L = r × p = Iω. | Momentum; Cross Product
+Conservation of Angular Momentum | | theorem | With no external torque, angular momentum is constant. | Angular Momentum; Torque
+Newton's Law of Universal Gravitation | law of gravitation; inverse square law of gravity | theorem | F = G m₁m₂ / r². | Newton's Second Law
+Kepler's Laws | kepler's laws of planetary motion | theorem | Elliptical orbits with the Sun at a focus; equal areas in equal times; T² ∝ a³. | Newton's Law of Universal Gravitation; Conic Sections
+Escape Velocity | | formula | v = √(2GM/r). | Conservation of Energy; Newton's Law of Universal Gravitation
+Hooke's Law | spring force | theorem | F = −kx for an ideal spring. | Newton's Second Law
+Simple Harmonic Motion | SHM; harmonic oscillator | concept | x(t) = A cos(ωt + φ) with ω = √(k/m). | Hooke's Law; Simple Harmonic Oscillator Equation
+Simple Pendulum | pendulum period | formula | T ≈ 2π√(L/g) for small swings. | Simple Harmonic Motion
+Damped and Driven Oscillations | resonance; damping | concept | Damping decays oscillations; driving near the natural frequency causes resonance. | Simple Harmonic Motion; Second-Order Linear ODE
+Lagrangian Mechanics | lagrangian; euler-lagrange equation | technique | Motion extremises the action S = ∫ (T − V) dt, giving d/dt ∂L/∂q̇ = ∂L/∂q. | Partial Derivative; Conservation of Energy
+Noether's Theorem | noethers theorem | theorem | Every continuous symmetry of the action gives a conserved quantity. | Lagrangian Mechanics
+Pressure | | definition | p = F/A. | Newton's Second Law
+Archimedes' Principle | buoyancy | theorem | The buoyant force equals the weight of the displaced fluid. | Pressure
+Bernoulli's Principle | bernoulli equation | theorem | p + ½ρv² + ρgh is constant along a streamline. | Conservation of Energy; Pressure
+
+## Waves, sound, optics
+Wave | waves; wavelength and frequency | concept | A travelling disturbance; v = fλ. | Simple Harmonic Motion
+Superposition Principle | interference | theorem | Overlapping waves add; constructive and destructive interference. | Wave
+Standing Wave | standing waves; harmonics | concept | Superposed opposite travelling waves with fixed nodes; on a string λₙ = 2L/n. | Superposition Principle
+Doppler Effect | doppler shift | concept | f′ = f (v ± v_o)/(v ∓ v_s) for sound. | Wave
+Snell's Law | law of refraction | theorem | n₁ sin θ₁ = n₂ sin θ₂. | Wave; Sine and Cosine
+Total Internal Reflection | critical angle | concept | Beyond sin θ_c = n₂/n₁, light is fully reflected. | Snell's Law
+Thin Lens Equation | lens formula; mirror equation | formula | 1/f = 1/dₒ + 1/dᵢ. | Snell's Law
+Double-Slit Experiment | young's double slit | concept | Bright fringes at d sin θ = mλ, showing the wave nature of light. | Superposition Principle
+
+## Thermodynamics
+Temperature and Heat | heat; specific heat capacity | concept | Q = mcΔT; heat flows from hot to cold. |
+Ideal Gas Law | PV = nRT | formula | pV = nRT. | Pressure; Temperature and Heat
+Kinetic Theory of Gases | | concept | Pressure and temperature arise from molecular motion: ½m⟨v²⟩ = (3/2)kT. | Ideal Gas Law; Kinetic Energy
+First Law of Thermodynamics | | theorem | ΔU = Q − W. | Conservation of Energy; Temperature and Heat
+Entropy | | definition | dS = dQ_rev/T; also S = k ln Ω. | First Law of Thermodynamics; Logarithm
+Second Law of Thermodynamics | | theorem | The entropy of an isolated system never decreases. | Entropy
+Carnot Efficiency | carnot engine; heat engine efficiency | formula | η = 1 − T_c/T_h, the maximum efficiency of a heat engine. | Second Law of Thermodynamics
+
+## Electricity and magnetism
+Electric Charge | charge | definition | A conserved property of matter, in multiples of e, that sources electric fields. |
+Coulomb's Law | coulomb law | theorem | F = k q₁q₂ / r². | Electric Charge
+Electric Field | | definition | E = F/q, the force per unit charge. | Coulomb's Law; Vector Field
+Gauss's Law | gauss law | theorem | ∯ E · dA = Q_enc/ε₀. | Electric Field; Divergence Theorem
+Electric Potential | voltage; potential difference | definition | V with E = −∇V; work per unit charge. | Electric Field; Gradient
+Capacitance | capacitor | definition | C = Q/V; energy stored ½CV². | Electric Potential
+Electric Current | current | definition | I = dQ/dt. | Electric Charge; Derivative
+Ohm's Law | | theorem | V = IR. | Electric Current; Electric Potential
+Kirchhoff's Circuit Laws | kirchhoff's laws; KCL; KVL | theorem | Currents into a node sum to zero; voltages around a loop sum to zero. | Ohm's Law
+Electrical Power | joule heating | formula | P = IV = I²R. | Ohm's Law; Power (Physics)
+RC Circuit | rc time constant | concept | Charging follows V(t) = V₀(1 − e^{−t/RC}). | Capacitance; Ohm's Law; First-Order Linear ODE
+Magnetic Field | | definition | B, exerting F = qv × B on moving charges. | Cross Product; Electric Current
+Lorentz Force | | formula | F = q(E + v × B). | Magnetic Field; Electric Field
+Biot-Savart Law | biot savart | theorem | dB = (μ₀/4π) I dl × r̂ / r². | Magnetic Field
+Ampère's Law | amperes law | theorem | ∮ B · dl = μ₀ I_enc (plus the displacement current term). | Magnetic Field; Stokes' Theorem
+Faraday's Law of Induction | faraday's law; electromagnetic induction | theorem | ε = −dΦ_B/dt. | Magnetic Field; Derivative
+Lenz's Law | | theorem | An induced current opposes the change in flux that produced it. | Faraday's Law of Induction
+Maxwell's Equations | maxwell equations | theorem | Gauss (E and B), Faraday, and Ampère–Maxwell laws: the complete classical theory of electromagnetism. | Gauss's Law; Ampère's Law; Faraday's Law of Induction; Divergence and Curl
+Electromagnetic Wave | light as an electromagnetic wave | concept | Maxwell's equations give waves travelling at c = 1/√(μ₀ε₀). | Maxwell's Equations; Wave Equation
+
+## Modern physics
+Special Relativity | einstein's special relativity; time dilation; length contraction | concept | Physics is the same in all inertial frames and c is invariant; moving clocks run slow by γ = 1/√(1 − v²/c²). |
+Mass-Energy Equivalence | E = mc^2 | formula | E = mc² (rest energy); in general E² = (pc)² + (mc²)². | Special Relativity
+Photoelectric Effect | | concept | Light ejects electrons in quanta: K_max = hf − φ. | Electromagnetic Wave
+Wave-Particle Duality | de broglie wavelength | concept | Matter has wavelength λ = h/p. | Photoelectric Effect; Double-Slit Experiment
+Heisenberg Uncertainty Principle | uncertainty principle | theorem | Δx Δp ≥ ħ/2. | Wave-Particle Duality; Fourier Transform
+Schrödinger Equation | schrodinger equation | theorem | iħ ∂ψ/∂t = Ĥψ. | Wave-Particle Duality; Partial Derivative; Complex Number
+Particle in a Box | infinite square well | concept | Eₙ = n²h²/(8mL²), quantised energy levels. | Schrödinger Equation; Standing Wave
+Bohr Model | bohr model of the hydrogen atom | concept | Electron energy levels Eₙ = −13.6 eV / n². | Wave-Particle Duality; Coulomb's Law
+Radioactive Decay | radioactive half-life; nuclear decay law | concept | N(t) = N₀e^{−λt}, with half-life ln 2/λ. | Exponential Growth and Decay

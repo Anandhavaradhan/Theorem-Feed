@@ -1,0 +1,79 @@
+# name | aliases | type | description | requires   (subject: cs)
+
+## Programming fundamentals
+Variable and Data Type | variables; data types | concept | Named storage for values of a type (integer, float, boolean, string). |
+Control Flow | conditionals; if statements; loops | concept | Branching (if/else) and repetition (for/while) to control which code runs. | Variable and Data Type
+Function (Programming) | functions in programming; subroutine; procedure | concept | A named, reusable block of code with parameters and a return value. | Control Flow
+Recursion | recursive function | technique | A function that calls itself on a smaller input, with a base case. | Function (Programming); Mathematical Induction
+Binary Number System | binary; base 2 | concept | Representing integers with digits 0 and 1; each position is a power of 2. | Exponent Rules
+Two's Complement | twos complement | concept | Signed integers in binary: −x is the bitwise inverse of x plus 1. | Binary Number System
+Floating-Point Arithmetic | IEEE 754; floating point | concept | Numbers stored as sign × mantissa × 2^exponent, with rounding error. | Binary Number System
+Boolean Algebra | logic gates; boolean logic gates | concept | AND, OR, NOT over {0, 1}; De Morgan's laws; the basis of digital circuits. | Propositional Logic
+Object-Oriented Programming | OOP; classes and objects; inheritance | concept | Bundling data and methods into objects; encapsulation, inheritance, polymorphism. | Function (Programming)
+Memory: Stack and Heap | stack vs heap; call stack | concept | The call stack holds function frames; the heap holds dynamically allocated data. | Function (Programming)
+
+## Data structures
+Array | arrays | definition | Contiguous fixed-size storage with O(1) indexing. | Variable and Data Type
+Linked List | linked lists | definition | Nodes holding a value and a pointer to the next node; O(1) insertion at a known position. | Array
+Stack (Data Structure) | stack; LIFO | definition | Last-in first-out: push and pop in O(1). | Array
+Queue | FIFO; queues | definition | First-in first-out: enqueue and dequeue in O(1). | Linked List
+Hash Table | hash map; dictionary; hashing | definition | Key–value storage using a hash function; O(1) expected lookup. | Array; Modular Arithmetic
+Binary Tree | binary trees | definition | A tree where each node has at most two children. | Tree (Graph Theory); Recursion
+Binary Search Tree | BST | definition | A binary tree with left < node < right; O(h) search, insert, delete. | Binary Tree
+Balanced Binary Search Tree | AVL tree; red-black tree; self-balancing tree | concept | Rotations keep height O(log n), so operations are O(log n). | Binary Search Tree
+Heap (Data Structure) | binary heap; priority queue | definition | A complete tree with the heap property; O(log n) insert and extract-min. | Binary Tree
+Trie | prefix tree | definition | A tree keyed by characters for fast prefix lookup. | Binary Tree
+Graph Representation | adjacency list; adjacency matrix | concept | Storing graphs as adjacency lists (sparse) or matrices (dense). | Graph Theory Basics; Array
+Union-Find | disjoint set union; DSU | definition | Tracks disjoint sets with near-constant-time union and find (path compression, union by rank). | Tree (Graph Theory)
+
+## Algorithms
+Big O Notation | asymptotic notation; time complexity; big-o | definition | f = O(g) if f ≤ c·g for large n; describes growth rate of running time. | Limit of a Function
+Linear Search | | technique | Check each element in turn: O(n). | Array; Big O Notation
+Binary Search | | technique | Halve a sorted range each step: O(log n). | Array; Big O Notation; Logarithm
+Bubble Sort | | technique | Repeatedly swap adjacent out-of-order elements: O(n²). | Array; Big O Notation
+Insertion Sort | | technique | Insert each element into the sorted prefix: O(n²), fast on nearly sorted data. | Array; Big O Notation
+Merge Sort | mergesort | technique | Sort halves recursively and merge: O(n log n). | Recursion; Divide and Conquer
+Quicksort | quick sort | technique | Partition around a pivot and recurse: O(n log n) expected. | Recursion; Divide and Conquer
+Comparison Sorting Lower Bound | sorting lower bound | theorem | Any comparison sort needs Ω(n log n) comparisons in the worst case. | Binary Tree; Stirling's Approximation; Big O Notation
+Divide and Conquer | | technique | Split a problem, solve the parts recursively, combine. | Recursion
+Master Theorem | master theorem for recurrences | theorem | Solves T(n) = aT(n/b) + f(n) by comparing f(n) with n^{log_b a}. | Divide and Conquer; Recurrence Relation; Big O Notation
+Breadth-First Search | BFS | technique | Explore a graph level by level with a queue; finds shortest paths in unweighted graphs. | Graph Representation; Queue
+Depth-First Search | DFS | technique | Explore as deep as possible before backtracking, with a stack or recursion. | Graph Representation; Stack (Data Structure)
+Topological Sort | topological ordering | technique | Order a DAG's vertices so every edge points forward. | Depth-First Search
+Dijkstra's Algorithm | dijkstra shortest path | technique | Shortest paths from a source with non-negative weights, using a priority queue: O((V + E) log V). | Breadth-First Search; Heap (Data Structure)
+Bellman-Ford Algorithm | bellman ford | technique | Shortest paths allowing negative weights by relaxing all edges V − 1 times; detects negative cycles. | Dijkstra's Algorithm
+Minimum Spanning Tree | MST; Kruskal's algorithm; Prim's algorithm | technique | A lightest spanning tree, built greedily by Kruskal (with union-find) or Prim. | Tree (Graph Theory); Greedy Algorithm; Union-Find
+Greedy Algorithm | greedy algorithms | technique | Make the locally best choice at each step; optimal when the problem has the greedy-choice property. | Big O Notation
+Dynamic Programming | DP; memoization | technique | Solve overlapping subproblems once and reuse them (memoization or tabulation). | Recursion; Recurrence Relation
+Knapsack Problem | 0/1 knapsack | technique | Maximise value under a weight limit; O(nW) by dynamic programming. | Dynamic Programming
+Longest Common Subsequence | LCS | technique | The longest sequence common to two strings, found by an O(mn) DP table. | Dynamic Programming
+Backtracking | | technique | Build candidates incrementally and abandon partial ones that can't succeed. | Recursion; Depth-First Search
+Two Pointers Technique | two pointers; sliding window | technique | Move two indices through an array to solve range problems in O(n). | Array
+Hash Function | hash functions; cryptographic hash | definition | Maps data to a fixed-size value; cryptographic hashes are collision-resistant. | Hash Table
+
+## Theory of computation
+Finite Automaton | DFA; NFA; finite state machine | definition | A machine with finitely many states reading input symbol by symbol; recognises regular languages. | Set
+Regular Expression | regex; regular languages | concept | Patterns built from concatenation, union, and star; equivalent to finite automata. | Finite Automaton
+Pumping Lemma | pumping lemma for regular languages | theorem | Long enough strings in a regular language can be pumped; used to prove languages non-regular. | Finite Automaton; Pigeonhole Principle
+Context-Free Grammar | CFG; pushdown automaton | definition | Production rules generating languages like balanced parentheses; recognised by pushdown automata. | Regular Expression
+Turing Machine | turing machines | definition | A finite-state controller with an unbounded tape; the standard model of computation. | Finite Automaton
+Halting Problem | undecidability of the halting problem | theorem | No algorithm decides whether an arbitrary program halts on a given input. | Turing Machine; Cantor's Diagonal Argument
+P vs NP | P versus NP; NP-completeness | concept | P: solvable in polynomial time; NP: verifiable in polynomial time; whether P = NP is open. | Turing Machine; Big O Notation
+Cook-Levin Theorem | cook's theorem | theorem | Boolean satisfiability (SAT) is NP-complete. | P vs NP; Boolean Algebra
+
+## Systems, security, ML
+Operating System Processes and Threads | processes; threads; concurrency | concept | Processes have separate memory; threads share it and run concurrently. | Memory: Stack and Heap
+Deadlock | deadlocks | concept | Processes waiting on each other forever; requires mutual exclusion, hold-and-wait, no preemption, circular wait. | Operating System Processes and Threads
+Computer Networking Basics | TCP/IP; network layers | concept | Layered protocols (link, IP, TCP/UDP, application) move data between machines. |
+Public-Key Cryptography | asymmetric encryption; public key | concept | A public key encrypts or verifies; only the private key decrypts or signs. | Modular Arithmetic
+RSA Algorithm | RSA encryption | technique | Encrypt with c = mᵉ mod n, decrypt with m = cᵈ mod n, where ed ≡ 1 (mod φ(n)) and n = pq. | Public-Key Cryptography; Euler's Totient Theorem; Chinese Remainder Theorem
+Diffie-Hellman Key Exchange | diffie hellman | technique | Two parties agree on gᵃᵇ mod p over a public channel. | Public-Key Cryptography; Modular Arithmetic
+Gradient Descent | | technique | Minimise f by stepping x ← x − η∇f(x). | Gradient; Optimization
+Linear Regression (Machine Learning) | regression model | technique | Fit weights minimising mean squared error, by normal equations or gradient descent. | Linear Regression; Gradient Descent
+Logistic Regression | | technique | Binary classifier p = σ(wᵀx + b) trained by minimising cross-entropy. | Gradient Descent; Exponential Function
+Neural Network | neural networks; perceptron; deep learning | concept | Layers of weighted sums and nonlinear activations, trained by gradient descent. | Matrix Multiplication; Gradient Descent
+Backpropagation | backprop | technique | Computing gradients of a network's loss layer by layer with the chain rule. | Neural Network; Multivariable Chain Rule
+Overfitting and Regularization | overfitting; regularization; bias-variance tradeoff | concept | Models that fit noise generalise poorly; penalties and validation control this. | Linear Regression (Machine Learning)
+k-Means Clustering | k means | technique | Alternate assigning points to the nearest centroid and recomputing centroids. | Distance Formula
+Principal Component Analysis | PCA | technique | Project data onto the top eigenvectors of its covariance matrix. | Eigenvalues and Eigenvectors; Variance and Standard Deviation
+Information Entropy | shannon entropy | definition | H(X) = −Σ p(x) log₂ p(x), the average information in bits. | Probability; Logarithm

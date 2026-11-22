@@ -5,10 +5,13 @@ import '../models/feed.dart';
 
 /// Long-form recommendation card. The reason label is always visible.
 class VideoCard extends StatelessWidget {
-  const VideoCard({super.key, required this.card, required this.onTap});
+  const VideoCard({super.key, required this.card, required this.onTap, this.onConceptTap});
 
   final FeedCard card;
   final VoidCallback onTap;
+
+  /// Tapping the reason label opens the concept.
+  final VoidCallback? onConceptTap;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +60,10 @@ class VideoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ReasonChip(fromMaterial: card.fromMaterial, label: card.reasonLabel),
+                  GestureDetector(
+                    onTap: onConceptTap,
+                    child: ReasonChip(fromMaterial: card.fromMaterial, label: card.reasonLabel),
+                  ),
                   const SizedBox(height: 6),
                   Text(card.title, style: theme.textTheme.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],

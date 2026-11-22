@@ -4,7 +4,7 @@ import 'package:theoremfeed/data/app_database.dart';
 void main() {
   test('migrates, enforces checks, FTS5 + trigram indexes stay in sync', () {
     final db = AppDatabase.inMemory();
-    expect(db.select('PRAGMA user_version').first.columnAt(0), 1);
+    expect(db.select('PRAGMA user_version').first.columnAt(0), 2);
 
     db.execute(
         "INSERT INTO videos (id, source, source_id, title, description, created_at) VALUES ('v1','youtube','abc','Integration by parts intro','A technique for integrals',0)");

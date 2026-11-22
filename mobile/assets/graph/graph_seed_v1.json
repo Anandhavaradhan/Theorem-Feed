@@ -1,0 +1,5089 @@
+{
+ "version": 1,
+ "concepts": [
+  {
+   "canonical_name": "Real Number",
+   "aliases": [
+    "real numbers",
+    "number line"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "The ordered complete field ℝ of all limits of rational sequences; points on the number line.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Rational Number",
+   "aliases": [
+    "rational numbers",
+    "fractions"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A number p/q with integers p, q and q ≠ 0.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Absolute Value",
+   "aliases": [
+    "modulus of a real number"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "|x| = x if x ≥ 0 and −x otherwise; the distance from x to 0.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Real Number"
+   ]
+  },
+  {
+   "canonical_name": "Exponent Rules",
+   "aliases": [
+    "laws of exponents",
+    "index laws"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "aᵐ·aⁿ = aᵐ⁺ⁿ, (aᵐ)ⁿ = aᵐⁿ, a⁻ⁿ = 1/aⁿ.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Logarithm",
+   "aliases": [
+    "log",
+    "logarithms",
+    "natural logarithm"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "log_b x is the exponent y with bʸ = x; ln is the base-e logarithm.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Exponent Rules"
+   ]
+  },
+  {
+   "canonical_name": "Logarithm Laws",
+   "aliases": [
+    "log rules",
+    "properties of logarithms"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "log(xy) = log x + log y, log(xᵏ) = k log x, log_b x = ln x / ln b.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Logarithm"
+   ]
+  },
+  {
+   "canonical_name": "Linear Equation",
+   "aliases": [
+    "linear equations"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "An equation ax + b = c, solved by isolating x; its graph is a straight line.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Slope of a Line",
+   "aliases": [
+    "gradient of a line",
+    "slope"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "m = (y₂ − y₁)/(x₂ − x₁), the rise over run of a line.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Linear Equation"
+   ]
+  },
+  {
+   "canonical_name": "System of Linear Equations",
+   "aliases": [
+    "simultaneous equations",
+    "linear system"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "Several linear equations in shared unknowns, solved by substitution, elimination, or matrices.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Linear Equation"
+   ]
+  },
+  {
+   "canonical_name": "Inequality",
+   "aliases": [
+    "inequalities",
+    "solving inequalities"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "A statement a < b; multiplying both sides by a negative number reverses it.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Real Number"
+   ]
+  },
+  {
+   "canonical_name": "Polynomial",
+   "aliases": [
+    "polynomials"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "An expression aₙxⁿ + … + a₁x + a₀ with constant coefficients.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Factoring Polynomials",
+   "aliases": [
+    "factorisation",
+    "factoring"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Writing a polynomial as a product of lower-degree factors, e.g. x² − 1 = (x − 1)(x + 1).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Polynomial"
+   ]
+  },
+  {
+   "canonical_name": "Completing the Square",
+   "aliases": [],
+   "type": "technique",
+   "subject": "math",
+   "description": "Rewriting ax² + bx + c as a(x + b/2a)² + (c − b²/4a).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Polynomial"
+   ]
+  },
+  {
+   "canonical_name": "Quadratic Formula",
+   "aliases": [
+    "quadratic equation formula"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "The roots of ax² + bx + c = 0 are x = (−b ± √(b² − 4ac)) / 2a.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Completing the Square"
+   ],
+   "pool_order": 31,
+   "latex": "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"
+  },
+  {
+   "canonical_name": "Discriminant",
+   "aliases": [],
+   "type": "definition",
+   "subject": "math",
+   "description": "Δ = b² − 4ac decides whether ax² + bx + c has two, one, or no real roots.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Quadratic Formula"
+   ]
+  },
+  {
+   "canonical_name": "Polynomial Long Division",
+   "aliases": [
+    "polynomial division",
+    "synthetic division"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Dividing p(x) by d(x) to get p = qd + r with deg r < deg d.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Polynomial"
+   ]
+  },
+  {
+   "canonical_name": "Factor Theorem",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "math",
+   "description": "(x − a) divides p(x) exactly when p(a) = 0.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Polynomial Long Division"
+   ],
+   "pool_order": 70,
+   "latex": "p(a) = 0 \\iff (x - a) \\mid p(x)"
+  },
+  {
+   "canonical_name": "Remainder Theorem",
+   "aliases": [
+    "polynomial remainder theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "The remainder of p(x) divided by (x − a) is p(a).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Polynomial Long Division"
+   ]
+  },
+  {
+   "canonical_name": "Fundamental Theorem of Algebra",
+   "aliases": [
+    "FTA"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Every non-constant polynomial with complex coefficients has a complex root; a degree-n polynomial has n roots counted with multiplicity.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Complex Number",
+    "Polynomial"
+   ],
+   "pool_order": 17,
+   "latex": "p(z) = a_n \\prod_{k=1}^{n} (z - z_k)"
+  },
+  {
+   "canonical_name": "Vieta's Formulas",
+   "aliases": [
+    "vieta formulas",
+    "sum and product of roots"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "For ax² + bx + c the roots satisfy r₁ + r₂ = −b/a and r₁r₂ = c/a; generalises to degree n.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Polynomial"
+   ],
+   "pool_order": 69,
+   "latex": "r_1 + r_2 = -\\tfrac{b}{a},\\quad r_1 r_2 = \\tfrac{c}{a}"
+  },
+  {
+   "canonical_name": "Binomial Theorem",
+   "aliases": [
+    "binomial expansion"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "(x + y)ⁿ = Σₖ C(n,k) xⁿ⁻ᵏ yᵏ.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Binomial Coefficient"
+   ],
+   "pool_order": 12,
+   "latex": "(x+y)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^{n-k} y^k"
+  },
+  {
+   "canonical_name": "Arithmetic Sequence",
+   "aliases": [
+    "arithmetic progression"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A sequence with constant difference: aₙ = a₁ + (n − 1)d; its sum is n(a₁ + aₙ)/2.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Geometric Series",
+   "aliases": [
+    "geometric progression",
+    "geometric sequence"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "Σₖ₌₀ⁿ⁻¹ arᵏ = a(1 − rⁿ)/(1 − r); for |r| < 1 the infinite sum is a/(1 − r).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Exponent Rules"
+   ],
+   "pool_order": 26,
+   "latex": "\\sum_{k=0}^{\\infty} ar^k = \\frac{a}{1-r},\\ |r| < 1"
+  },
+  {
+   "canonical_name": "Function",
+   "aliases": [
+    "functions",
+    "domain and range"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A rule assigning each element of a domain exactly one element of a codomain.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Function Composition",
+   "aliases": [
+    "composite function",
+    "composition of functions"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "(f ∘ g)(x) = f(g(x)).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function"
+   ]
+  },
+  {
+   "canonical_name": "Inverse Function",
+   "aliases": [
+    "inverse functions"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "f⁻¹ undoes f: f⁻¹(f(x)) = x; exists exactly when f is bijective.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function Composition",
+    "Bijection"
+   ]
+  },
+  {
+   "canonical_name": "Exponential Function",
+   "aliases": [
+    "exponential growth",
+    "e^x"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "f(x) = aˣ; with base e it equals its own derivative.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Exponent Rules"
+   ]
+  },
+  {
+   "canonical_name": "Euler's Number",
+   "aliases": [
+    "e",
+    "Euler number"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "e = lim (1 + 1/n)ⁿ ≈ 2.71828, the base of the natural logarithm.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Limit of a Sequence"
+   ]
+  },
+  {
+   "canonical_name": "Complex Number",
+   "aliases": [
+    "complex numbers",
+    "imaginary numbers"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A number a + bi with i² = −1, a point (a, b) in the complex plane.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Real Number"
+   ]
+  },
+  {
+   "canonical_name": "Polar Form of a Complex Number",
+   "aliases": [
+    "modulus argument form",
+    "polar form"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "z = r(cos θ + i sin θ) = re^{iθ}, with modulus r = |z| and argument θ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Complex Number",
+    "Euler's Formula"
+   ]
+  },
+  {
+   "canonical_name": "De Moivre's Theorem",
+   "aliases": [
+    "de moivre's formula"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "(cos θ + i sin θ)ⁿ = cos nθ + i sin nθ.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Polar Form of a Complex Number"
+   ],
+   "pool_order": 24,
+   "latex": "(\\cos\\theta + i\\sin\\theta)^n = \\cos n\\theta + i\\sin n\\theta"
+  },
+  {
+   "canonical_name": "Roots of Unity",
+   "aliases": [
+    "nth roots of unity"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "The n solutions of zⁿ = 1: e^{2πik/n}, k = 0, …, n − 1.",
+   "in_theorem_pool": false,
+   "requires": [
+    "De Moivre's Theorem"
+   ]
+  },
+  {
+   "canonical_name": "AM-GM Inequality",
+   "aliases": [
+    "arithmetic mean geometric mean inequality",
+    "am gm"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "For non-negative reals, (x₁ + … + xₙ)/n ≥ (x₁⋯xₙ)^{1/n}, with equality iff all are equal.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Inequality"
+   ],
+   "pool_order": 20,
+   "latex": "\\frac{x_1 + \\cdots + x_n}{n} \\ge \\sqrt[n]{x_1 \\cdots x_n}"
+  },
+  {
+   "canonical_name": "Mathematical Induction",
+   "aliases": [
+    "proof by induction",
+    "induction"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Prove P(1) and P(n) ⇒ P(n + 1); then P(n) holds for all n ≥ 1.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Proof by Contradiction",
+   "aliases": [
+    "reductio ad absurdum",
+    "contradiction proof"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Assume the statement is false and derive a contradiction.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Similar Triangles",
+   "aliases": [
+    "similarity"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "Triangles with equal angles; their corresponding sides are proportional.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Pythagorean Theorem",
+   "aliases": [
+    "Pythagoras theorem",
+    "Pythagoras' theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "In a right triangle with legs a, b and hypotenuse c, a² + b² = c².",
+   "in_theorem_pool": true,
+   "requires": [
+    "Similar Triangles"
+   ],
+   "pool_order": 1,
+   "latex": "a^2 + b^2 = c^2"
+  },
+  {
+   "canonical_name": "Distance Formula",
+   "aliases": [],
+   "type": "formula",
+   "subject": "math",
+   "description": "The distance between (x₁, y₁) and (x₂, y₂) is √((x₂ − x₁)² + (y₂ − y₁)²).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Pythagorean Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Area of a Circle",
+   "aliases": [
+    "circle area"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "A circle of radius r has area πr² and circumference 2πr.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Inscribed Angle Theorem",
+   "aliases": [
+    "inscribed angle",
+    "angle at the centre theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "An inscribed angle is half the central angle subtending the same arc.",
+   "in_theorem_pool": true,
+   "requires": [],
+   "pool_order": 29,
+   "latex": "\\angle ACB = \\tfrac{1}{2}\\angle AOB"
+  },
+  {
+   "canonical_name": "Thales's Theorem",
+   "aliases": [
+    "thales theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "An angle inscribed in a semicircle is a right angle.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Inscribed Angle Theorem"
+   ],
+   "pool_order": 30,
+   "latex": "AB \\text{ a diameter} \\implies \\angle ACB = 90^\\circ"
+  },
+  {
+   "canonical_name": "Triangle Inequality",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "math",
+   "description": "For any triangle (or vectors), |a + b| ≤ |a| + |b|.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Absolute Value"
+   ]
+  },
+  {
+   "canonical_name": "Triangle Angle Sum",
+   "aliases": [
+    "angle sum of a triangle"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "The interior angles of a Euclidean triangle add up to 180°.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Heron's Formula",
+   "aliases": [
+    "herons formula"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "A triangle with sides a, b, c and s = (a + b + c)/2 has area √(s(s − a)(s − b)(s − c)).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Pythagorean Theorem"
+   ],
+   "pool_order": 33,
+   "latex": "A = \\sqrt{s(s-a)(s-b)(s-c)}"
+  },
+  {
+   "canonical_name": "Euler's Polyhedron Formula",
+   "aliases": [
+    "Euler characteristic",
+    "V - E + F = 2"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "For a convex polyhedron, V − E + F = 2.",
+   "in_theorem_pool": true,
+   "requires": [],
+   "pool_order": 21,
+   "latex": "V - E + F = 2"
+  },
+  {
+   "canonical_name": "Radian",
+   "aliases": [
+    "radians",
+    "radian measure"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "The angle subtending an arc equal in length to the radius; 2π radians = 360°.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Area of a Circle"
+   ]
+  },
+  {
+   "canonical_name": "Sine and Cosine",
+   "aliases": [
+    "trigonometric functions",
+    "sin and cos",
+    "trig ratios"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "For angle θ on the unit circle, (cos θ, sin θ) is the point reached; in a right triangle, opposite/hypotenuse and adjacent/hypotenuse.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Radian",
+    "Similar Triangles"
+   ]
+  },
+  {
+   "canonical_name": "Unit Circle",
+   "aliases": [],
+   "type": "concept",
+   "subject": "math",
+   "description": "The circle x² + y² = 1, used to define sin and cos for all angles.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Sine and Cosine"
+   ]
+  },
+  {
+   "canonical_name": "Pythagorean Identity",
+   "aliases": [
+    "sin^2 + cos^2 = 1"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "sin²θ + cos²θ = 1.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Sine and Cosine",
+    "Pythagorean Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Angle Addition Formulas",
+   "aliases": [
+    "compound angle formulas",
+    "sum formulas"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "sin(a + b) = sin a cos b + cos a sin b; cos(a + b) = cos a cos b − sin a sin b.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Sine and Cosine"
+   ]
+  },
+  {
+   "canonical_name": "Double Angle Formulas",
+   "aliases": [
+    "double angle identities"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "sin 2θ = 2 sin θ cos θ; cos 2θ = cos²θ − sin²θ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Angle Addition Formulas"
+   ]
+  },
+  {
+   "canonical_name": "Law of Sines",
+   "aliases": [
+    "sine rule"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "a/sin A = b/sin B = c/sin C = 2R in any triangle.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Sine and Cosine",
+    "Inscribed Angle Theorem"
+   ],
+   "pool_order": 32,
+   "latex": "\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C} = 2R"
+  },
+  {
+   "canonical_name": "Law of Cosines",
+   "aliases": [
+    "cosine rule"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "c² = a² + b² − 2ab cos C, generalising Pythagoras.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Pythagorean Theorem",
+    "Sine and Cosine"
+   ],
+   "pool_order": 23,
+   "latex": "c^2 = a^2 + b^2 - 2ab\\cos C"
+  },
+  {
+   "canonical_name": "Inverse Trigonometric Functions",
+   "aliases": [
+    "arcsin",
+    "arctan",
+    "inverse trig"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "arcsin, arccos, arctan invert sin, cos, tan on restricted domains.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Sine and Cosine",
+    "Inverse Function"
+   ]
+  },
+  {
+   "canonical_name": "Conic Sections",
+   "aliases": [
+    "conics",
+    "ellipse",
+    "parabola",
+    "hyperbola"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "Curves from slicing a cone: ellipse, parabola, hyperbola, each with a focus–directrix definition.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Distance Formula"
+   ]
+  },
+  {
+   "canonical_name": "Ptolemy's Theorem",
+   "aliases": [
+    "ptolemy theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "For a cyclic quadrilateral ABCD, AC·BD = AB·CD + AD·BC.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Inscribed Angle Theorem",
+    "Similar Triangles"
+   ],
+   "pool_order": 68,
+   "latex": "AC \\cdot BD = AB \\cdot CD + AD \\cdot BC"
+  },
+  {
+   "canonical_name": "Limit of a Function",
+   "aliases": [
+    "limit",
+    "limits"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "lim_{x→a} f(x) = L if f(x) gets arbitrarily close to L as x approaches a (ε–δ).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function",
+    "Absolute Value"
+   ]
+  },
+  {
+   "canonical_name": "Limit of a Sequence",
+   "aliases": [
+    "sequence limit",
+    "convergent sequence"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "aₙ → L if for every ε > 0 there is N with |aₙ − L| < ε for all n > N.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Absolute Value"
+   ]
+  },
+  {
+   "canonical_name": "Squeeze Theorem",
+   "aliases": [
+    "sandwich theorem",
+    "pinching theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If g ≤ f ≤ h near a and g, h → L, then f → L.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Limit of a Function"
+   ],
+   "pool_order": 35,
+   "latex": "g \\le f \\le h,\\ g, h \\to L \\implies f \\to L"
+  },
+  {
+   "canonical_name": "Continuity",
+   "aliases": [
+    "continuous function"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "f is continuous at a if lim_{x→a} f(x) = f(a).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Limit of a Function"
+   ]
+  },
+  {
+   "canonical_name": "Intermediate Value Theorem",
+   "aliases": [
+    "IVT",
+    "bolzano's theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A continuous f on [a, b] takes every value between f(a) and f(b).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Continuity"
+   ],
+   "pool_order": 15,
+   "latex": "f(a) < y < f(b) \\implies \\exists\\, c \\in (a,b):\\ f(c) = y"
+  },
+  {
+   "canonical_name": "Extreme Value Theorem",
+   "aliases": [
+    "EVT"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A continuous function on a closed bounded interval attains a maximum and a minimum.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Continuity"
+   ],
+   "pool_order": 36,
+   "latex": "f \\in C[a,b] \\implies \\exists\\, c, d:\\ f(c) \\le f(x) \\le f(d)"
+  },
+  {
+   "canonical_name": "Derivative",
+   "aliases": [
+    "differentiation",
+    "rate of change"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "f′(x) = lim_{h→0} (f(x + h) − f(x))/h, the slope of the tangent line.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Limit of a Function",
+    "Slope of a Line"
+   ]
+  },
+  {
+   "canonical_name": "Power Rule",
+   "aliases": [],
+   "type": "formula",
+   "subject": "math",
+   "description": "d/dx xⁿ = n xⁿ⁻¹.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Product Rule",
+   "aliases": [
+    "product rule for derivatives",
+    "Leibniz rule"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "(uv)′ = u′v + uv′.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Quotient Rule",
+   "aliases": [],
+   "type": "formula",
+   "subject": "math",
+   "description": "(u/v)′ = (u′v − uv′)/v².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Product Rule",
+    "Chain Rule"
+   ]
+  },
+  {
+   "canonical_name": "Chain Rule",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "math",
+   "description": "(f ∘ g)′(x) = f′(g(x))·g′(x).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Derivative",
+    "Function Composition"
+   ],
+   "pool_order": 27,
+   "latex": "(f \\circ g)'(x) = f'(g(x))\\,g'(x)"
+  },
+  {
+   "canonical_name": "Implicit Differentiation",
+   "aliases": [],
+   "type": "technique",
+   "subject": "math",
+   "description": "Differentiating both sides of F(x, y) = 0 with respect to x, treating y as y(x).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Chain Rule"
+   ]
+  },
+  {
+   "canonical_name": "Derivatives of Trigonometric Functions",
+   "aliases": [
+    "derivative of sin",
+    "derivative of cos"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "(sin x)′ = cos x, (cos x)′ = −sin x, (tan x)′ = sec²x.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative",
+    "Sine and Cosine",
+    "Squeeze Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Derivative of the Exponential Function",
+   "aliases": [
+    "derivative of e^x"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "d/dx eˣ = eˣ and d/dx ln x = 1/x.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative",
+    "Exponential Function",
+    "Euler's Number"
+   ]
+  },
+  {
+   "canonical_name": "Related Rates",
+   "aliases": [],
+   "type": "technique",
+   "subject": "math",
+   "description": "Differentiating a relation between quantities with respect to time to link their rates.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Chain Rule",
+    "Implicit Differentiation"
+   ]
+  },
+  {
+   "canonical_name": "Rolle's Theorem",
+   "aliases": [
+    "rolles theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If f is continuous on [a, b], differentiable on (a, b) and f(a) = f(b), then f′(c) = 0 for some c in (a, b).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Extreme Value Theorem",
+    "Derivative"
+   ],
+   "pool_order": 34,
+   "latex": "f(a) = f(b) \\implies \\exists\\, c:\\ f'(c) = 0"
+  },
+  {
+   "canonical_name": "Mean Value Theorem",
+   "aliases": [
+    "MVT",
+    "Lagrange mean value theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If f is continuous on [a, b] and differentiable on (a, b), f′(c) = (f(b) − f(a))/(b − a) for some c.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Rolle's Theorem"
+   ],
+   "pool_order": 11,
+   "latex": "f'(c) = \\frac{f(b) - f(a)}{b - a}"
+  },
+  {
+   "canonical_name": "L'Hôpital's Rule",
+   "aliases": [
+    "l'hopital's rule",
+    "lhopital rule"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If f/g → 0/0 or ∞/∞, then lim f/g = lim f′/g′ when the latter exists.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Mean Value Theorem"
+   ],
+   "pool_order": 28,
+   "latex": "\\lim_{x \\to a} \\frac{f(x)}{g(x)} = \\lim_{x \\to a} \\frac{f'(x)}{g'(x)}"
+  },
+  {
+   "canonical_name": "Optimization",
+   "aliases": [
+    "optimisation",
+    "maxima and minima",
+    "finding extrema"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Find extrema by solving f′(x) = 0 and checking critical points and endpoints.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative",
+    "Extreme Value Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Second Derivative Test",
+   "aliases": [
+    "concavity"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "At a critical point, f″ > 0 means a local minimum and f″ < 0 a local maximum.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Optimization"
+   ]
+  },
+  {
+   "canonical_name": "Newton's Method",
+   "aliases": [
+    "newton-raphson method"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Root finding by iterating xₙ₊₁ = xₙ − f(xₙ)/f′(xₙ).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Antiderivative",
+   "aliases": [
+    "indefinite integral",
+    "primitive"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "F with F′ = f; written ∫ f(x) dx = F(x) + C.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Riemann Sum",
+   "aliases": [
+    "riemann sums"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Σ f(xᵢ*) Δx, approximating the area under a curve with rectangles.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function"
+   ]
+  },
+  {
+   "canonical_name": "Definite Integral",
+   "aliases": [
+    "integral",
+    "area under a curve"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "∫ₐᵇ f(x) dx, the limit of Riemann sums: the signed area between f and the x-axis on [a, b].",
+   "in_theorem_pool": false,
+   "requires": [
+    "Riemann Sum",
+    "Limit of a Function"
+   ]
+  },
+  {
+   "canonical_name": "Fundamental Theorem of Calculus",
+   "aliases": [
+    "FTC"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If F′ = f then ∫ₐᵇ f(x) dx = F(b) − F(a); and d/dx ∫ₐˣ f(t) dt = f(x).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Definite Integral",
+    "Antiderivative",
+    "Mean Value Theorem"
+   ],
+   "pool_order": 3,
+   "latex": "\\int_a^b f(x)\\,dx = F(b) - F(a)"
+  },
+  {
+   "canonical_name": "Integration by Substitution",
+   "aliases": [
+    "u-substitution",
+    "change of variables"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "∫ f(g(x)) g′(x) dx = ∫ f(u) du with u = g(x); the chain rule in reverse.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Fundamental Theorem of Calculus",
+    "Chain Rule"
+   ]
+  },
+  {
+   "canonical_name": "Integration by Parts",
+   "aliases": [
+    "IBP",
+    "integration by parts formula"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "∫ u dv = uv − ∫ v du; the product rule in reverse.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Product Rule",
+    "Fundamental Theorem of Calculus"
+   ]
+  },
+  {
+   "canonical_name": "Partial Fractions",
+   "aliases": [
+    "partial fraction decomposition"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Splitting a rational function into simple fractions to integrate it.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Polynomial Long Division",
+    "Antiderivative"
+   ]
+  },
+  {
+   "canonical_name": "Trigonometric Substitution",
+   "aliases": [
+    "trig substitution"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Substituting x = a sin θ, a tan θ, or a sec θ to integrate expressions with √(a² ± x²).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Integration by Substitution",
+    "Pythagorean Identity"
+   ]
+  },
+  {
+   "canonical_name": "Improper Integral",
+   "aliases": [
+    "improper integrals"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "An integral over an unbounded interval or of an unbounded function, defined as a limit.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Definite Integral"
+   ]
+  },
+  {
+   "canonical_name": "Volume of Revolution",
+   "aliases": [
+    "disk method",
+    "shell method",
+    "solids of revolution"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "V = ∫ π f(x)² dx (disks) or ∫ 2πx f(x) dx (shells).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Definite Integral"
+   ]
+  },
+  {
+   "canonical_name": "Arc Length",
+   "aliases": [
+    "arc length formula"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "L = ∫ₐᵇ √(1 + f′(x)²) dx.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Definite Integral",
+    "Distance Formula"
+   ]
+  },
+  {
+   "canonical_name": "Infinite Series",
+   "aliases": [
+    "series",
+    "convergence of series"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Σ aₙ, the limit of partial sums when it exists.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Limit of a Sequence"
+   ]
+  },
+  {
+   "canonical_name": "Harmonic Series",
+   "aliases": [
+    "divergence of the harmonic series"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Σ 1/n diverges, although its terms tend to 0.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Infinite Series"
+   ],
+   "pool_order": 25,
+   "latex": "\\sum_{n=1}^{\\infty} \\frac{1}{n} = \\infty"
+  },
+  {
+   "canonical_name": "Ratio Test",
+   "aliases": [
+    "d'alembert ratio test"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If |aₙ₊₁/aₙ| → L < 1 the series converges absolutely; L > 1 it diverges.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Infinite Series",
+    "Geometric Series"
+   ]
+  },
+  {
+   "canonical_name": "Integral Test",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "math",
+   "description": "For positive decreasing f, Σ f(n) and ∫₁^∞ f(x) dx converge or diverge together.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Infinite Series",
+    "Improper Integral"
+   ]
+  },
+  {
+   "canonical_name": "Alternating Series Test",
+   "aliases": [
+    "leibniz test"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If bₙ decreases to 0 then Σ (−1)ⁿ bₙ converges.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Infinite Series"
+   ]
+  },
+  {
+   "canonical_name": "Power Series",
+   "aliases": [
+    "power series",
+    "radius of convergence"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Σ cₙ(x − a)ⁿ, converging inside a radius R.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Infinite Series",
+    "Ratio Test"
+   ]
+  },
+  {
+   "canonical_name": "Taylor Series",
+   "aliases": [
+    "Taylor expansion",
+    "Taylor polynomial",
+    "Maclaurin series"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A smooth f near a equals Σ f⁽ⁿ⁾(a)(x − a)ⁿ/n!, approximating f by polynomials matching its derivatives at a.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Power Series",
+    "Derivative"
+   ],
+   "pool_order": 4,
+   "latex": "f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!}(x-a)^n"
+  },
+  {
+   "canonical_name": "Taylor's Theorem with Remainder",
+   "aliases": [
+    "Lagrange remainder",
+    "Taylor remainder"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "f(x) = Σₖ≤ₙ f⁽ᵏ⁾(a)(x − a)ᵏ/k! + f⁽ⁿ⁺¹⁾(ξ)(x − a)ⁿ⁺¹/(n + 1)! for some ξ between a and x.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Taylor Series",
+    "Mean Value Theorem"
+   ],
+   "pool_order": 71,
+   "latex": "R_n(x) = \\frac{f^{(n+1)}(\\xi)}{(n+1)!}(x-a)^{n+1}"
+  },
+  {
+   "canonical_name": "Euler's Formula",
+   "aliases": [
+    "e^(i theta) = cos theta + i sin theta"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "e^{iθ} = cos θ + i sin θ.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Taylor Series",
+    "Complex Number",
+    "Sine and Cosine"
+   ],
+   "pool_order": 10,
+   "latex": "e^{i\\theta} = \\cos\\theta + i\\sin\\theta"
+  },
+  {
+   "canonical_name": "Euler's Identity",
+   "aliases": [
+    "e^(i pi) + 1 = 0"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "e^{iπ} + 1 = 0.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Euler's Formula"
+   ],
+   "pool_order": 2,
+   "latex": "e^{i\\pi} + 1 = 0"
+  },
+  {
+   "canonical_name": "Basel Problem",
+   "aliases": [
+    "sum of reciprocal squares",
+    "zeta(2)"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Σ 1/n² = π²/6.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Infinite Series",
+    "Taylor Series"
+   ],
+   "pool_order": 9,
+   "latex": "\\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6}"
+  },
+  {
+   "canonical_name": "Gaussian Integral",
+   "aliases": [
+    "integral of e^(-x^2)"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "∫_{−∞}^{∞} e^{−x²} dx = √π.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Improper Integral",
+    "Double Integral"
+   ],
+   "pool_order": 18,
+   "latex": "\\int_{-\\infty}^{\\infty} e^{-x^2}\\,dx = \\sqrt{\\pi}"
+  },
+  {
+   "canonical_name": "Stirling's Approximation",
+   "aliases": [
+    "stirling formula"
+   ],
+   "type": "formula",
+   "subject": "math",
+   "description": "n! ≈ √(2πn) (n/e)ⁿ.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Gaussian Integral",
+    "Logarithm"
+   ],
+   "pool_order": 40,
+   "latex": "n! \\sim \\sqrt{2\\pi n}\\left(\\frac{n}{e}\\right)^n"
+  },
+  {
+   "canonical_name": "Partial Derivative",
+   "aliases": [
+    "partial derivatives"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "∂f/∂x: the derivative of a multivariable function in one variable, others held fixed.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Gradient",
+   "aliases": [
+    "gradient vector",
+    "grad"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "∇f = (∂f/∂x₁, …, ∂f/∂xₙ), pointing in the direction of steepest ascent.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Partial Derivative",
+    "Vector"
+   ]
+  },
+  {
+   "canonical_name": "Directional Derivative",
+   "aliases": [],
+   "type": "definition",
+   "subject": "math",
+   "description": "D_u f = ∇f · u, the rate of change of f in unit direction u.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Gradient",
+    "Dot Product"
+   ]
+  },
+  {
+   "canonical_name": "Multivariable Chain Rule",
+   "aliases": [
+    "chain rule for partial derivatives"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "d/dt f(x(t), y(t)) = f_x x′ + f_y y′.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Partial Derivative",
+    "Chain Rule"
+   ]
+  },
+  {
+   "canonical_name": "Lagrange Multipliers",
+   "aliases": [
+    "method of lagrange multipliers"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Extrema of f subject to g = 0 satisfy ∇f = λ∇g.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Gradient",
+    "Optimization"
+   ]
+  },
+  {
+   "canonical_name": "Double Integral",
+   "aliases": [
+    "multiple integral",
+    "iterated integral"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "∬_R f(x, y) dA, computed as iterated single integrals (Fubini).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Definite Integral",
+    "Partial Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Change of Variables in Multiple Integrals",
+   "aliases": [
+    "jacobian",
+    "polar coordinates integral"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "dA = |∂(x, y)/∂(u, v)| du dv, e.g. dA = r dr dθ in polar coordinates.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Double Integral",
+    "Determinant"
+   ]
+  },
+  {
+   "canonical_name": "Line Integral",
+   "aliases": [
+    "line integrals",
+    "work integral"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "∫_C F · dr, the integral of a vector field along a curve.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Definite Integral",
+    "Vector Field"
+   ]
+  },
+  {
+   "canonical_name": "Vector Field",
+   "aliases": [
+    "vector fields"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A function assigning a vector to each point of space.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector",
+    "Function"
+   ]
+  },
+  {
+   "canonical_name": "Divergence and Curl",
+   "aliases": [
+    "divergence",
+    "curl"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "div F = ∇ · F measures outflow; curl F = ∇ × F measures rotation.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector Field",
+    "Partial Derivative",
+    "Cross Product"
+   ]
+  },
+  {
+   "canonical_name": "Green's Theorem",
+   "aliases": [
+    "greens theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "∮_C (P dx + Q dy) = ∬_D (∂Q/∂x − ∂P/∂y) dA.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Line Integral",
+    "Double Integral"
+   ],
+   "pool_order": 37,
+   "latex": "\\oint_C (P\\,dx + Q\\,dy) = \\iint_D \\left(\\frac{\\partial Q}{\\partial x} - \\frac{\\partial P}{\\partial y}\\right) dA"
+  },
+  {
+   "canonical_name": "Stokes' Theorem",
+   "aliases": [
+    "stokes theorem",
+    "kelvin-stokes theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "∮_{∂S} F · dr = ∬_S (∇ × F) · dS.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Green's Theorem",
+    "Divergence and Curl"
+   ],
+   "pool_order": 38,
+   "latex": "\\oint_{\\partial S} \\mathbf{F} \\cdot d\\mathbf{r} = \\iint_S (\\nabla \\times \\mathbf{F}) \\cdot d\\mathbf{S}"
+  },
+  {
+   "canonical_name": "Divergence Theorem",
+   "aliases": [
+    "Gauss's theorem",
+    "Gauss-Ostrogradsky theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "∯_{∂V} F · dS = ∭_V (∇ · F) dV.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Divergence and Curl",
+    "Double Integral"
+   ],
+   "pool_order": 39,
+   "latex": "\\oiint_{\\partial V} \\mathbf{F} \\cdot d\\mathbf{S} = \\iiint_V (\\nabla \\cdot \\mathbf{F})\\,dV"
+  },
+  {
+   "canonical_name": "Differential Equation",
+   "aliases": [
+    "ODE",
+    "ordinary differential equation"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "An equation relating a function to its derivatives.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Separable Differential Equation",
+   "aliases": [
+    "separation of variables"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "dy/dx = g(x)h(y) is solved by ∫ dy/h(y) = ∫ g(x) dx.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Differential Equation",
+    "Antiderivative"
+   ]
+  },
+  {
+   "canonical_name": "Exponential Growth and Decay",
+   "aliases": [
+    "exponential decay",
+    "half life"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "y′ = ky has solution y = y₀e^{kt}.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Separable Differential Equation",
+    "Exponential Function"
+   ]
+  },
+  {
+   "canonical_name": "First-Order Linear ODE",
+   "aliases": [
+    "integrating factor"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "y′ + p(x)y = q(x) is solved by multiplying by μ = e^{∫p dx}.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Differential Equation",
+    "Integration by Parts"
+   ]
+  },
+  {
+   "canonical_name": "Second-Order Linear ODE",
+   "aliases": [
+    "characteristic equation",
+    "linear ode with constant coefficients"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "ay″ + by′ + cy = 0 has solutions e^{rx} where ar² + br + c = 0.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Differential Equation",
+    "Quadratic Formula",
+    "Euler's Formula"
+   ]
+  },
+  {
+   "canonical_name": "Simple Harmonic Oscillator Equation",
+   "aliases": [
+    "x'' = -omega^2 x"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "x″ = −ω²x, solved by x = A cos(ωt + φ).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Second-Order Linear ODE"
+   ]
+  },
+  {
+   "canonical_name": "Laplace Transform",
+   "aliases": [
+    "laplace transforms"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "F(s) = ∫₀^∞ e^{−st} f(t) dt, turning linear ODEs into algebra.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Improper Integral",
+    "Differential Equation"
+   ]
+  },
+  {
+   "canonical_name": "Fourier Series",
+   "aliases": [
+    "Fourier expansion"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A periodic function can be written as a sum of complex exponentials cₙe^{2πinx}, with cₙ = ∫₀¹ f(x)e^{−2πinx} dx.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Definite Integral",
+    "Euler's Formula",
+    "Infinite Series"
+   ]
+  },
+  {
+   "canonical_name": "Fourier Transform",
+   "aliases": [],
+   "type": "technique",
+   "subject": "math",
+   "description": "f̂(ξ) = ∫ f(x) e^{−2πixξ} dx, decomposing a function into frequencies.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Fourier Series",
+    "Improper Integral"
+   ]
+  },
+  {
+   "canonical_name": "Heat Equation",
+   "aliases": [
+    "diffusion equation"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "∂u/∂t = α ∂²u/∂x², modelling diffusion.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Partial Derivative",
+    "Fourier Series"
+   ]
+  },
+  {
+   "canonical_name": "Wave Equation",
+   "aliases": [],
+   "type": "concept",
+   "subject": "math",
+   "description": "∂²u/∂t² = c² ∂²u/∂x², modelling waves.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Partial Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Euler's Method",
+   "aliases": [],
+   "type": "technique",
+   "subject": "math",
+   "description": "Numerically solving y′ = f(t, y) by yₙ₊₁ = yₙ + h f(tₙ, yₙ).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Differential Equation"
+   ]
+  },
+  {
+   "canonical_name": "Vector",
+   "aliases": [
+    "vectors"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "An element of a vector space; in ℝⁿ an ordered list of n numbers, added componentwise and scaled by real numbers.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Dot Product",
+   "aliases": [
+    "scalar product",
+    "inner product"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "a · b = Σ aᵢbᵢ = |a||b| cos θ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector",
+    "Sine and Cosine"
+   ]
+  },
+  {
+   "canonical_name": "Cross Product",
+   "aliases": [
+    "vector product"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "a × b is perpendicular to a and b with length |a||b| sin θ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector",
+    "Determinant"
+   ]
+  },
+  {
+   "canonical_name": "Cauchy-Schwarz Inequality",
+   "aliases": [
+    "cauchy schwarz"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "|⟨u, v⟩| ≤ ‖u‖ ‖v‖.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Dot Product"
+   ],
+   "pool_order": 6,
+   "latex": "|\\langle u, v\\rangle| \\le \\|u\\|\\,\\|v\\|"
+  },
+  {
+   "canonical_name": "Matrix",
+   "aliases": [
+    "matrices"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A rectangular array of numbers representing a linear map.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector"
+   ]
+  },
+  {
+   "canonical_name": "Matrix Multiplication",
+   "aliases": [],
+   "type": "definition",
+   "subject": "math",
+   "description": "(AB)ᵢⱼ = Σₖ AᵢₖBₖⱼ; composition of linear maps.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Matrix"
+   ]
+  },
+  {
+   "canonical_name": "Linear Transformation",
+   "aliases": [
+    "linear map",
+    "linear transformations"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "T(au + bv) = aT(u) + bT(v); represented by a matrix.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector",
+    "Matrix"
+   ]
+  },
+  {
+   "canonical_name": "Gaussian Elimination",
+   "aliases": [
+    "row reduction",
+    "row echelon form"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Solving Ax = b by elementary row operations to echelon form.",
+   "in_theorem_pool": false,
+   "requires": [
+    "System of Linear Equations",
+    "Matrix"
+   ]
+  },
+  {
+   "canonical_name": "Determinant",
+   "aliases": [
+    "determinants"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "det A, the signed volume scaling factor of A; A is invertible iff det A ≠ 0.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Matrix"
+   ]
+  },
+  {
+   "canonical_name": "Inverse Matrix",
+   "aliases": [
+    "matrix inverse"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A⁻¹ with AA⁻¹ = I; for 2×2, A⁻¹ = (1/det A)[[d, −b], [−c, a]].",
+   "in_theorem_pool": false,
+   "requires": [
+    "Determinant",
+    "Matrix Multiplication"
+   ]
+  },
+  {
+   "canonical_name": "Cramer's Rule",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "math",
+   "description": "xᵢ = det Aᵢ / det A, with Aᵢ having column i replaced by b.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Determinant"
+   ],
+   "pool_order": 60,
+   "latex": "x_i = \\frac{\\det A_i}{\\det A}"
+  },
+  {
+   "canonical_name": "Vector Space",
+   "aliases": [
+    "vector spaces"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A set closed under addition and scalar multiplication satisfying the vector axioms.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector"
+   ]
+  },
+  {
+   "canonical_name": "Linear Independence",
+   "aliases": [
+    "linearly independent",
+    "span"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Vectors are independent if no nontrivial combination gives 0; their span is all combinations.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Vector Space"
+   ]
+  },
+  {
+   "canonical_name": "Basis and Dimension",
+   "aliases": [
+    "basis",
+    "dimension"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A basis is an independent spanning set; all bases have the same size, the dimension.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Linear Independence"
+   ]
+  },
+  {
+   "canonical_name": "Rank-Nullity Theorem",
+   "aliases": [
+    "rank nullity"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "For T: V → W, dim V = rank T + nullity T.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Basis and Dimension",
+    "Linear Transformation"
+   ],
+   "pool_order": 57,
+   "latex": "\\dim V = \\operatorname{rank} T + \\operatorname{nullity} T"
+  },
+  {
+   "canonical_name": "Eigenvalues and Eigenvectors",
+   "aliases": [
+    "eigenvalue",
+    "eigenvector"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Av = λv for nonzero v; λ solves det(A − λI) = 0.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Determinant",
+    "Linear Transformation"
+   ]
+  },
+  {
+   "canonical_name": "Diagonalization",
+   "aliases": [
+    "diagonalisation",
+    "eigendecomposition"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "A = PDP⁻¹ with D diagonal, when A has n independent eigenvectors.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Eigenvalues and Eigenvectors",
+    "Inverse Matrix"
+   ]
+  },
+  {
+   "canonical_name": "Spectral Theorem",
+   "aliases": [
+    "spectral theorem for symmetric matrices"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A real symmetric matrix is orthogonally diagonalisable with real eigenvalues.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Diagonalization",
+    "Orthogonality"
+   ],
+   "pool_order": 56,
+   "latex": "A = A^{T} \\implies A = Q\\Lambda Q^{T}"
+  },
+  {
+   "canonical_name": "Orthogonality",
+   "aliases": [
+    "orthogonal vectors",
+    "orthonormal basis"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "u ⟂ v when u · v = 0; an orthonormal basis has unit, pairwise orthogonal vectors.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Dot Product"
+   ]
+  },
+  {
+   "canonical_name": "Gram-Schmidt Process",
+   "aliases": [
+    "gram schmidt orthogonalization"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Turns a basis into an orthonormal basis by subtracting projections.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Orthogonality",
+    "Basis and Dimension"
+   ]
+  },
+  {
+   "canonical_name": "Least Squares",
+   "aliases": [
+    "least squares regression",
+    "normal equations"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Minimise ‖Ax − b‖² by solving AᵀAx = Aᵀb.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Orthogonality",
+    "Inverse Matrix"
+   ]
+  },
+  {
+   "canonical_name": "Singular Value Decomposition",
+   "aliases": [
+    "SVD"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Every matrix factors as A = UΣVᵀ with orthogonal U, V and diagonal Σ ≥ 0.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Spectral Theorem"
+   ],
+   "pool_order": 59,
+   "latex": "A = U\\Sigma V^{T}"
+  },
+  {
+   "canonical_name": "Cayley-Hamilton Theorem",
+   "aliases": [
+    "cayley hamilton"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Every square matrix satisfies its own characteristic polynomial.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Eigenvalues and Eigenvectors"
+   ],
+   "pool_order": 58,
+   "latex": "p_A(A) = 0"
+  },
+  {
+   "canonical_name": "Counting Principle",
+   "aliases": [
+    "multiplication principle",
+    "fundamental counting principle"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "If one choice has m options and another n, together there are mn.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Permutation",
+   "aliases": [
+    "permutations"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Ordered arrangements; n!/(n − k)! ways to arrange k of n items.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Counting Principle"
+   ]
+  },
+  {
+   "canonical_name": "Binomial Coefficient",
+   "aliases": [
+    "combinations",
+    "n choose k"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "C(n, k) = n!/(k!(n − k)!), the number of k-subsets of an n-set.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Permutation"
+   ]
+  },
+  {
+   "canonical_name": "Pascal's Triangle",
+   "aliases": [
+    "pascals triangle",
+    "pascal's rule"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "Each entry is the sum of the two above: C(n, k) = C(n − 1, k − 1) + C(n − 1, k).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binomial Coefficient"
+   ]
+  },
+  {
+   "canonical_name": "Pigeonhole Principle",
+   "aliases": [
+    "dirichlet box principle"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If n + 1 objects go into n boxes, some box holds at least two.",
+   "in_theorem_pool": true,
+   "requires": [],
+   "pool_order": 22,
+   "latex": "n + 1 \\text{ objects},\\ n \\text{ boxes} \\implies \\text{a box holds} \\ge 2"
+  },
+  {
+   "canonical_name": "Inclusion-Exclusion Principle",
+   "aliases": [
+    "inclusion exclusion"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "|A ∪ B| = |A| + |B| − |A ∩ B|, and its n-set generalisation.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Set"
+   ],
+   "pool_order": 52,
+   "latex": "|A \\cup B| = |A| + |B| - |A \\cap B|"
+  },
+  {
+   "canonical_name": "Probability",
+   "aliases": [
+    "probability axioms"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A measure P on events with P(Ω) = 1 and countable additivity.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Set"
+   ]
+  },
+  {
+   "canonical_name": "Conditional Probability",
+   "aliases": [],
+   "type": "definition",
+   "subject": "math",
+   "description": "P(A | B) = P(A ∩ B)/P(B).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Probability"
+   ]
+  },
+  {
+   "canonical_name": "Independence of Events",
+   "aliases": [
+    "independent events"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A and B are independent if P(A ∩ B) = P(A)P(B).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Conditional Probability"
+   ]
+  },
+  {
+   "canonical_name": "Law of Total Probability",
+   "aliases": [
+    "total probability"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "P(A) = Σᵢ P(A | Bᵢ)P(Bᵢ) for a partition {Bᵢ}.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Conditional Probability"
+   ],
+   "pool_order": 49,
+   "latex": "P(A) = \\sum_i P(A \\mid B_i)\\,P(B_i)"
+  },
+  {
+   "canonical_name": "Bayes' Theorem",
+   "aliases": [
+    "Bayes rule",
+    "Bayes theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "P(H|E) = P(E|H)·P(H) / P(E): the posterior probability of a hypothesis given evidence.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Conditional Probability",
+    "Law of Total Probability"
+   ],
+   "pool_order": 5,
+   "latex": "P(H \\mid E) = \\frac{P(E \\mid H)\\,P(H)}{P(E)}"
+  },
+  {
+   "canonical_name": "Random Variable",
+   "aliases": [
+    "random variables"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A function from outcomes to numbers, described by its distribution.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Probability",
+    "Function"
+   ]
+  },
+  {
+   "canonical_name": "Expected Value",
+   "aliases": [
+    "expectation",
+    "mean of a random variable"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "E[X] = Σ x P(X = x) (or ∫ x f(x) dx); expectation is linear.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Random Variable"
+   ]
+  },
+  {
+   "canonical_name": "Variance and Standard Deviation",
+   "aliases": [
+    "variance",
+    "standard deviation"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Var X = E[(X − μ)²] = E[X²] − μ²; σ = √Var X.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Expected Value"
+   ]
+  },
+  {
+   "canonical_name": "Binomial Distribution",
+   "aliases": [],
+   "type": "definition",
+   "subject": "math",
+   "description": "Number of successes in n independent trials: P(X = k) = C(n, k)pᵏ(1 − p)ⁿ⁻ᵏ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binomial Coefficient",
+    "Independence of Events"
+   ]
+  },
+  {
+   "canonical_name": "Poisson Distribution",
+   "aliases": [],
+   "type": "definition",
+   "subject": "math",
+   "description": "P(X = k) = λᵏe^{−λ}/k!, counts of rare events.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Expected Value",
+    "Exponential Function"
+   ]
+  },
+  {
+   "canonical_name": "Normal Distribution",
+   "aliases": [
+    "Gaussian distribution",
+    "bell curve"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "Density (1/(σ√(2π))) e^{−(x−μ)²/(2σ²)}.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Gaussian Integral",
+    "Variance and Standard Deviation"
+   ]
+  },
+  {
+   "canonical_name": "Law of Large Numbers",
+   "aliases": [
+    "LLN"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "The sample mean of i.i.d. variables converges to the expected value.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Expected Value",
+    "Variance and Standard Deviation"
+   ],
+   "pool_order": 47,
+   "latex": "\\bar{X}_n \\to \\mathbb{E}[X]"
+  },
+  {
+   "canonical_name": "Central Limit Theorem",
+   "aliases": [
+    "CLT"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Standardised sums of i.i.d. variables with finite variance converge in distribution to N(0, 1).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Normal Distribution",
+    "Law of Large Numbers"
+   ],
+   "pool_order": 14,
+   "latex": "\\frac{\\bar{X}_n - \\mu}{\\sigma/\\sqrt{n}} \\xrightarrow{d} \\mathcal{N}(0,1)"
+  },
+  {
+   "canonical_name": "Chebyshev's Inequality",
+   "aliases": [
+    "chebyshev inequality"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "P(|X − μ| ≥ kσ) ≤ 1/k².",
+   "in_theorem_pool": true,
+   "requires": [
+    "Variance and Standard Deviation"
+   ],
+   "pool_order": 48,
+   "latex": "P(|X - \\mu| \\ge k\\sigma) \\le \\frac{1}{k^2}"
+  },
+  {
+   "canonical_name": "Confidence Interval",
+   "aliases": [
+    "confidence intervals"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "An interval estimate x̄ ± z·σ/√n that captures the true mean in a stated fraction of repeated samples.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Central Limit Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Hypothesis Testing",
+   "aliases": [
+    "p-value",
+    "null hypothesis",
+    "significance test"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Reject a null hypothesis when data this extreme would be unlikely (p-value below α) under it.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Normal Distribution",
+    "Conditional Probability"
+   ]
+  },
+  {
+   "canonical_name": "Linear Regression",
+   "aliases": [
+    "regression line",
+    "line of best fit"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "Fit y = a + bx minimising squared residuals.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Least Squares",
+    "Variance and Standard Deviation"
+   ]
+  },
+  {
+   "canonical_name": "Correlation",
+   "aliases": [
+    "correlation coefficient",
+    "pearson correlation"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "r = Cov(X, Y)/(σ_X σ_Y), between −1 and 1.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Variance and Standard Deviation"
+   ]
+  },
+  {
+   "canonical_name": "Markov Chain",
+   "aliases": [
+    "markov chains"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A random process whose next state depends only on the current state, via a transition matrix.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Conditional Probability",
+    "Matrix Multiplication"
+   ]
+  },
+  {
+   "canonical_name": "Monty Hall Problem",
+   "aliases": [
+    "monty hall"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Switching doors wins with probability 2/3.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Conditional Probability",
+    "Bayes' Theorem"
+   ],
+   "pool_order": 50,
+   "latex": "P(\\text{win} \\mid \\text{switch}) = \\tfrac{2}{3}"
+  },
+  {
+   "canonical_name": "Birthday Problem",
+   "aliases": [
+    "birthday paradox"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "With 23 people the chance that two share a birthday exceeds 1/2.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Counting Principle",
+    "Probability"
+   ],
+   "pool_order": 51,
+   "latex": "P(\\text{shared birthday among } 23) > \\tfrac{1}{2}"
+  },
+  {
+   "canonical_name": "Set",
+   "aliases": [
+    "sets",
+    "set theory",
+    "union and intersection"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A collection of distinct elements, with union, intersection, complement.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Bijection",
+   "aliases": [
+    "one-to-one correspondence",
+    "injective",
+    "surjective"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A function that is injective (one-to-one) and surjective (onto).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function"
+   ]
+  },
+  {
+   "canonical_name": "Countable Set",
+   "aliases": [
+    "countably infinite",
+    "countability"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A set in bijection with a subset of ℕ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Bijection",
+    "Set"
+   ]
+  },
+  {
+   "canonical_name": "Cantor's Diagonal Argument",
+   "aliases": [
+    "diagonal argument",
+    "uncountability of the reals"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "The real numbers are uncountable.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Countable Set",
+    "Proof by Contradiction"
+   ],
+   "pool_order": 16,
+   "latex": "|\\mathbb{R}| > |\\mathbb{N}|"
+  },
+  {
+   "canonical_name": "Propositional Logic",
+   "aliases": [
+    "boolean logic",
+    "truth tables"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "Statements combined with ∧, ∨, ¬, → and evaluated with truth tables.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Quantifiers",
+   "aliases": [
+    "for all",
+    "there exists",
+    "predicate logic"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "∀x P(x) and ∃x P(x); negation swaps them.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Propositional Logic"
+   ]
+  },
+  {
+   "canonical_name": "Relation and Equivalence Relation",
+   "aliases": [
+    "equivalence relation",
+    "equivalence classes"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A reflexive, symmetric, transitive relation partitions a set into classes.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Set"
+   ]
+  },
+  {
+   "canonical_name": "Graph Theory Basics",
+   "aliases": [
+    "graph",
+    "vertices and edges"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A graph is vertices joined by edges; degree, paths, cycles, connectivity.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Set"
+   ]
+  },
+  {
+   "canonical_name": "Handshaking Lemma",
+   "aliases": [
+    "degree sum formula"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "The sum of vertex degrees is twice the number of edges.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Graph Theory Basics"
+   ],
+   "pool_order": 53,
+   "latex": "\\sum_{v \\in V} \\deg v = 2|E|"
+  },
+  {
+   "canonical_name": "Eulerian Path",
+   "aliases": [
+    "euler path",
+    "seven bridges of königsberg"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A connected graph has an Euler circuit iff every vertex has even degree.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Graph Theory Basics"
+   ],
+   "pool_order": 54,
+   "latex": "\\text{Euler circuit} \\iff \\text{all degrees even}"
+  },
+  {
+   "canonical_name": "Tree (Graph Theory)",
+   "aliases": [
+    "trees in graph theory",
+    "spanning tree"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A connected acyclic graph; with n vertices it has n − 1 edges.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Graph Theory Basics",
+    "Mathematical Induction"
+   ]
+  },
+  {
+   "canonical_name": "Four Color Theorem",
+   "aliases": [
+    "four colour theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Every planar map can be coloured with four colours so adjacent regions differ.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Graph Theory Basics"
+   ],
+   "pool_order": 55,
+   "latex": "\\chi(G) \\le 4 \\text{ for planar } G"
+  },
+  {
+   "canonical_name": "Recurrence Relation",
+   "aliases": [
+    "recurrences",
+    "recursive sequence"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "A sequence defined from earlier terms, e.g. Fibonacci Fₙ = Fₙ₋₁ + Fₙ₋₂.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Mathematical Induction"
+   ]
+  },
+  {
+   "canonical_name": "Fibonacci Sequence",
+   "aliases": [
+    "fibonacci numbers",
+    "binet's formula"
+   ],
+   "type": "concept",
+   "subject": "math",
+   "description": "0, 1, 1, 2, 3, 5, …; Fₙ = (φⁿ − ψⁿ)/√5.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Recurrence Relation"
+   ]
+  },
+  {
+   "canonical_name": "Divisibility",
+   "aliases": [
+    "divisors",
+    "divides"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "a | b if b = ka for an integer k.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Prime Number",
+   "aliases": [
+    "primes",
+    "prime numbers"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "An integer > 1 whose only positive divisors are 1 and itself.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Divisibility"
+   ]
+  },
+  {
+   "canonical_name": "Fundamental Theorem of Arithmetic",
+   "aliases": [
+    "unique prime factorization"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Every integer > 1 factors into primes uniquely up to order.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Prime Number",
+    "Euclid's Lemma"
+   ],
+   "pool_order": 19,
+   "latex": "n = p_1^{a_1} p_2^{a_2} \\cdots p_k^{a_k}"
+  },
+  {
+   "canonical_name": "Euclid's Theorem",
+   "aliases": [
+    "infinitude of primes",
+    "infinitely many primes"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "There are infinitely many primes.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Prime Number",
+    "Proof by Contradiction"
+   ],
+   "pool_order": 7,
+   "latex": "|\\{p : p \\text{ prime}\\}| = \\infty"
+  },
+  {
+   "canonical_name": "Greatest Common Divisor",
+   "aliases": [
+    "gcd",
+    "highest common factor"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "gcd(a, b), the largest integer dividing both.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Divisibility"
+   ]
+  },
+  {
+   "canonical_name": "Euclidean Algorithm",
+   "aliases": [
+    "euclid's algorithm"
+   ],
+   "type": "technique",
+   "subject": "math",
+   "description": "gcd(a, b) = gcd(b, a mod b), repeated until the remainder is 0.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Greatest Common Divisor"
+   ]
+  },
+  {
+   "canonical_name": "Bézout's Identity",
+   "aliases": [
+    "bezout identity"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "There are integers x, y with ax + by = gcd(a, b).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Euclidean Algorithm"
+   ],
+   "pool_order": 44,
+   "latex": "\\exists\\, x, y \\in \\mathbb{Z}:\\ ax + by = \\gcd(a, b)"
+  },
+  {
+   "canonical_name": "Euclid's Lemma",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If a prime p divides ab then p divides a or p divides b.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Bézout's Identity"
+   ]
+  },
+  {
+   "canonical_name": "Modular Arithmetic",
+   "aliases": [
+    "congruence",
+    "mod",
+    "clock arithmetic"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "a ≡ b (mod n) when n divides a − b.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Divisibility"
+   ]
+  },
+  {
+   "canonical_name": "Fermat's Little Theorem",
+   "aliases": [
+    "fermat little theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If p is prime and p ∤ a, then a^{p−1} ≡ 1 (mod p).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Modular Arithmetic",
+    "Prime Number"
+   ],
+   "pool_order": 13,
+   "latex": "a^{p-1} \\equiv 1 \\pmod{p}"
+  },
+  {
+   "canonical_name": "Euler's Totient Theorem",
+   "aliases": [
+    "euler's theorem",
+    "totient function"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "If gcd(a, n) = 1 then a^{φ(n)} ≡ 1 (mod n).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Fermat's Little Theorem"
+   ],
+   "pool_order": 42,
+   "latex": "a^{\\varphi(n)} \\equiv 1 \\pmod{n}"
+  },
+  {
+   "canonical_name": "Chinese Remainder Theorem",
+   "aliases": [
+    "CRT"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Congruences modulo pairwise coprime moduli have a unique solution modulo their product.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Modular Arithmetic",
+    "Bézout's Identity"
+   ],
+   "pool_order": 41,
+   "latex": "x \\equiv a_i \\pmod{n_i} \\text{ has a unique solution mod } \\prod n_i"
+  },
+  {
+   "canonical_name": "Wilson's Theorem",
+   "aliases": [
+    "wilsons theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "p is prime iff (p − 1)! ≡ −1 (mod p).",
+   "in_theorem_pool": true,
+   "requires": [
+    "Modular Arithmetic",
+    "Prime Number"
+   ],
+   "pool_order": 43,
+   "latex": "(p-1)! \\equiv -1 \\pmod{p}"
+  },
+  {
+   "canonical_name": "Irrationality of the Square Root of 2",
+   "aliases": [
+    "root 2 is irrational"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "√2 cannot be written as p/q with integers p, q.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Rational Number",
+    "Proof by Contradiction"
+   ],
+   "pool_order": 8,
+   "latex": "\\sqrt{2} \\notin \\mathbb{Q}"
+  },
+  {
+   "canonical_name": "Prime Number Theorem",
+   "aliases": [
+    "PNT"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "The number of primes ≤ x is asymptotically x/ln x.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Prime Number",
+    "Logarithm"
+   ],
+   "pool_order": 45,
+   "latex": "\\pi(x) \\sim \\frac{x}{\\ln x}"
+  },
+  {
+   "canonical_name": "Fermat's Last Theorem",
+   "aliases": [
+    "FLT"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "xⁿ + yⁿ = zⁿ has no positive integer solutions for n > 2.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Pythagorean Theorem"
+   ],
+   "pool_order": 46,
+   "latex": "x^n + y^n = z^n \\text{ has no positive integer solutions for } n > 2"
+  },
+  {
+   "canonical_name": "Golden Ratio",
+   "aliases": [
+    "phi",
+    "divine proportion"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "φ = (1 + √5)/2, the positive root of x² = x + 1.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Quadratic Formula"
+   ]
+  },
+  {
+   "canonical_name": "Group",
+   "aliases": [
+    "group theory",
+    "groups"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A set with an associative operation, identity, and inverses.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Set"
+   ]
+  },
+  {
+   "canonical_name": "Lagrange's Theorem (Group Theory)",
+   "aliases": [
+    "lagrange theorem group"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "The order of a subgroup divides the order of a finite group.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Group",
+    "Relation and Equivalence Relation"
+   ],
+   "pool_order": 67,
+   "latex": "|H| \\text{ divides } |G|"
+  },
+  {
+   "canonical_name": "Supremum and Infimum",
+   "aliases": [
+    "least upper bound",
+    "completeness axiom"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "The least upper / greatest lower bound; every bounded nonempty set of reals has one.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Real Number"
+   ]
+  },
+  {
+   "canonical_name": "Monotone Convergence Theorem",
+   "aliases": [
+    "monotone sequence theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A bounded monotone sequence of reals converges.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Limit of a Sequence",
+    "Supremum and Infimum"
+   ],
+   "pool_order": 62,
+   "latex": "(a_n) \\uparrow,\\ \\text{bounded} \\implies a_n \\to \\sup a_n"
+  },
+  {
+   "canonical_name": "Bolzano-Weierstrass Theorem",
+   "aliases": [
+    "bolzano weierstrass"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Every bounded sequence in ℝⁿ has a convergent subsequence.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Monotone Convergence Theorem"
+   ],
+   "pool_order": 61,
+   "latex": "(x_n) \\text{ bounded} \\implies \\exists\\, x_{n_k} \\to x"
+  },
+  {
+   "canonical_name": "Cauchy Sequence",
+   "aliases": [
+    "cauchy sequences"
+   ],
+   "type": "definition",
+   "subject": "math",
+   "description": "A sequence whose terms get arbitrarily close to each other; in ℝ these are exactly the convergent ones.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Limit of a Sequence"
+   ]
+  },
+  {
+   "canonical_name": "Uniform Convergence",
+   "aliases": [],
+   "type": "definition",
+   "subject": "math",
+   "description": "fₙ → f uniformly if sup |fₙ − f| → 0.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Limit of a Sequence",
+    "Continuity"
+   ]
+  },
+  {
+   "canonical_name": "Cauchy's Integral Formula",
+   "aliases": [
+    "cauchy integral formula"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "f(a) = (1/2πi) ∮ f(z)/(z − a) dz for f holomorphic inside the contour.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Complex Number",
+    "Line Integral"
+   ],
+   "pool_order": 65,
+   "latex": "f(a) = \\frac{1}{2\\pi i}\\oint_\\gamma \\frac{f(z)}{z - a}\\,dz"
+  },
+  {
+   "canonical_name": "Residue Theorem",
+   "aliases": [
+    "residues",
+    "cauchy residue theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "∮ f dz = 2πi Σ Res(f, aₖ) over the poles inside the contour.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Cauchy's Integral Formula"
+   ],
+   "pool_order": 66,
+   "latex": "\\oint_\\gamma f(z)\\,dz = 2\\pi i \\sum_k \\operatorname{Res}(f, a_k)"
+  },
+  {
+   "canonical_name": "Brouwer Fixed Point Theorem",
+   "aliases": [
+    "brouwer theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "Every continuous map from a closed disk to itself has a fixed point.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Continuity",
+    "Intermediate Value Theorem"
+   ],
+   "pool_order": 63,
+   "latex": "f: D^n \\to D^n \\text{ continuous} \\implies \\exists\\, x:\\ f(x) = x"
+  },
+  {
+   "canonical_name": "Banach Fixed Point Theorem",
+   "aliases": [
+    "contraction mapping theorem"
+   ],
+   "type": "theorem",
+   "subject": "math",
+   "description": "A contraction on a complete metric space has exactly one fixed point.",
+   "in_theorem_pool": true,
+   "requires": [
+    "Cauchy Sequence"
+   ],
+   "pool_order": 64,
+   "latex": "d(Tx, Ty) \\le q\\, d(x, y),\\ q < 1 \\implies \\exists!\\, x^*:\\ Tx^* = x^*"
+  },
+  {
+   "canonical_name": "Kinematics",
+   "aliases": [
+    "equations of motion",
+    "suvat"
+   ],
+   "type": "formula",
+   "subject": "physics",
+   "description": "Constant-acceleration motion: v = u + at, s = ut + ½at², v² = u² + 2as.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Projectile Motion",
+   "aliases": [
+    "projectiles"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Motion under constant gravity: independent horizontal (uniform) and vertical (accelerated) motion.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Kinematics",
+    "Sine and Cosine"
+   ]
+  },
+  {
+   "canonical_name": "Newton's First Law",
+   "aliases": [
+    "law of inertia"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "A body stays at rest or in uniform motion unless acted on by a net force.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Newton's Second Law",
+   "aliases": [
+    "F = ma"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "F_net = ma = dp/dt.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's First Law",
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Newton's Third Law",
+   "aliases": [
+    "action and reaction"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Forces come in equal and opposite pairs.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's First Law"
+   ]
+  },
+  {
+   "canonical_name": "Free Body Diagram",
+   "aliases": [
+    "free-body diagrams"
+   ],
+   "type": "technique",
+   "subject": "physics",
+   "description": "Drawing every force on one object to apply Newton's second law.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Second Law",
+    "Vector"
+   ]
+  },
+  {
+   "canonical_name": "Friction",
+   "aliases": [
+    "static friction",
+    "kinetic friction"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "f ≤ μₛN when static, f = μₖN when sliding.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Second Law"
+   ]
+  },
+  {
+   "canonical_name": "Uniform Circular Motion",
+   "aliases": [
+    "centripetal acceleration",
+    "centripetal force"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "a = v²/r = ω²r, directed toward the centre.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Kinematics",
+    "Radian"
+   ]
+  },
+  {
+   "canonical_name": "Work-Energy Theorem",
+   "aliases": [
+    "work energy theorem"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Net work equals the change in kinetic energy: W = ΔK.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Second Law",
+    "Definite Integral",
+    "Dot Product"
+   ]
+  },
+  {
+   "canonical_name": "Kinetic Energy",
+   "aliases": [],
+   "type": "definition",
+   "subject": "physics",
+   "description": "K = ½mv².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Work-Energy Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Potential Energy",
+   "aliases": [
+    "gravitational potential energy"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "Energy of position; U = mgh near Earth's surface; F = −dU/dx.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Work-Energy Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Conservation of Energy",
+   "aliases": [
+    "energy conservation"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "In an isolated system total energy is constant; with conservative forces K + U is constant.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Kinetic Energy",
+    "Potential Energy"
+   ]
+  },
+  {
+   "canonical_name": "Power (Physics)",
+   "aliases": [
+    "power"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "P = dW/dt = F · v.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Work-Energy Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Momentum",
+   "aliases": [
+    "linear momentum"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "p = mv.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Second Law"
+   ]
+  },
+  {
+   "canonical_name": "Conservation of Momentum",
+   "aliases": [
+    "momentum conservation"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "With no external force, total momentum is constant.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Momentum",
+    "Newton's Third Law"
+   ]
+  },
+  {
+   "canonical_name": "Impulse",
+   "aliases": [
+    "impulse momentum theorem"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "J = ∫ F dt = Δp.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Momentum",
+    "Definite Integral"
+   ]
+  },
+  {
+   "canonical_name": "Elastic and Inelastic Collisions",
+   "aliases": [
+    "collisions"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Momentum is always conserved; kinetic energy only in elastic collisions.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Conservation of Momentum",
+    "Kinetic Energy"
+   ]
+  },
+  {
+   "canonical_name": "Center of Mass",
+   "aliases": [
+    "centre of mass"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "r_cm = Σ mᵢrᵢ / Σ mᵢ; it moves as if all external forces acted there.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Momentum"
+   ]
+  },
+  {
+   "canonical_name": "Torque",
+   "aliases": [
+    "moment of a force"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "τ = r × F.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Cross Product",
+    "Newton's Second Law"
+   ]
+  },
+  {
+   "canonical_name": "Moment of Inertia",
+   "aliases": [
+    "rotational inertia"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "I = Σ mr² (or ∫ r² dm).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Center of Mass",
+    "Definite Integral"
+   ]
+  },
+  {
+   "canonical_name": "Parallel Axis Theorem",
+   "aliases": [
+    "steiner's theorem"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "I = I_cm + Md².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Moment of Inertia"
+   ]
+  },
+  {
+   "canonical_name": "Angular Momentum",
+   "aliases": [],
+   "type": "definition",
+   "subject": "physics",
+   "description": "L = r × p = Iω.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Momentum",
+    "Cross Product"
+   ]
+  },
+  {
+   "canonical_name": "Conservation of Angular Momentum",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "With no external torque, angular momentum is constant.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Angular Momentum",
+    "Torque"
+   ]
+  },
+  {
+   "canonical_name": "Newton's Law of Universal Gravitation",
+   "aliases": [
+    "law of gravitation",
+    "inverse square law of gravity"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "F = G m₁m₂ / r².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Second Law"
+   ]
+  },
+  {
+   "canonical_name": "Kepler's Laws",
+   "aliases": [
+    "kepler's laws of planetary motion"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Elliptical orbits with the Sun at a focus; equal areas in equal times; T² ∝ a³.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Law of Universal Gravitation",
+    "Conic Sections"
+   ]
+  },
+  {
+   "canonical_name": "Escape Velocity",
+   "aliases": [],
+   "type": "formula",
+   "subject": "physics",
+   "description": "v = √(2GM/r).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Conservation of Energy",
+    "Newton's Law of Universal Gravitation"
+   ]
+  },
+  {
+   "canonical_name": "Hooke's Law",
+   "aliases": [
+    "spring force"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "F = −kx for an ideal spring.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Second Law"
+   ]
+  },
+  {
+   "canonical_name": "Simple Harmonic Motion",
+   "aliases": [
+    "SHM",
+    "harmonic oscillator"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "x(t) = A cos(ωt + φ) with ω = √(k/m).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Hooke's Law",
+    "Simple Harmonic Oscillator Equation"
+   ]
+  },
+  {
+   "canonical_name": "Simple Pendulum",
+   "aliases": [
+    "pendulum period"
+   ],
+   "type": "formula",
+   "subject": "physics",
+   "description": "T ≈ 2π√(L/g) for small swings.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Simple Harmonic Motion"
+   ]
+  },
+  {
+   "canonical_name": "Damped and Driven Oscillations",
+   "aliases": [
+    "resonance",
+    "damping"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Damping decays oscillations; driving near the natural frequency causes resonance.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Simple Harmonic Motion",
+    "Second-Order Linear ODE"
+   ]
+  },
+  {
+   "canonical_name": "Lagrangian Mechanics",
+   "aliases": [
+    "lagrangian",
+    "euler-lagrange equation"
+   ],
+   "type": "technique",
+   "subject": "physics",
+   "description": "Motion extremises the action S = ∫ (T − V) dt, giving d/dt ∂L/∂q̇ = ∂L/∂q.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Partial Derivative",
+    "Conservation of Energy"
+   ]
+  },
+  {
+   "canonical_name": "Noether's Theorem",
+   "aliases": [
+    "noethers theorem"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Every continuous symmetry of the action gives a conserved quantity.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Lagrangian Mechanics"
+   ]
+  },
+  {
+   "canonical_name": "Pressure",
+   "aliases": [],
+   "type": "definition",
+   "subject": "physics",
+   "description": "p = F/A.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Newton's Second Law"
+   ]
+  },
+  {
+   "canonical_name": "Archimedes' Principle",
+   "aliases": [
+    "buoyancy"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "The buoyant force equals the weight of the displaced fluid.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Pressure"
+   ]
+  },
+  {
+   "canonical_name": "Bernoulli's Principle",
+   "aliases": [
+    "bernoulli equation"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "p + ½ρv² + ρgh is constant along a streamline.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Conservation of Energy",
+    "Pressure"
+   ]
+  },
+  {
+   "canonical_name": "Wave",
+   "aliases": [
+    "waves",
+    "wavelength and frequency"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "A travelling disturbance; v = fλ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Simple Harmonic Motion"
+   ]
+  },
+  {
+   "canonical_name": "Superposition Principle",
+   "aliases": [
+    "interference"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Overlapping waves add; constructive and destructive interference.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Wave"
+   ]
+  },
+  {
+   "canonical_name": "Standing Wave",
+   "aliases": [
+    "standing waves",
+    "harmonics"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Superposed opposite travelling waves with fixed nodes; on a string λₙ = 2L/n.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Superposition Principle"
+   ]
+  },
+  {
+   "canonical_name": "Doppler Effect",
+   "aliases": [
+    "doppler shift"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "f′ = f (v ± v_o)/(v ∓ v_s) for sound.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Wave"
+   ]
+  },
+  {
+   "canonical_name": "Snell's Law",
+   "aliases": [
+    "law of refraction"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "n₁ sin θ₁ = n₂ sin θ₂.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Wave",
+    "Sine and Cosine"
+   ]
+  },
+  {
+   "canonical_name": "Total Internal Reflection",
+   "aliases": [
+    "critical angle"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Beyond sin θ_c = n₂/n₁, light is fully reflected.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Snell's Law"
+   ]
+  },
+  {
+   "canonical_name": "Thin Lens Equation",
+   "aliases": [
+    "lens formula",
+    "mirror equation"
+   ],
+   "type": "formula",
+   "subject": "physics",
+   "description": "1/f = 1/dₒ + 1/dᵢ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Snell's Law"
+   ]
+  },
+  {
+   "canonical_name": "Double-Slit Experiment",
+   "aliases": [
+    "young's double slit"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Bright fringes at d sin θ = mλ, showing the wave nature of light.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Superposition Principle"
+   ]
+  },
+  {
+   "canonical_name": "Temperature and Heat",
+   "aliases": [
+    "heat",
+    "specific heat capacity"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Q = mcΔT; heat flows from hot to cold.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Ideal Gas Law",
+   "aliases": [
+    "PV = nRT"
+   ],
+   "type": "formula",
+   "subject": "physics",
+   "description": "pV = nRT.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Pressure",
+    "Temperature and Heat"
+   ]
+  },
+  {
+   "canonical_name": "Kinetic Theory of Gases",
+   "aliases": [],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Pressure and temperature arise from molecular motion: ½m⟨v²⟩ = (3/2)kT.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Ideal Gas Law",
+    "Kinetic Energy"
+   ]
+  },
+  {
+   "canonical_name": "First Law of Thermodynamics",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "ΔU = Q − W.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Conservation of Energy",
+    "Temperature and Heat"
+   ]
+  },
+  {
+   "canonical_name": "Entropy",
+   "aliases": [],
+   "type": "definition",
+   "subject": "physics",
+   "description": "dS = dQ_rev/T; also S = k ln Ω.",
+   "in_theorem_pool": false,
+   "requires": [
+    "First Law of Thermodynamics",
+    "Logarithm"
+   ]
+  },
+  {
+   "canonical_name": "Second Law of Thermodynamics",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "The entropy of an isolated system never decreases.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Entropy"
+   ]
+  },
+  {
+   "canonical_name": "Carnot Efficiency",
+   "aliases": [
+    "carnot engine",
+    "heat engine efficiency"
+   ],
+   "type": "formula",
+   "subject": "physics",
+   "description": "η = 1 − T_c/T_h, the maximum efficiency of a heat engine.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Second Law of Thermodynamics"
+   ]
+  },
+  {
+   "canonical_name": "Electric Charge",
+   "aliases": [
+    "charge"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "A conserved property of matter, in multiples of e, that sources electric fields.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Coulomb's Law",
+   "aliases": [
+    "coulomb law"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "F = k q₁q₂ / r².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Electric Charge"
+   ]
+  },
+  {
+   "canonical_name": "Electric Field",
+   "aliases": [],
+   "type": "definition",
+   "subject": "physics",
+   "description": "E = F/q, the force per unit charge.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Coulomb's Law",
+    "Vector Field"
+   ]
+  },
+  {
+   "canonical_name": "Gauss's Law",
+   "aliases": [
+    "gauss law"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "∯ E · dA = Q_enc/ε₀.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Electric Field",
+    "Divergence Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Electric Potential",
+   "aliases": [
+    "voltage",
+    "potential difference"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "V with E = −∇V; work per unit charge.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Electric Field",
+    "Gradient"
+   ]
+  },
+  {
+   "canonical_name": "Capacitance",
+   "aliases": [
+    "capacitor"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "C = Q/V; energy stored ½CV².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Electric Potential"
+   ]
+  },
+  {
+   "canonical_name": "Electric Current",
+   "aliases": [
+    "current"
+   ],
+   "type": "definition",
+   "subject": "physics",
+   "description": "I = dQ/dt.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Electric Charge",
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Ohm's Law",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "V = IR.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Electric Current",
+    "Electric Potential"
+   ]
+  },
+  {
+   "canonical_name": "Kirchhoff's Circuit Laws",
+   "aliases": [
+    "kirchhoff's laws",
+    "KCL",
+    "KVL"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Currents into a node sum to zero; voltages around a loop sum to zero.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Ohm's Law"
+   ]
+  },
+  {
+   "canonical_name": "Electrical Power",
+   "aliases": [
+    "joule heating"
+   ],
+   "type": "formula",
+   "subject": "physics",
+   "description": "P = IV = I²R.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Ohm's Law",
+    "Power (Physics)"
+   ]
+  },
+  {
+   "canonical_name": "RC Circuit",
+   "aliases": [
+    "rc time constant"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Charging follows V(t) = V₀(1 − e^{−t/RC}).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Capacitance",
+    "Ohm's Law",
+    "First-Order Linear ODE"
+   ]
+  },
+  {
+   "canonical_name": "Magnetic Field",
+   "aliases": [],
+   "type": "definition",
+   "subject": "physics",
+   "description": "B, exerting F = qv × B on moving charges.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Cross Product",
+    "Electric Current"
+   ]
+  },
+  {
+   "canonical_name": "Lorentz Force",
+   "aliases": [],
+   "type": "formula",
+   "subject": "physics",
+   "description": "F = q(E + v × B).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Magnetic Field",
+    "Electric Field"
+   ]
+  },
+  {
+   "canonical_name": "Biot-Savart Law",
+   "aliases": [
+    "biot savart"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "dB = (μ₀/4π) I dl × r̂ / r².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Magnetic Field"
+   ]
+  },
+  {
+   "canonical_name": "Ampère's Law",
+   "aliases": [
+    "amperes law"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "∮ B · dl = μ₀ I_enc (plus the displacement current term).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Magnetic Field",
+    "Stokes' Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Faraday's Law of Induction",
+   "aliases": [
+    "faraday's law",
+    "electromagnetic induction"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "ε = −dΦ_B/dt.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Magnetic Field",
+    "Derivative"
+   ]
+  },
+  {
+   "canonical_name": "Lenz's Law",
+   "aliases": [],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "An induced current opposes the change in flux that produced it.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Faraday's Law of Induction"
+   ]
+  },
+  {
+   "canonical_name": "Maxwell's Equations",
+   "aliases": [
+    "maxwell equations"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Gauss (E and B), Faraday, and Ampère–Maxwell laws: the complete classical theory of electromagnetism.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Gauss's Law",
+    "Ampère's Law",
+    "Faraday's Law of Induction",
+    "Divergence and Curl"
+   ]
+  },
+  {
+   "canonical_name": "Electromagnetic Wave",
+   "aliases": [
+    "light as an electromagnetic wave"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Maxwell's equations give waves travelling at c = 1/√(μ₀ε₀).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Maxwell's Equations",
+    "Wave Equation"
+   ]
+  },
+  {
+   "canonical_name": "Special Relativity",
+   "aliases": [
+    "einstein's special relativity",
+    "time dilation",
+    "length contraction"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Physics is the same in all inertial frames and c is invariant; moving clocks run slow by γ = 1/√(1 − v²/c²).",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Mass-Energy Equivalence",
+   "aliases": [
+    "E = mc^2"
+   ],
+   "type": "formula",
+   "subject": "physics",
+   "description": "E = mc² (rest energy); in general E² = (pc)² + (mc²)².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Special Relativity"
+   ]
+  },
+  {
+   "canonical_name": "Photoelectric Effect",
+   "aliases": [],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Light ejects electrons in quanta: K_max = hf − φ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Electromagnetic Wave"
+   ]
+  },
+  {
+   "canonical_name": "Wave-Particle Duality",
+   "aliases": [
+    "de broglie wavelength"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Matter has wavelength λ = h/p.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Photoelectric Effect",
+    "Double-Slit Experiment"
+   ]
+  },
+  {
+   "canonical_name": "Heisenberg Uncertainty Principle",
+   "aliases": [
+    "uncertainty principle"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "Δx Δp ≥ ħ/2.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Wave-Particle Duality",
+    "Fourier Transform"
+   ]
+  },
+  {
+   "canonical_name": "Schrödinger Equation",
+   "aliases": [
+    "schrodinger equation"
+   ],
+   "type": "theorem",
+   "subject": "physics",
+   "description": "iħ ∂ψ/∂t = Ĥψ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Wave-Particle Duality",
+    "Partial Derivative",
+    "Complex Number"
+   ]
+  },
+  {
+   "canonical_name": "Particle in a Box",
+   "aliases": [
+    "infinite square well"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Eₙ = n²h²/(8mL²), quantised energy levels.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Schrödinger Equation",
+    "Standing Wave"
+   ]
+  },
+  {
+   "canonical_name": "Bohr Model",
+   "aliases": [
+    "bohr model of the hydrogen atom"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "Electron energy levels Eₙ = −13.6 eV / n².",
+   "in_theorem_pool": false,
+   "requires": [
+    "Wave-Particle Duality",
+    "Coulomb's Law"
+   ]
+  },
+  {
+   "canonical_name": "Radioactive Decay",
+   "aliases": [
+    "radioactive half-life",
+    "nuclear decay law"
+   ],
+   "type": "concept",
+   "subject": "physics",
+   "description": "N(t) = N₀e^{−λt}, with half-life ln 2/λ.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Exponential Growth and Decay"
+   ]
+  },
+  {
+   "canonical_name": "Variable and Data Type",
+   "aliases": [
+    "variables",
+    "data types"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Named storage for values of a type (integer, float, boolean, string).",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Control Flow",
+   "aliases": [
+    "conditionals",
+    "if statements",
+    "loops"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Branching (if/else) and repetition (for/while) to control which code runs.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Variable and Data Type"
+   ]
+  },
+  {
+   "canonical_name": "Function (Programming)",
+   "aliases": [
+    "functions in programming",
+    "subroutine",
+    "procedure"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "A named, reusable block of code with parameters and a return value.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Control Flow"
+   ]
+  },
+  {
+   "canonical_name": "Recursion",
+   "aliases": [
+    "recursive function"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "A function that calls itself on a smaller input, with a base case.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function (Programming)",
+    "Mathematical Induction"
+   ]
+  },
+  {
+   "canonical_name": "Binary Number System",
+   "aliases": [
+    "binary",
+    "base 2"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Representing integers with digits 0 and 1; each position is a power of 2.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Exponent Rules"
+   ]
+  },
+  {
+   "canonical_name": "Two's Complement",
+   "aliases": [
+    "twos complement"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Signed integers in binary: −x is the bitwise inverse of x plus 1.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binary Number System"
+   ]
+  },
+  {
+   "canonical_name": "Floating-Point Arithmetic",
+   "aliases": [
+    "IEEE 754",
+    "floating point"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Numbers stored as sign × mantissa × 2^exponent, with rounding error.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binary Number System"
+   ]
+  },
+  {
+   "canonical_name": "Boolean Algebra",
+   "aliases": [
+    "logic gates",
+    "boolean logic gates"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "AND, OR, NOT over {0, 1}; De Morgan's laws; the basis of digital circuits.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Propositional Logic"
+   ]
+  },
+  {
+   "canonical_name": "Object-Oriented Programming",
+   "aliases": [
+    "OOP",
+    "classes and objects",
+    "inheritance"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Bundling data and methods into objects; encapsulation, inheritance, polymorphism.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function (Programming)"
+   ]
+  },
+  {
+   "canonical_name": "Memory: Stack and Heap",
+   "aliases": [
+    "stack vs heap",
+    "call stack"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "The call stack holds function frames; the heap holds dynamically allocated data.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Function (Programming)"
+   ]
+  },
+  {
+   "canonical_name": "Array",
+   "aliases": [
+    "arrays"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "Contiguous fixed-size storage with O(1) indexing.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Variable and Data Type"
+   ]
+  },
+  {
+   "canonical_name": "Linked List",
+   "aliases": [
+    "linked lists"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "Nodes holding a value and a pointer to the next node; O(1) insertion at a known position.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array"
+   ]
+  },
+  {
+   "canonical_name": "Stack (Data Structure)",
+   "aliases": [
+    "stack",
+    "LIFO"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "Last-in first-out: push and pop in O(1).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array"
+   ]
+  },
+  {
+   "canonical_name": "Queue",
+   "aliases": [
+    "FIFO",
+    "queues"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "First-in first-out: enqueue and dequeue in O(1).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Linked List"
+   ]
+  },
+  {
+   "canonical_name": "Hash Table",
+   "aliases": [
+    "hash map",
+    "dictionary",
+    "hashing"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "Key–value storage using a hash function; O(1) expected lookup.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array",
+    "Modular Arithmetic"
+   ]
+  },
+  {
+   "canonical_name": "Binary Tree",
+   "aliases": [
+    "binary trees"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "A tree where each node has at most two children.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Tree (Graph Theory)",
+    "Recursion"
+   ]
+  },
+  {
+   "canonical_name": "Binary Search Tree",
+   "aliases": [
+    "BST"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "A binary tree with left < node < right; O(h) search, insert, delete.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binary Tree"
+   ]
+  },
+  {
+   "canonical_name": "Balanced Binary Search Tree",
+   "aliases": [
+    "AVL tree",
+    "red-black tree",
+    "self-balancing tree"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Rotations keep height O(log n), so operations are O(log n).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binary Search Tree"
+   ]
+  },
+  {
+   "canonical_name": "Heap (Data Structure)",
+   "aliases": [
+    "binary heap",
+    "priority queue"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "A complete tree with the heap property; O(log n) insert and extract-min.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binary Tree"
+   ]
+  },
+  {
+   "canonical_name": "Trie",
+   "aliases": [
+    "prefix tree"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "A tree keyed by characters for fast prefix lookup.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binary Tree"
+   ]
+  },
+  {
+   "canonical_name": "Graph Representation",
+   "aliases": [
+    "adjacency list",
+    "adjacency matrix"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Storing graphs as adjacency lists (sparse) or matrices (dense).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Graph Theory Basics",
+    "Array"
+   ]
+  },
+  {
+   "canonical_name": "Union-Find",
+   "aliases": [
+    "disjoint set union",
+    "DSU"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "Tracks disjoint sets with near-constant-time union and find (path compression, union by rank).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Tree (Graph Theory)"
+   ]
+  },
+  {
+   "canonical_name": "Big O Notation",
+   "aliases": [
+    "asymptotic notation",
+    "time complexity",
+    "big-o"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "f = O(g) if f ≤ c·g for large n; describes growth rate of running time.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Limit of a Function"
+   ]
+  },
+  {
+   "canonical_name": "Linear Search",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Check each element in turn: O(n).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array",
+    "Big O Notation"
+   ]
+  },
+  {
+   "canonical_name": "Binary Search",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Halve a sorted range each step: O(log n).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array",
+    "Big O Notation",
+    "Logarithm"
+   ]
+  },
+  {
+   "canonical_name": "Bubble Sort",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Repeatedly swap adjacent out-of-order elements: O(n²).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array",
+    "Big O Notation"
+   ]
+  },
+  {
+   "canonical_name": "Insertion Sort",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Insert each element into the sorted prefix: O(n²), fast on nearly sorted data.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array",
+    "Big O Notation"
+   ]
+  },
+  {
+   "canonical_name": "Merge Sort",
+   "aliases": [
+    "mergesort"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Sort halves recursively and merge: O(n log n).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Recursion",
+    "Divide and Conquer"
+   ]
+  },
+  {
+   "canonical_name": "Quicksort",
+   "aliases": [
+    "quick sort"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Partition around a pivot and recurse: O(n log n) expected.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Recursion",
+    "Divide and Conquer"
+   ]
+  },
+  {
+   "canonical_name": "Comparison Sorting Lower Bound",
+   "aliases": [
+    "sorting lower bound"
+   ],
+   "type": "theorem",
+   "subject": "cs",
+   "description": "Any comparison sort needs Ω(n log n) comparisons in the worst case.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Binary Tree",
+    "Stirling's Approximation",
+    "Big O Notation"
+   ]
+  },
+  {
+   "canonical_name": "Divide and Conquer",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Split a problem, solve the parts recursively, combine.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Recursion"
+   ]
+  },
+  {
+   "canonical_name": "Master Theorem",
+   "aliases": [
+    "master theorem for recurrences"
+   ],
+   "type": "theorem",
+   "subject": "cs",
+   "description": "Solves T(n) = aT(n/b) + f(n) by comparing f(n) with n^{log_b a}.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Divide and Conquer",
+    "Recurrence Relation",
+    "Big O Notation"
+   ]
+  },
+  {
+   "canonical_name": "Breadth-First Search",
+   "aliases": [
+    "BFS"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Explore a graph level by level with a queue; finds shortest paths in unweighted graphs.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Graph Representation",
+    "Queue"
+   ]
+  },
+  {
+   "canonical_name": "Depth-First Search",
+   "aliases": [
+    "DFS"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Explore as deep as possible before backtracking, with a stack or recursion.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Graph Representation",
+    "Stack (Data Structure)"
+   ]
+  },
+  {
+   "canonical_name": "Topological Sort",
+   "aliases": [
+    "topological ordering"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Order a DAG's vertices so every edge points forward.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Depth-First Search"
+   ]
+  },
+  {
+   "canonical_name": "Dijkstra's Algorithm",
+   "aliases": [
+    "dijkstra shortest path"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Shortest paths from a source with non-negative weights, using a priority queue: O((V + E) log V).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Breadth-First Search",
+    "Heap (Data Structure)"
+   ]
+  },
+  {
+   "canonical_name": "Bellman-Ford Algorithm",
+   "aliases": [
+    "bellman ford"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Shortest paths allowing negative weights by relaxing all edges V − 1 times; detects negative cycles.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Dijkstra's Algorithm"
+   ]
+  },
+  {
+   "canonical_name": "Minimum Spanning Tree",
+   "aliases": [
+    "MST",
+    "Kruskal's algorithm",
+    "Prim's algorithm"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "A lightest spanning tree, built greedily by Kruskal (with union-find) or Prim.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Tree (Graph Theory)",
+    "Greedy Algorithm",
+    "Union-Find"
+   ]
+  },
+  {
+   "canonical_name": "Greedy Algorithm",
+   "aliases": [
+    "greedy algorithms"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Make the locally best choice at each step; optimal when the problem has the greedy-choice property.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Big O Notation"
+   ]
+  },
+  {
+   "canonical_name": "Dynamic Programming",
+   "aliases": [
+    "DP",
+    "memoization"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Solve overlapping subproblems once and reuse them (memoization or tabulation).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Recursion",
+    "Recurrence Relation"
+   ]
+  },
+  {
+   "canonical_name": "Knapsack Problem",
+   "aliases": [
+    "0/1 knapsack"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Maximise value under a weight limit; O(nW) by dynamic programming.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Dynamic Programming"
+   ]
+  },
+  {
+   "canonical_name": "Longest Common Subsequence",
+   "aliases": [
+    "LCS"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "The longest sequence common to two strings, found by an O(mn) DP table.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Dynamic Programming"
+   ]
+  },
+  {
+   "canonical_name": "Backtracking",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Build candidates incrementally and abandon partial ones that can't succeed.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Recursion",
+    "Depth-First Search"
+   ]
+  },
+  {
+   "canonical_name": "Two Pointers Technique",
+   "aliases": [
+    "two pointers",
+    "sliding window"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Move two indices through an array to solve range problems in O(n).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Array"
+   ]
+  },
+  {
+   "canonical_name": "Hash Function",
+   "aliases": [
+    "hash functions",
+    "cryptographic hash"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "Maps data to a fixed-size value; cryptographic hashes are collision-resistant.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Hash Table"
+   ]
+  },
+  {
+   "canonical_name": "Finite Automaton",
+   "aliases": [
+    "DFA",
+    "NFA",
+    "finite state machine"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "A machine with finitely many states reading input symbol by symbol; recognises regular languages.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Set"
+   ]
+  },
+  {
+   "canonical_name": "Regular Expression",
+   "aliases": [
+    "regex",
+    "regular languages"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Patterns built from concatenation, union, and star; equivalent to finite automata.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Finite Automaton"
+   ]
+  },
+  {
+   "canonical_name": "Pumping Lemma",
+   "aliases": [
+    "pumping lemma for regular languages"
+   ],
+   "type": "theorem",
+   "subject": "cs",
+   "description": "Long enough strings in a regular language can be pumped; used to prove languages non-regular.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Finite Automaton",
+    "Pigeonhole Principle"
+   ]
+  },
+  {
+   "canonical_name": "Context-Free Grammar",
+   "aliases": [
+    "CFG",
+    "pushdown automaton"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "Production rules generating languages like balanced parentheses; recognised by pushdown automata.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Regular Expression"
+   ]
+  },
+  {
+   "canonical_name": "Turing Machine",
+   "aliases": [
+    "turing machines"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "A finite-state controller with an unbounded tape; the standard model of computation.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Finite Automaton"
+   ]
+  },
+  {
+   "canonical_name": "Halting Problem",
+   "aliases": [
+    "undecidability of the halting problem"
+   ],
+   "type": "theorem",
+   "subject": "cs",
+   "description": "No algorithm decides whether an arbitrary program halts on a given input.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Turing Machine",
+    "Cantor's Diagonal Argument"
+   ]
+  },
+  {
+   "canonical_name": "P vs NP",
+   "aliases": [
+    "P versus NP",
+    "NP-completeness"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "P: solvable in polynomial time; NP: verifiable in polynomial time; whether P = NP is open.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Turing Machine",
+    "Big O Notation"
+   ]
+  },
+  {
+   "canonical_name": "Cook-Levin Theorem",
+   "aliases": [
+    "cook's theorem"
+   ],
+   "type": "theorem",
+   "subject": "cs",
+   "description": "Boolean satisfiability (SAT) is NP-complete.",
+   "in_theorem_pool": false,
+   "requires": [
+    "P vs NP",
+    "Boolean Algebra"
+   ]
+  },
+  {
+   "canonical_name": "Operating System Processes and Threads",
+   "aliases": [
+    "processes",
+    "threads",
+    "concurrency"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Processes have separate memory; threads share it and run concurrently.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Memory: Stack and Heap"
+   ]
+  },
+  {
+   "canonical_name": "Deadlock",
+   "aliases": [
+    "deadlocks"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Processes waiting on each other forever; requires mutual exclusion, hold-and-wait, no preemption, circular wait.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Operating System Processes and Threads"
+   ]
+  },
+  {
+   "canonical_name": "Computer Networking Basics",
+   "aliases": [
+    "TCP/IP",
+    "network layers"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Layered protocols (link, IP, TCP/UDP, application) move data between machines.",
+   "in_theorem_pool": false,
+   "requires": []
+  },
+  {
+   "canonical_name": "Public-Key Cryptography",
+   "aliases": [
+    "asymmetric encryption",
+    "public key"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "A public key encrypts or verifies; only the private key decrypts or signs.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Modular Arithmetic"
+   ]
+  },
+  {
+   "canonical_name": "RSA Algorithm",
+   "aliases": [
+    "RSA encryption"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Encrypt with c = mᵉ mod n, decrypt with m = cᵈ mod n, where ed ≡ 1 (mod φ(n)) and n = pq.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Public-Key Cryptography",
+    "Euler's Totient Theorem",
+    "Chinese Remainder Theorem"
+   ]
+  },
+  {
+   "canonical_name": "Diffie-Hellman Key Exchange",
+   "aliases": [
+    "diffie hellman"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Two parties agree on gᵃᵇ mod p over a public channel.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Public-Key Cryptography",
+    "Modular Arithmetic"
+   ]
+  },
+  {
+   "canonical_name": "Gradient Descent",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Minimise f by stepping x ← x − η∇f(x).",
+   "in_theorem_pool": false,
+   "requires": [
+    "Gradient",
+    "Optimization"
+   ]
+  },
+  {
+   "canonical_name": "Linear Regression (Machine Learning)",
+   "aliases": [
+    "regression model"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Fit weights minimising mean squared error, by normal equations or gradient descent.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Linear Regression",
+    "Gradient Descent"
+   ]
+  },
+  {
+   "canonical_name": "Logistic Regression",
+   "aliases": [],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Binary classifier p = σ(wᵀx + b) trained by minimising cross-entropy.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Gradient Descent",
+    "Exponential Function"
+   ]
+  },
+  {
+   "canonical_name": "Neural Network",
+   "aliases": [
+    "neural networks",
+    "perceptron",
+    "deep learning"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Layers of weighted sums and nonlinear activations, trained by gradient descent.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Matrix Multiplication",
+    "Gradient Descent"
+   ]
+  },
+  {
+   "canonical_name": "Backpropagation",
+   "aliases": [
+    "backprop"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Computing gradients of a network's loss layer by layer with the chain rule.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Neural Network",
+    "Multivariable Chain Rule"
+   ]
+  },
+  {
+   "canonical_name": "Overfitting and Regularization",
+   "aliases": [
+    "overfitting",
+    "regularization",
+    "bias-variance tradeoff"
+   ],
+   "type": "concept",
+   "subject": "cs",
+   "description": "Models that fit noise generalise poorly; penalties and validation control this.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Linear Regression (Machine Learning)"
+   ]
+  },
+  {
+   "canonical_name": "k-Means Clustering",
+   "aliases": [
+    "k means"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Alternate assigning points to the nearest centroid and recomputing centroids.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Distance Formula"
+   ]
+  },
+  {
+   "canonical_name": "Principal Component Analysis",
+   "aliases": [
+    "PCA"
+   ],
+   "type": "technique",
+   "subject": "cs",
+   "description": "Project data onto the top eigenvectors of its covariance matrix.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Eigenvalues and Eigenvectors",
+    "Variance and Standard Deviation"
+   ]
+  },
+  {
+   "canonical_name": "Information Entropy",
+   "aliases": [
+    "shannon entropy"
+   ],
+   "type": "definition",
+   "subject": "cs",
+   "description": "H(X) = −Σ p(x) log₂ p(x), the average information in bits.",
+   "in_theorem_pool": false,
+   "requires": [
+    "Probability",
+    "Logarithm"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,73 @@
+# Curated math theorem pool (§7): the cold-start shorts feed, in this order.
+# name | LaTeX
+Pythagorean Theorem | a^2 + b^2 = c^2
+Euler's Identity | e^{i\pi} + 1 = 0
+Fundamental Theorem of Calculus | \int_a^b f(x)\,dx = F(b) - F(a)
+Taylor Series | f(x) = \sum_{n=0}^{\infty} \frac{f^{(n)}(a)}{n!}(x-a)^n
+Bayes' Theorem | P(H \mid E) = \frac{P(E \mid H)\,P(H)}{P(E)}
+Cauchy-Schwarz Inequality | |\langle u, v\rangle| \le \|u\|\,\|v\|
+Euclid's Theorem | |\{p : p \text{ prime}\}| = \infty
+Irrationality of the Square Root of 2 | \sqrt{2} \notin \mathbb{Q}
+Basel Problem | \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}
+Euler's Formula | e^{i\theta} = \cos\theta + i\sin\theta
+Mean Value Theorem | f'(c) = \frac{f(b) - f(a)}{b - a}
+Binomial Theorem | (x+y)^n = \sum_{k=0}^{n} \binom{n}{k} x^{n-k} y^k
+Fermat's Little Theorem | a^{p-1} \equiv 1 \pmod{p}
+Central Limit Theorem | \frac{\bar{X}_n - \mu}{\sigma/\sqrt{n}} \xrightarrow{d} \mathcal{N}(0,1)
+Intermediate Value Theorem | f(a) < y < f(b) \implies \exists\, c \in (a,b):\ f(c) = y
+Cantor's Diagonal Argument | |\mathbb{R}| > |\mathbb{N}|
+Fundamental Theorem of Algebra | p(z) = a_n \prod_{k=1}^{n} (z - z_k)
+Gaussian Integral | \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+Fundamental Theorem of Arithmetic | n = p_1^{a_1} p_2^{a_2} \cdots p_k^{a_k}
+AM-GM Inequality | \frac{x_1 + \cdots + x_n}{n} \ge \sqrt[n]{x_1 \cdots x_n}
+Euler's Polyhedron Formula | V - E + F = 2
+Pigeonhole Principle | n + 1 \text{ objects},\ n \text{ boxes} \implies \text{a box holds} \ge 2
+Law of Cosines | c^2 = a^2 + b^2 - 2ab\cos C
+De Moivre's Theorem | (\cos\theta + i\sin\theta)^n = \cos n\theta + i\sin n\theta
+Harmonic Series | \sum_{n=1}^{\infty} \frac{1}{n} = \infty
+Geometric Series | \sum_{k=0}^{\infty} ar^k = \frac{a}{1-r},\ |r| < 1
+Chain Rule | (f \circ g)'(x) = f'(g(x))\,g'(x)
+L'Hôpital's Rule | \lim_{x \to a} \frac{f(x)}{g(x)} = \lim_{x \to a} \frac{f'(x)}{g'(x)}
+Inscribed Angle Theorem | \angle ACB = \tfrac{1}{2}\angle AOB
+Thales's Theorem | AB \text{ a diameter} \implies \angle ACB = 90^\circ
+Quadratic Formula | x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+Law of Sines | \frac{a}{\sin A} = \frac{b}{\sin B} = \frac{c}{\sin C} = 2R
+Heron's Formula | A = \sqrt{s(s-a)(s-b)(s-c)}
+Rolle's Theorem | f(a) = f(b) \implies \exists\, c:\ f'(c) = 0
+Squeeze Theorem | g \le f \le h,\ g, h \to L \implies f \to L
+Extreme Value Theorem | f \in C[a,b] \implies \exists\, c, d:\ f(c) \le f(x) \le f(d)
+Green's Theorem | \oint_C (P\,dx + Q\,dy) = \iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dA
+Stokes' Theorem | \oint_{\partial S} \mathbf{F} \cdot d\mathbf{r} = \iint_S (\nabla \times \mathbf{F}) \cdot d\mathbf{S}
+Divergence Theorem | \oiint_{\partial V} \mathbf{F} \cdot d\mathbf{S} = \iiint_V (\nabla \cdot \mathbf{F})\,dV
+Stirling's Approximation | n! \sim \sqrt{2\pi n}\left(\frac{n}{e}\right)^n
+Chinese Remainder Theorem | x \equiv a_i \pmod{n_i} \text{ has a unique solution mod } \prod n_i
+Euler's Totient Theorem | a^{\varphi(n)} \equiv 1 \pmod{n}
+Wilson's Theorem | (p-1)! \equiv -1 \pmod{p}
+Bézout's Identity | \exists\, x, y \in \mathbb{Z}:\ ax + by = \gcd(a, b)
+Prime Number Theorem | \pi(x) \sim \frac{x}{\ln x}
+Fermat's Last Theorem | x^n + y^n = z^n \text{ has no positive integer solutions for } n > 2
+Law of Large Numbers | \bar{X}_n \to \mathbb{E}[X]
+Chebyshev's Inequality | P(|X - \mu| \ge k\sigma) \le \frac{1}{k^2}
+Law of Total Probability | P(A) = \sum_i P(A \mid B_i)\,P(B_i)
+Monty Hall Problem | P(\text{win} \mid \text{switch}) = \tfrac{2}{3}
+Birthday Problem | P(\text{shared birthday among } 23) > \tfrac{1}{2}
+Inclusion-Exclusion Principle | |A \cup B| = |A| + |B| - |A \cap B|
+Handshaking Lemma | \sum_{v \in V} \deg v = 2|E|
+Eulerian Path | \text{Euler circuit} \iff \text{all degrees even}
+Four Color Theorem | \chi(G) \le 4 \text{ for planar } G
+Spectral Theorem | A = A^{T} \implies A = Q\Lambda Q^{T}
+Rank-Nullity Theorem | \dim V = \operatorname{rank} T + \operatorname{nullity} T
+Cayley-Hamilton Theorem | p_A(A) = 0
+Singular Value Decomposition | A = U\Sigma V^{T}
+Cramer's Rule | x_i = \frac{\det A_i}{\det A}
+Bolzano-Weierstrass Theorem | (x_n) \text{ bounded} \implies \exists\, x_{n_k} \to x
+Monotone Convergence Theorem | (a_n) \uparrow,\ \text{bounded} \implies a_n \to \sup a_n
+Brouwer Fixed Point Theorem | f: D^n \to D^n \text{ continuous} \implies \exists\, x:\ f(x) = x
+Banach Fixed Point Theorem | d(Tx, Ty) \le q\, d(x, y),\ q < 1 \implies \exists!\, x^*:\ Tx^* = x^*
+Cauchy's Integral Formula | f(a) = \frac{1}{2\pi i}\oint_\gamma \frac{f(z)}{z - a}\,dz
+Residue Theorem | \oint_\gamma f(z)\,dz = 2\pi i \sum_k \operatorname{Res}(f, a_k)
+Lagrange's Theorem (Group Theory) | |H| \text{ divides } |G|
+Ptolemy's Theorem | AC \cdot BD = AB \cdot CD + AD \cdot BC
+Vieta's Formulas | r_1 + r_2 = -\tfrac{b}{a},\quad r_1 r_2 = \tfrac{c}{a}
+Factor Theorem | p(a) = 0 \iff (x - a) \mid p(x)
+Taylor's Theorem with Remainder | R_n(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}(x-a)^{n+1}

@@ -32,7 +32,15 @@ class AppDatabase {
         for (final stmt in migrationV1) {
           db.execute(stmt);
         }
-        db.execute('PRAGMA user_version = $schemaVersion');
+        db.execute('PRAGMA user_version = 1');
+      });
+    }
+    if (version < 2) {
+      transaction(() {
+        for (final stmt in migrationV2) {
+          db.execute(stmt);
+        }
+        db.execute('PRAGMA user_version = 2');
       });
     }
   }
@@ -54,6 +62,14 @@ class AppDatabase {
   void execute(String sql, [List<Object?> params = const []]) => db.execute(sql, params);
 
   void close() => db.close();
+
+  String? getSetting(String key) {
+    final r = db.select('SELECT value FROM settings WHERE key = ?', [key]);
+    return r.isEmpty ? null : r.first['value'] as String;
+  }
+
+  void setSetting(String key, String value) =>
+      db.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
 }
 
 int nowMs() => DateTime.now().toUtc().millisecondsSinceEpoch;

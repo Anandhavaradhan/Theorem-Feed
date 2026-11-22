@@ -5,8 +5,11 @@ import '../core/i18n.dart';
 import '../models/feed.dart';
 import '../providers/providers.dart';
 import '../widgets/coverage_gap_card.dart';
+import '../widgets/ingestion_banner.dart';
 import '../widgets/video_card.dart';
+import 'concept_detail_screen.dart';
 import 'player_screen.dart';
+import 'settings_screen.dart';
 
 /// Long-form feed: material-concept videos only. No fallback, no padding.
 class HomeScreen extends ConsumerWidget {
@@ -16,8 +19,16 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feed = ref.watch(longformFeedProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(t('home.title'))),
-      body: RefreshIndicator(
+      appBar: AppBar(title: Text(t('home.title')), actions: [
+        IconButton(
+          tooltip: t('nav.settings'),
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen())),
+        ),
+      ]),
+      body: Column(children: [
+        const IngestionBanner(),
+        Expanded(child: RefreshIndicator(
         onRefresh: () => ref.refresh(longformFeedProvider.future),
         child: feed.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -27,17 +38,21 @@ class HomeScreen extends ConsumerWidget {
           ),
           data: (f) => f.needsUpload ? const _UploadEmptyState() : _FeedList(feed: f),
         ),
-      ),
+      )),
+      ]),
     );
   }
 }
 
-class _FeedList extends StatelessWidget {
+class _FeedList extends ConsumerWidget {
   const _FeedList({required this.feed});
   final FeedResponse feed;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ingesting = ref.watch(ingestionControllerProvider).isRunning;
+    void openConcept(String id) =>
+        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: id)));
     final children = <Widget>[
       for (final card in feed.items)
         VideoCard(
@@ -45,8 +60,14 @@ class _FeedList extends StatelessWidget {
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => PlayerScreen(videoId: card.videoId, title: card.title, reasonLabel: card.reasonLabel),
           )),
+          onConceptTap: () => openConcept(card.conceptId),
         ),
-      for (final gap in feed.coverageGaps) CoverageGapCard(gap: gap),
+      for (final gap in feed.coverageGaps)
+        CoverageGapCard(
+          gap: gap,
+          onFind: ingesting ? null : () => ref.read(ingestionControllerProvider.notifier).findVideos(gap.conceptId),
+          onOpen: () => openConcept(gap.conceptId),
+        ),
     ];
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),

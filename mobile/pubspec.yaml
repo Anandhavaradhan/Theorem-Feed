@@ -7,9 +7,13 @@ environment:
   sdk: ^3.14.0
 
 dependencies:
+  fast_language_detector: ^1.0.0
   flutter:
     sdk: flutter
+  flutter_math_fork: ^0.7.4
   flutter_riverpod: ^3.5.0
+  flutter_secure_storage: ^11.2.0
+  http: ^1.6.0
   material_ui: ^1.1.0
   media_kit: ^1.2.6
   media_kit_libs_video: ^1.0.7
@@ -18,6 +22,7 @@ dependencies:
   path_provider: ^2.1.6
   sqlite3: ^3.9.1
   uuid: ^4.6.0
+  whisper_ggml: ^2.10.0
   youtube_explode_dart: ^3.1.0
 dev_dependencies:
   flutter_test:
@@ -28,6 +33,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/i18n/en.json
+    - assets/graph/graph_seed_v1.json
 
 # sqlite3 bundles its own SQLite (FTS5 enabled) into the Android app.
 # On a Linux dev/test host we use the system library instead, so `flutter test`

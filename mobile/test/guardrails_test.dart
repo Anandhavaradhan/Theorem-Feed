@@ -54,4 +54,13 @@ void main() {
     ];
     expect(hits, isEmpty);
   });
+
+  test('the only hosts named in app code are YouTube/Google video hosts and the Claude API', () {
+    const allowed = {'api.anthropic.com', 'www.youtube.com', 'i.ytimg.com', 'img.youtube.com'};
+    final hosts = <String>{
+      for (final f in _dartFiles('lib'))
+        for (final m in RegExp(r'https?://([a-zA-Z0-9.-]+)').allMatches(f.readAsStringSync())) m.group(1)!,
+    };
+    expect(hosts.difference(allowed), isEmpty);
+  });
 }

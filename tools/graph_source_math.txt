@@ -1,0 +1,236 @@
+# name | aliases (;-separated) | type | description | requires (;-separated)
+# subject: math. Lines starting with # are comments.
+
+## Foundations, algebra
+Real Number | real numbers; number line | definition | The ordered complete field ℝ of all limits of rational sequences; points on the number line. |
+Rational Number | rational numbers; fractions | definition | A number p/q with integers p, q and q ≠ 0. |
+Absolute Value | modulus of a real number | definition | |x| = x if x ≥ 0 and −x otherwise; the distance from x to 0. | Real Number
+Exponent Rules | laws of exponents; index laws | formula | aᵐ·aⁿ = aᵐ⁺ⁿ, (aᵐ)ⁿ = aᵐⁿ, a⁻ⁿ = 1/aⁿ. |
+Logarithm | log; logarithms; natural logarithm | definition | log_b x is the exponent y with bʸ = x; ln is the base-e logarithm. | Exponent Rules
+Logarithm Laws | log rules; properties of logarithms | formula | log(xy) = log x + log y, log(xᵏ) = k log x, log_b x = ln x / ln b. | Logarithm
+Linear Equation | linear equations | concept | An equation ax + b = c, solved by isolating x; its graph is a straight line. |
+Slope of a Line | gradient of a line; slope | definition | m = (y₂ − y₁)/(x₂ − x₁), the rise over run of a line. | Linear Equation
+System of Linear Equations | simultaneous equations; linear system | concept | Several linear equations in shared unknowns, solved by substitution, elimination, or matrices. | Linear Equation
+Inequality | inequalities; solving inequalities | concept | A statement a < b; multiplying both sides by a negative number reverses it. | Real Number
+Polynomial | polynomials | definition | An expression aₙxⁿ + … + a₁x + a₀ with constant coefficients. |
+Factoring Polynomials | factorisation; factoring | technique | Writing a polynomial as a product of lower-degree factors, e.g. x² − 1 = (x − 1)(x + 1). | Polynomial
+Completing the Square | | technique | Rewriting ax² + bx + c as a(x + b/2a)² + (c − b²/4a). | Polynomial
+Quadratic Formula | quadratic equation formula | formula | The roots of ax² + bx + c = 0 are x = (−b ± √(b² − 4ac)) / 2a. | Completing the Square
+Discriminant | | definition | Δ = b² − 4ac decides whether ax² + bx + c has two, one, or no real roots. | Quadratic Formula
+Polynomial Long Division | polynomial division; synthetic division | technique | Dividing p(x) by d(x) to get p = qd + r with deg r < deg d. | Polynomial
+Factor Theorem | | theorem | (x − a) divides p(x) exactly when p(a) = 0. | Polynomial Long Division
+Remainder Theorem | polynomial remainder theorem | theorem | The remainder of p(x) divided by (x − a) is p(a). | Polynomial Long Division
+Fundamental Theorem of Algebra | FTA | theorem | Every non-constant polynomial with complex coefficients has a complex root; a degree-n polynomial has n roots counted with multiplicity. | Complex Number; Polynomial
+Vieta's Formulas | vieta formulas; sum and product of roots | formula | For ax² + bx + c the roots satisfy r₁ + r₂ = −b/a and r₁r₂ = c/a; generalises to degree n. | Polynomial
+Binomial Theorem | binomial expansion | theorem | (x + y)ⁿ = Σₖ C(n,k) xⁿ⁻ᵏ yᵏ. | Binomial Coefficient
+Arithmetic Sequence | arithmetic progression | definition | A sequence with constant difference: aₙ = a₁ + (n − 1)d; its sum is n(a₁ + aₙ)/2. |
+Geometric Series | geometric progression; geometric sequence | formula | Σₖ₌₀ⁿ⁻¹ arᵏ = a(1 − rⁿ)/(1 − r); for |r| < 1 the infinite sum is a/(1 − r). | Exponent Rules
+Function | functions; domain and range | definition | A rule assigning each element of a domain exactly one element of a codomain. |
+Function Composition | composite function; composition of functions | definition | (f ∘ g)(x) = f(g(x)). | Function
+Inverse Function | inverse functions | definition | f⁻¹ undoes f: f⁻¹(f(x)) = x; exists exactly when f is bijective. | Function Composition; Bijection
+Exponential Function | exponential growth; e^x | definition | f(x) = aˣ; with base e it equals its own derivative. | Exponent Rules
+Euler's Number | e; Euler number | definition | e = lim (1 + 1/n)ⁿ ≈ 2.71828, the base of the natural logarithm. | Limit of a Sequence
+Complex Number | complex numbers; imaginary numbers | definition | A number a + bi with i² = −1, a point (a, b) in the complex plane. | Real Number
+Polar Form of a Complex Number | modulus argument form; polar form | concept | z = r(cos θ + i sin θ) = re^{iθ}, with modulus r = |z| and argument θ. | Complex Number; Euler's Formula
+De Moivre's Theorem | de moivre's formula | theorem | (cos θ + i sin θ)ⁿ = cos nθ + i sin nθ. | Polar Form of a Complex Number
+Roots of Unity | nth roots of unity | concept | The n solutions of zⁿ = 1: e^{2πik/n}, k = 0, …, n − 1. | De Moivre's Theorem
+AM-GM Inequality | arithmetic mean geometric mean inequality; am gm | theorem | For non-negative reals, (x₁ + … + xₙ)/n ≥ (x₁⋯xₙ)^{1/n}, with equality iff all are equal. | Inequality
+Mathematical Induction | proof by induction; induction | technique | Prove P(1) and P(n) ⇒ P(n + 1); then P(n) holds for all n ≥ 1. |
+Proof by Contradiction | reductio ad absurdum; contradiction proof | technique | Assume the statement is false and derive a contradiction. |
+
+## Geometry and trigonometry
+Similar Triangles | similarity | concept | Triangles with equal angles; their corresponding sides are proportional. |
+Pythagorean Theorem | Pythagoras theorem; Pythagoras' theorem | theorem | In a right triangle with legs a, b and hypotenuse c, a² + b² = c². | Similar Triangles
+Distance Formula | | formula | The distance between (x₁, y₁) and (x₂, y₂) is √((x₂ − x₁)² + (y₂ − y₁)²). | Pythagorean Theorem
+Area of a Circle | circle area | formula | A circle of radius r has area πr² and circumference 2πr. |
+Inscribed Angle Theorem | inscribed angle; angle at the centre theorem | theorem | An inscribed angle is half the central angle subtending the same arc. |
+Thales's Theorem | thales theorem | theorem | An angle inscribed in a semicircle is a right angle. | Inscribed Angle Theorem
+Triangle Inequality | | theorem | For any triangle (or vectors), |a + b| ≤ |a| + |b|. | Absolute Value
+Triangle Angle Sum | angle sum of a triangle | theorem | The interior angles of a Euclidean triangle add up to 180°. |
+Heron's Formula | herons formula | formula | A triangle with sides a, b, c and s = (a + b + c)/2 has area √(s(s − a)(s − b)(s − c)). | Pythagorean Theorem
+Euler's Polyhedron Formula | Euler characteristic; V - E + F = 2 | theorem | For a convex polyhedron, V − E + F = 2. |
+Radian | radians; radian measure | definition | The angle subtending an arc equal in length to the radius; 2π radians = 360°. | Area of a Circle
+Sine and Cosine | trigonometric functions; sin and cos; trig ratios | definition | For angle θ on the unit circle, (cos θ, sin θ) is the point reached; in a right triangle, opposite/hypotenuse and adjacent/hypotenuse. | Radian; Similar Triangles
+Unit Circle | | concept | The circle x² + y² = 1, used to define sin and cos for all angles. | Sine and Cosine
+Pythagorean Identity | sin^2 + cos^2 = 1 | formula | sin²θ + cos²θ = 1. | Sine and Cosine; Pythagorean Theorem
+Angle Addition Formulas | compound angle formulas; sum formulas | formula | sin(a + b) = sin a cos b + cos a sin b; cos(a + b) = cos a cos b − sin a sin b. | Sine and Cosine
+Double Angle Formulas | double angle identities | formula | sin 2θ = 2 sin θ cos θ; cos 2θ = cos²θ − sin²θ. | Angle Addition Formulas
+Law of Sines | sine rule | theorem | a/sin A = b/sin B = c/sin C = 2R in any triangle. | Sine and Cosine; Inscribed Angle Theorem
+Law of Cosines | cosine rule | theorem | c² = a² + b² − 2ab cos C, generalising Pythagoras. | Pythagorean Theorem; Sine and Cosine
+Inverse Trigonometric Functions | arcsin; arctan; inverse trig | definition | arcsin, arccos, arctan invert sin, cos, tan on restricted domains. | Sine and Cosine; Inverse Function
+Conic Sections | conics; ellipse; parabola; hyperbola | concept | Curves from slicing a cone: ellipse, parabola, hyperbola, each with a focus–directrix definition. | Distance Formula
+Ptolemy's Theorem | ptolemy theorem | theorem | For a cyclic quadrilateral ABCD, AC·BD = AB·CD + AD·BC. | Inscribed Angle Theorem; Similar Triangles
+
+## Calculus
+Limit of a Function | limit; limits | definition | lim_{x→a} f(x) = L if f(x) gets arbitrarily close to L as x approaches a (ε–δ). | Function; Absolute Value
+Limit of a Sequence | sequence limit; convergent sequence | definition | aₙ → L if for every ε > 0 there is N with |aₙ − L| < ε for all n > N. | Absolute Value
+Squeeze Theorem | sandwich theorem; pinching theorem | theorem | If g ≤ f ≤ h near a and g, h → L, then f → L. | Limit of a Function
+Continuity | continuous function | definition | f is continuous at a if lim_{x→a} f(x) = f(a). | Limit of a Function
+Intermediate Value Theorem | IVT; bolzano's theorem | theorem | A continuous f on [a, b] takes every value between f(a) and f(b). | Continuity
+Extreme Value Theorem | EVT | theorem | A continuous function on a closed bounded interval attains a maximum and a minimum. | Continuity
+Derivative | differentiation; rate of change | definition | f′(x) = lim_{h→0} (f(x + h) − f(x))/h, the slope of the tangent line. | Limit of a Function; Slope of a Line
+Power Rule | | formula | d/dx xⁿ = n xⁿ⁻¹. | Derivative
+Product Rule | product rule for derivatives; Leibniz rule | formula | (uv)′ = u′v + uv′. | Derivative
+Quotient Rule | | formula | (u/v)′ = (u′v − uv′)/v². | Product Rule; Chain Rule
+Chain Rule | | theorem | (f ∘ g)′(x) = f′(g(x))·g′(x). | Derivative; Function Composition
+Implicit Differentiation | | technique | Differentiating both sides of F(x, y) = 0 with respect to x, treating y as y(x). | Chain Rule
+Derivatives of Trigonometric Functions | derivative of sin; derivative of cos | formula | (sin x)′ = cos x, (cos x)′ = −sin x, (tan x)′ = sec²x. | Derivative; Sine and Cosine; Squeeze Theorem
+Derivative of the Exponential Function | derivative of e^x | formula | d/dx eˣ = eˣ and d/dx ln x = 1/x. | Derivative; Exponential Function; Euler's Number
+Related Rates | | technique | Differentiating a relation between quantities with respect to time to link their rates. | Chain Rule; Implicit Differentiation
+Rolle's Theorem | rolles theorem | theorem | If f is continuous on [a, b], differentiable on (a, b) and f(a) = f(b), then f′(c) = 0 for some c in (a, b). | Extreme Value Theorem; Derivative
+Mean Value Theorem | MVT; Lagrange mean value theorem | theorem | If f is continuous on [a, b] and differentiable on (a, b), f′(c) = (f(b) − f(a))/(b − a) for some c. | Rolle's Theorem
+L'Hôpital's Rule | l'hopital's rule; lhopital rule | theorem | If f/g → 0/0 or ∞/∞, then lim f/g = lim f′/g′ when the latter exists. | Mean Value Theorem
+Optimization | optimisation; maxima and minima; finding extrema | technique | Find extrema by solving f′(x) = 0 and checking critical points and endpoints. | Derivative; Extreme Value Theorem
+Second Derivative Test | concavity | technique | At a critical point, f″ > 0 means a local minimum and f″ < 0 a local maximum. | Optimization
+Newton's Method | newton-raphson method | technique | Root finding by iterating xₙ₊₁ = xₙ − f(xₙ)/f′(xₙ). | Derivative
+Antiderivative | indefinite integral; primitive | definition | F with F′ = f; written ∫ f(x) dx = F(x) + C. | Derivative
+Riemann Sum | riemann sums | definition | Σ f(xᵢ*) Δx, approximating the area under a curve with rectangles. | Function
+Definite Integral | integral; area under a curve | definition | ∫ₐᵇ f(x) dx, the limit of Riemann sums: the signed area between f and the x-axis on [a, b]. | Riemann Sum; Limit of a Function
+Fundamental Theorem of Calculus | FTC | theorem | If F′ = f then ∫ₐᵇ f(x) dx = F(b) − F(a); and d/dx ∫ₐˣ f(t) dt = f(x). | Definite Integral; Antiderivative; Mean Value Theorem
+Integration by Substitution | u-substitution; change of variables | technique | ∫ f(g(x)) g′(x) dx = ∫ f(u) du with u = g(x); the chain rule in reverse. | Fundamental Theorem of Calculus; Chain Rule
+Integration by Parts | IBP; integration by parts formula | technique | ∫ u dv = uv − ∫ v du; the product rule in reverse. | Product Rule; Fundamental Theorem of Calculus
+Partial Fractions | partial fraction decomposition | technique | Splitting a rational function into simple fractions to integrate it. | Polynomial Long Division; Antiderivative
+Trigonometric Substitution | trig substitution | technique | Substituting x = a sin θ, a tan θ, or a sec θ to integrate expressions with √(a² ± x²). | Integration by Substitution; Pythagorean Identity
+Improper Integral | improper integrals | definition | An integral over an unbounded interval or of an unbounded function, defined as a limit. | Definite Integral
+Volume of Revolution | disk method; shell method; solids of revolution | technique | V = ∫ π f(x)² dx (disks) or ∫ 2πx f(x) dx (shells). | Definite Integral
+Arc Length | arc length formula | formula | L = ∫ₐᵇ √(1 + f′(x)²) dx. | Definite Integral; Distance Formula
+Infinite Series | series; convergence of series | definition | Σ aₙ, the limit of partial sums when it exists. | Limit of a Sequence
+Harmonic Series | divergence of the harmonic series | theorem | Σ 1/n diverges, although its terms tend to 0. | Infinite Series
+Ratio Test | d'alembert ratio test | theorem | If |aₙ₊₁/aₙ| → L < 1 the series converges absolutely; L > 1 it diverges. | Infinite Series; Geometric Series
+Integral Test | | theorem | For positive decreasing f, Σ f(n) and ∫₁^∞ f(x) dx converge or diverge together. | Infinite Series; Improper Integral
+Alternating Series Test | leibniz test | theorem | If bₙ decreases to 0 then Σ (−1)ⁿ bₙ converges. | Infinite Series
+Power Series | power series; radius of convergence | definition | Σ cₙ(x − a)ⁿ, converging inside a radius R. | Infinite Series; Ratio Test
+Taylor Series | Taylor expansion; Taylor polynomial; Maclaurin series | theorem | A smooth f near a equals Σ f⁽ⁿ⁾(a)(x − a)ⁿ/n!, approximating f by polynomials matching its derivatives at a. | Power Series; Derivative
+Taylor's Theorem with Remainder | Lagrange remainder; Taylor remainder | theorem | f(x) = Σₖ≤ₙ f⁽ᵏ⁾(a)(x − a)ᵏ/k! + f⁽ⁿ⁺¹⁾(ξ)(x − a)ⁿ⁺¹/(n + 1)! for some ξ between a and x. | Taylor Series; Mean Value Theorem
+Euler's Formula | e^(i theta) = cos theta + i sin theta | theorem | e^{iθ} = cos θ + i sin θ. | Taylor Series; Complex Number; Sine and Cosine
+Euler's Identity | e^(i pi) + 1 = 0 | theorem | e^{iπ} + 1 = 0. | Euler's Formula
+Basel Problem | sum of reciprocal squares; zeta(2) | theorem | Σ 1/n² = π²/6. | Infinite Series; Taylor Series
+Gaussian Integral | integral of e^(-x^2) | theorem | ∫_{−∞}^{∞} e^{−x²} dx = √π. | Improper Integral; Double Integral
+Stirling's Approximation | stirling formula | formula | n! ≈ √(2πn) (n/e)ⁿ. | Gaussian Integral; Logarithm
+Partial Derivative | partial derivatives | definition | ∂f/∂x: the derivative of a multivariable function in one variable, others held fixed. | Derivative
+Gradient | gradient vector; grad | definition | ∇f = (∂f/∂x₁, …, ∂f/∂xₙ), pointing in the direction of steepest ascent. | Partial Derivative; Vector
+Directional Derivative | | definition | D_u f = ∇f · u, the rate of change of f in unit direction u. | Gradient; Dot Product
+Multivariable Chain Rule | chain rule for partial derivatives | theorem | d/dt f(x(t), y(t)) = f_x x′ + f_y y′. | Partial Derivative; Chain Rule
+Lagrange Multipliers | method of lagrange multipliers | technique | Extrema of f subject to g = 0 satisfy ∇f = λ∇g. | Gradient; Optimization
+Double Integral | multiple integral; iterated integral | definition | ∬_R f(x, y) dA, computed as iterated single integrals (Fubini). | Definite Integral; Partial Derivative
+Change of Variables in Multiple Integrals | jacobian; polar coordinates integral | technique | dA = |∂(x, y)/∂(u, v)| du dv, e.g. dA = r dr dθ in polar coordinates. | Double Integral; Determinant
+Line Integral | line integrals; work integral | definition | ∫_C F · dr, the integral of a vector field along a curve. | Definite Integral; Vector Field
+Vector Field | vector fields | definition | A function assigning a vector to each point of space. | Vector; Function
+Divergence and Curl | divergence; curl | definition | div F = ∇ · F measures outflow; curl F = ∇ × F measures rotation. | Vector Field; Partial Derivative; Cross Product
+Green's Theorem | greens theorem | theorem | ∮_C (P dx + Q dy) = ∬_D (∂Q/∂x − ∂P/∂y) dA. | Line Integral; Double Integral
+Stokes' Theorem | stokes theorem; kelvin-stokes theorem | theorem | ∮_{∂S} F · dr = ∬_S (∇ × F) · dS. | Green's Theorem; Divergence and Curl
+Divergence Theorem | Gauss's theorem; Gauss-Ostrogradsky theorem | theorem | ∯_{∂V} F · dS = ∭_V (∇ · F) dV. | Divergence and Curl; Double Integral
+
+## Differential equations
+Differential Equation | ODE; ordinary differential equation | definition | An equation relating a function to its derivatives. | Derivative
+Separable Differential Equation | separation of variables | technique | dy/dx = g(x)h(y) is solved by ∫ dy/h(y) = ∫ g(x) dx. | Differential Equation; Antiderivative
+Exponential Growth and Decay | exponential decay; half life | concept | y′ = ky has solution y = y₀e^{kt}. | Separable Differential Equation; Exponential Function
+First-Order Linear ODE | integrating factor | technique | y′ + p(x)y = q(x) is solved by multiplying by μ = e^{∫p dx}. | Differential Equation; Integration by Parts
+Second-Order Linear ODE | characteristic equation; linear ode with constant coefficients | technique | ay″ + by′ + cy = 0 has solutions e^{rx} where ar² + br + c = 0. | Differential Equation; Quadratic Formula; Euler's Formula
+Simple Harmonic Oscillator Equation | x'' = -omega^2 x | concept | x″ = −ω²x, solved by x = A cos(ωt + φ). | Second-Order Linear ODE
+Laplace Transform | laplace transforms | technique | F(s) = ∫₀^∞ e^{−st} f(t) dt, turning linear ODEs into algebra. | Improper Integral; Differential Equation
+Fourier Series | Fourier expansion | theorem | A periodic function can be written as a sum of complex exponentials cₙe^{2πinx}, with cₙ = ∫₀¹ f(x)e^{−2πinx} dx. | Definite Integral; Euler's Formula; Infinite Series
+Fourier Transform | | technique | f̂(ξ) = ∫ f(x) e^{−2πixξ} dx, decomposing a function into frequencies. | Fourier Series; Improper Integral
+Heat Equation | diffusion equation | concept | ∂u/∂t = α ∂²u/∂x², modelling diffusion. | Partial Derivative; Fourier Series
+Wave Equation | | concept | ∂²u/∂t² = c² ∂²u/∂x², modelling waves. | Partial Derivative
+Euler's Method | | technique | Numerically solving y′ = f(t, y) by yₙ₊₁ = yₙ + h f(tₙ, yₙ). | Differential Equation
+
+## Linear algebra
+Vector | vectors | definition | An element of a vector space; in ℝⁿ an ordered list of n numbers, added componentwise and scaled by real numbers. |
+Dot Product | scalar product; inner product | definition | a · b = Σ aᵢbᵢ = |a||b| cos θ. | Vector; Sine and Cosine
+Cross Product | vector product | definition | a × b is perpendicular to a and b with length |a||b| sin θ. | Vector; Determinant
+Cauchy-Schwarz Inequality | cauchy schwarz | theorem | |⟨u, v⟩| ≤ ‖u‖ ‖v‖. | Dot Product
+Matrix | matrices | definition | A rectangular array of numbers representing a linear map. | Vector
+Matrix Multiplication | | definition | (AB)ᵢⱼ = Σₖ AᵢₖBₖⱼ; composition of linear maps. | Matrix
+Linear Transformation | linear map; linear transformations | definition | T(au + bv) = aT(u) + bT(v); represented by a matrix. | Vector; Matrix
+Gaussian Elimination | row reduction; row echelon form | technique | Solving Ax = b by elementary row operations to echelon form. | System of Linear Equations; Matrix
+Determinant | determinants | definition | det A, the signed volume scaling factor of A; A is invertible iff det A ≠ 0. | Matrix
+Inverse Matrix | matrix inverse | definition | A⁻¹ with AA⁻¹ = I; for 2×2, A⁻¹ = (1/det A)[[d, −b], [−c, a]]. | Determinant; Matrix Multiplication
+Cramer's Rule | | theorem | xᵢ = det Aᵢ / det A, with Aᵢ having column i replaced by b. | Determinant
+Vector Space | vector spaces | definition | A set closed under addition and scalar multiplication satisfying the vector axioms. | Vector
+Linear Independence | linearly independent; span | definition | Vectors are independent if no nontrivial combination gives 0; their span is all combinations. | Vector Space
+Basis and Dimension | basis; dimension | definition | A basis is an independent spanning set; all bases have the same size, the dimension. | Linear Independence
+Rank-Nullity Theorem | rank nullity | theorem | For T: V → W, dim V = rank T + nullity T. | Basis and Dimension; Linear Transformation
+Eigenvalues and Eigenvectors | eigenvalue; eigenvector | definition | Av = λv for nonzero v; λ solves det(A − λI) = 0. | Determinant; Linear Transformation
+Diagonalization | diagonalisation; eigendecomposition | technique | A = PDP⁻¹ with D diagonal, when A has n independent eigenvectors. | Eigenvalues and Eigenvectors; Inverse Matrix
+Spectral Theorem | spectral theorem for symmetric matrices | theorem | A real symmetric matrix is orthogonally diagonalisable with real eigenvalues. | Diagonalization; Orthogonality
+Orthogonality | orthogonal vectors; orthonormal basis | definition | u ⟂ v when u · v = 0; an orthonormal basis has unit, pairwise orthogonal vectors. | Dot Product
+Gram-Schmidt Process | gram schmidt orthogonalization | technique | Turns a basis into an orthonormal basis by subtracting projections. | Orthogonality; Basis and Dimension
+Least Squares | least squares regression; normal equations | technique | Minimise ‖Ax − b‖² by solving AᵀAx = Aᵀb. | Orthogonality; Inverse Matrix
+Singular Value Decomposition | SVD | theorem | Every matrix factors as A = UΣVᵀ with orthogonal U, V and diagonal Σ ≥ 0. | Spectral Theorem
+Cayley-Hamilton Theorem | cayley hamilton | theorem | Every square matrix satisfies its own characteristic polynomial. | Eigenvalues and Eigenvectors
+
+## Probability and statistics
+Counting Principle | multiplication principle; fundamental counting principle | concept | If one choice has m options and another n, together there are mn. |
+Permutation | permutations | definition | Ordered arrangements; n!/(n − k)! ways to arrange k of n items. | Counting Principle
+Binomial Coefficient | combinations; n choose k | definition | C(n, k) = n!/(k!(n − k)!), the number of k-subsets of an n-set. | Permutation
+Pascal's Triangle | pascals triangle; pascal's rule | concept | Each entry is the sum of the two above: C(n, k) = C(n − 1, k − 1) + C(n − 1, k). | Binomial Coefficient
+Pigeonhole Principle | dirichlet box principle | theorem | If n + 1 objects go into n boxes, some box holds at least two. |
+Inclusion-Exclusion Principle | inclusion exclusion | theorem | |A ∪ B| = |A| + |B| − |A ∩ B|, and its n-set generalisation. | Set
+Probability | probability axioms | definition | A measure P on events with P(Ω) = 1 and countable additivity. | Set
+Conditional Probability | | definition | P(A | B) = P(A ∩ B)/P(B). | Probability
+Independence of Events | independent events | definition | A and B are independent if P(A ∩ B) = P(A)P(B). | Conditional Probability
+Law of Total Probability | total probability | theorem | P(A) = Σᵢ P(A | Bᵢ)P(Bᵢ) for a partition {Bᵢ}. | Conditional Probability
+Bayes' Theorem | Bayes rule; Bayes theorem | theorem | P(H|E) = P(E|H)·P(H) / P(E): the posterior probability of a hypothesis given evidence. | Conditional Probability; Law of Total Probability
+Random Variable | random variables | definition | A function from outcomes to numbers, described by its distribution. | Probability; Function
+Expected Value | expectation; mean of a random variable | definition | E[X] = Σ x P(X = x) (or ∫ x f(x) dx); expectation is linear. | Random Variable
+Variance and Standard Deviation | variance; standard deviation | definition | Var X = E[(X − μ)²] = E[X²] − μ²; σ = √Var X. | Expected Value
+Binomial Distribution | | definition | Number of successes in n independent trials: P(X = k) = C(n, k)pᵏ(1 − p)ⁿ⁻ᵏ. | Binomial Coefficient; Independence of Events
+Poisson Distribution | | definition | P(X = k) = λᵏe^{−λ}/k!, counts of rare events. | Expected Value; Exponential Function
+Normal Distribution | Gaussian distribution; bell curve | definition | Density (1/(σ√(2π))) e^{−(x−μ)²/(2σ²)}. | Gaussian Integral; Variance and Standard Deviation
+Law of Large Numbers | LLN | theorem | The sample mean of i.i.d. variables converges to the expected value. | Expected Value; Variance and Standard Deviation
+Central Limit Theorem | CLT | theorem | Standardised sums of i.i.d. variables with finite variance converge in distribution to N(0, 1). | Normal Distribution; Law of Large Numbers
+Chebyshev's Inequality | chebyshev inequality | theorem | P(|X − μ| ≥ kσ) ≤ 1/k². | Variance and Standard Deviation
+Confidence Interval | confidence intervals | concept | An interval estimate x̄ ± z·σ/√n that captures the true mean in a stated fraction of repeated samples. | Central Limit Theorem
+Hypothesis Testing | p-value; null hypothesis; significance test | technique | Reject a null hypothesis when data this extreme would be unlikely (p-value below α) under it. | Normal Distribution; Conditional Probability
+Linear Regression | regression line; line of best fit | technique | Fit y = a + bx minimising squared residuals. | Least Squares; Variance and Standard Deviation
+Correlation | correlation coefficient; pearson correlation | definition | r = Cov(X, Y)/(σ_X σ_Y), between −1 and 1. | Variance and Standard Deviation
+Markov Chain | markov chains | definition | A random process whose next state depends only on the current state, via a transition matrix. | Conditional Probability; Matrix Multiplication
+Monty Hall Problem | monty hall | theorem | Switching doors wins with probability 2/3. | Conditional Probability; Bayes' Theorem
+Birthday Problem | birthday paradox | theorem | With 23 people the chance that two share a birthday exceeds 1/2. | Counting Principle; Probability
+
+## Discrete math and number theory
+Set | sets; set theory; union and intersection | definition | A collection of distinct elements, with union, intersection, complement. |
+Bijection | one-to-one correspondence; injective; surjective | definition | A function that is injective (one-to-one) and surjective (onto). | Function
+Countable Set | countably infinite; countability | definition | A set in bijection with a subset of ℕ. | Bijection; Set
+Cantor's Diagonal Argument | diagonal argument; uncountability of the reals | theorem | The real numbers are uncountable. | Countable Set; Proof by Contradiction
+Propositional Logic | boolean logic; truth tables | concept | Statements combined with ∧, ∨, ¬, → and evaluated with truth tables. |
+Quantifiers | for all; there exists; predicate logic | concept | ∀x P(x) and ∃x P(x); negation swaps them. | Propositional Logic
+Relation and Equivalence Relation | equivalence relation; equivalence classes | definition | A reflexive, symmetric, transitive relation partitions a set into classes. | Set
+Graph Theory Basics | graph; vertices and edges | definition | A graph is vertices joined by edges; degree, paths, cycles, connectivity. | Set
+Handshaking Lemma | degree sum formula | theorem | The sum of vertex degrees is twice the number of edges. | Graph Theory Basics
+Eulerian Path | euler path; seven bridges of königsberg | theorem | A connected graph has an Euler circuit iff every vertex has even degree. | Graph Theory Basics
+Tree (Graph Theory) | trees in graph theory; spanning tree | definition | A connected acyclic graph; with n vertices it has n − 1 edges. | Graph Theory Basics; Mathematical Induction
+Four Color Theorem | four colour theorem | theorem | Every planar map can be coloured with four colours so adjacent regions differ. | Graph Theory Basics
+Recurrence Relation | recurrences; recursive sequence | concept | A sequence defined from earlier terms, e.g. Fibonacci Fₙ = Fₙ₋₁ + Fₙ₋₂. | Mathematical Induction
+Fibonacci Sequence | fibonacci numbers; binet's formula | concept | 0, 1, 1, 2, 3, 5, …; Fₙ = (φⁿ − ψⁿ)/√5. | Recurrence Relation
+Divisibility | divisors; divides | definition | a | b if b = ka for an integer k. |
+Prime Number | primes; prime numbers | definition | An integer > 1 whose only positive divisors are 1 and itself. | Divisibility
+Fundamental Theorem of Arithmetic | unique prime factorization | theorem | Every integer > 1 factors into primes uniquely up to order. | Prime Number; Euclid's Lemma
+Euclid's Theorem | infinitude of primes; infinitely many primes | theorem | There are infinitely many primes. | Prime Number; Proof by Contradiction
+Greatest Common Divisor | gcd; highest common factor | definition | gcd(a, b), the largest integer dividing both. | Divisibility
+Euclidean Algorithm | euclid's algorithm | technique | gcd(a, b) = gcd(b, a mod b), repeated until the remainder is 0. | Greatest Common Divisor
+Bézout's Identity | bezout identity | theorem | There are integers x, y with ax + by = gcd(a, b). | Euclidean Algorithm
+Euclid's Lemma | | theorem | If a prime p divides ab then p divides a or p divides b. | Bézout's Identity
+Modular Arithmetic | congruence; mod; clock arithmetic | definition | a ≡ b (mod n) when n divides a − b. | Divisibility
+Fermat's Little Theorem | fermat little theorem | theorem | If p is prime and p ∤ a, then a^{p−1} ≡ 1 (mod p). | Modular Arithmetic; Prime Number
+Euler's Totient Theorem | euler's theorem; totient function | theorem | If gcd(a, n) = 1 then a^{φ(n)} ≡ 1 (mod n). | Fermat's Little Theorem
+Chinese Remainder Theorem | CRT | theorem | Congruences modulo pairwise coprime moduli have a unique solution modulo their product. | Modular Arithmetic; Bézout's Identity
+Wilson's Theorem | wilsons theorem | theorem | p is prime iff (p − 1)! ≡ −1 (mod p). | Modular Arithmetic; Prime Number
+Irrationality of the Square Root of 2 | root 2 is irrational | theorem | √2 cannot be written as p/q with integers p, q. | Rational Number; Proof by Contradiction
+Prime Number Theorem | PNT | theorem | The number of primes ≤ x is asymptotically x/ln x. | Prime Number; Logarithm
+Fermat's Last Theorem | FLT | theorem | xⁿ + yⁿ = zⁿ has no positive integer solutions for n > 2. | Pythagorean Theorem
+Golden Ratio | phi; divine proportion | definition | φ = (1 + √5)/2, the positive root of x² = x + 1. | Quadratic Formula
+Group | group theory; groups | definition | A set with an associative operation, identity, and inverses. | Set
+Lagrange's Theorem (Group Theory) | lagrange theorem group | theorem | The order of a subgroup divides the order of a finite group. | Group; Relation and Equivalence Relation
+
+## Real and complex analysis
+Supremum and Infimum | least upper bound; completeness axiom | definition | The least upper / greatest lower bound; every bounded nonempty set of reals has one. | Real Number
+Monotone Convergence Theorem | monotone sequence theorem | theorem | A bounded monotone sequence of reals converges. | Limit of a Sequence; Supremum and Infimum
+Bolzano-Weierstrass Theorem | bolzano weierstrass | theorem | Every bounded sequence in ℝⁿ has a convergent subsequence. | Monotone Convergence Theorem
+Cauchy Sequence | cauchy sequences | definition | A sequence whose terms get arbitrarily close to each other; in ℝ these are exactly the convergent ones. | Limit of a Sequence
+Uniform Convergence | | definition | fₙ → f uniformly if sup |fₙ − f| → 0. | Limit of a Sequence; Continuity
+Cauchy's Integral Formula | cauchy integral formula | theorem | f(a) = (1/2πi) ∮ f(z)/(z − a) dz for f holomorphic inside the contour. | Complex Number; Line Integral
+Residue Theorem | residues; cauchy residue theorem | theorem | ∮ f dz = 2πi Σ Res(f, aₖ) over the poles inside the contour. | Cauchy's Integral Formula
+Brouwer Fixed Point Theorem | brouwer theorem | theorem | Every continuous map from a closed disk to itself has a fixed point. | Continuity; Intermediate Value Theorem
+Banach Fixed Point Theorem | contraction mapping theorem | theorem | A contraction on a complete metric space has exactly one fixed point. | Cauchy Sequence

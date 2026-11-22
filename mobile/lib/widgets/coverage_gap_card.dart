@@ -5,12 +5,15 @@ import '../models/feed.dart';
 
 /// Shown inline when an active concept has zero videos. Gaps are never silent.
 class CoverageGapCard extends StatelessWidget {
-  const CoverageGapCard({super.key, required this.gap, this.onFind});
+  const CoverageGapCard({super.key, required this.gap, this.onFind, this.onOpen});
 
   final CoverageGap gap;
 
-  /// Scoped ingestion for this concept (wired up in Phase C). Null = not yet available.
+  /// Runs scoped ingestion (Path A) for this concept. Null while a run is in progress.
   final VoidCallback? onFind;
+
+  /// Opens the concept detail.
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +26,11 @@ class CoverageGapCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(t('gap.title', {'concept': gap.concept}),
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.onSecondaryContainer)),
+            InkWell(
+              onTap: onOpen,
+              child: Text(t('gap.title', {'concept': gap.concept}),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.onSecondaryContainer)),
+            ),
             const SizedBox(height: 4),
             Text(t('gap.body'), style: TextStyle(color: scheme.onSecondaryContainer)),
             const SizedBox(height: 8),

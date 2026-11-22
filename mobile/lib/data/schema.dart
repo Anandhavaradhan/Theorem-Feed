@@ -13,7 +13,7 @@
 /// Soft-delete only: user data changes status, it is never DELETEd.
 library;
 
-const int schemaVersion = 1;
+const int schemaVersion = 2;
 
 const List<String> migrationV1 = [
   '''
@@ -163,5 +163,28 @@ const List<String> migrationV1 = [
     results    TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL
+  )''',
+];
+
+/// v2 (Phase B): app settings, ingestion log, concept LaTeX.
+const List<String> migrationV2 = [
+  'ALTER TABLE concepts ADD COLUMN latex TEXT',
+  '''
+  CREATE TABLE settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )''',
+  // Every candidate ever evaluated, so the same YouTube video is never
+  // re-classified (and re-billed). Gate rejections also land in `videos`
+  // with a rejected_* status, per the data model; scope rejections and
+  // errors live only here.
+  '''
+  CREATE TABLE ingest_log (
+    source_id  TEXT PRIMARY KEY,
+    outcome    TEXT NOT NULL CHECK (outcome IN
+                 ('accepted','rejected_edu','rejected_safety','rejected_lang','rejected_scope','rejected_format','error')),
+    reason     TEXT NOT NULL DEFAULT '',
+    concept_id TEXT,
+    checked_at INTEGER NOT NULL
   )''',
 ];
