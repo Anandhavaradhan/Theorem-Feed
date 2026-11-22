@@ -12,6 +12,7 @@ import '../services/material/material_service.dart';
 import '../services/material/pdf_text.dart';
 import '../services/relevance/evaluation.dart';
 import '../services/relevance/relevance_service.dart';
+import '../services/search/search_service.dart';
 import '../services/concept_service.dart';
 import '../services/feed_service.dart';
 import '../services/gates.dart';
@@ -318,7 +319,7 @@ class MaterialController extends Notifier<UploadState> {
 
 final materialControllerProvider = NotifierProvider<MaterialController, UploadState>(MaterialController.new);
 
-/// Selected bottom-navigation tab (0 Home, 1 Shorts, 2 My Material).
+/// Selected bottom-navigation tab (0 Home, 1 Shorts, 2 Search, 3 My Material).
 class SelectedTab extends Notifier<int> {
   @override
   int build() => 0;
@@ -381,3 +382,29 @@ class EvaluationController extends Notifier<EvalState> {
 }
 
 final evaluationControllerProvider = NotifierProvider<EvaluationController, EvalState>(EvaluationController.new);
+
+// --- Search (§11) -----------------------------------------------------------------
+
+final searchServiceProvider = Provider<SearchService>((ref) => SearchService(ref.watch(databaseProvider)));
+
+class SearchQuery {
+  const SearchQuery(this.text, {this.theoremOnly = false});
+  final String text;
+  final bool theoremOnly;
+}
+
+class SearchQueryController extends Notifier<SearchQuery> {
+  @override
+  SearchQuery build() => const SearchQuery('');
+  void set(String text) => state = SearchQuery(text);
+  void theoremOnly() => state = SearchQuery(state.text, theoremOnly: true);
+}
+
+final searchQueryProvider = NotifierProvider<SearchQueryController, SearchQuery>(SearchQueryController.new);
+
+final searchResultsProvider = FutureProvider.autoDispose<SearchResponse>((ref) async {
+  final q = ref.watch(searchQueryProvider);
+  // Re-run when the library changes (new videos, material changes, judgements).
+  ref.watch(longformFeedProvider);
+  return ref.watch(searchServiceProvider).search(q.text, theoremOnly: q.theoremOnly);
+});

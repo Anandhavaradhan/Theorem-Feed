@@ -80,3 +80,18 @@ double editRatio(String a, String b) {
   final n = math.max(a.length, b.length);
   return n == 0 ? 100 : 100 * (n - _levenshtein(a, b)) / n;
 }
+
+/// rapidfuzz-style `partial_ratio`: the best [ratio] of the shorter string
+/// against every same-length window of the longer one.
+double partialRatio(String a, String b) {
+  if (a.isEmpty || b.isEmpty) return 0;
+  final (short, long) = a.length <= b.length ? (a, b) : (b, a);
+  if (long.contains(short)) return 100;
+  var best = 0.0;
+  for (var i = 0; i + short.length <= long.length; i++) {
+    final r = ratio(short, long.substring(i, i + short.length));
+    if (r > best) best = r;
+    if (best == 100) break;
+  }
+  return best;
+}

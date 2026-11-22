@@ -112,5 +112,19 @@
   "eval.pass": "Passes the targets.",
   "eval.fail": "Below target.",
   "eval.concept": "{name}: {good} good, {bad} bad of {shown} shown",
-  "eval.failed": "Couldn't run the check: {message}"
+  "eval.failed": "Couldn't run the check: {message}",
+  "nav.search": "Search",
+  "search.hint": "Search your concepts, theorems or formulas",
+  "search.empty": "Search what you're studying: concept names (typos are fine), formulas like ∫ u dv, or questions in plain English. Results come only from your material and the theorem pool.",
+  "search.material_inactive": "No active material, so search covers the theorem pool only. Upload a PDF to search your own concepts.",
+  "search.theorem_only": "Showing theorem-pool results only.",
+  "search.out_of_scope_action": "Search theorem pool instead",
+  "search.kind.material": "material",
+  "search.kind.theorem": "theorem",
+  "search.kind.gap": "gap",
+  "search.count": "{n} videos",
+  "search.count_chapter": "{n} videos · from Chapter {chapter}",
+  "search.no_videos": "No videos yet",
+  "search.find": "Find videos",
+  "search.prerequisite": "Prerequisite: {name}"
 }

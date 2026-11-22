@@ -7,9 +7,10 @@ import '../core/i18n.dart';
 import '../providers/providers.dart';
 import 'home_screen.dart';
 import 'my_material_screen.dart';
+import 'search_screen.dart';
 import 'shorts_screen.dart';
 
-/// Home (long-form), Shorts, and My Material. Search arrives in Phase E.
+/// Home (long-form), Shorts, Search, and My Material.
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
@@ -45,6 +46,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           const HomeScreen(),
           // Shorts only plays while its tab is visible.
           ShortsScreen(active: index == 1),
+          const SearchScreen(),
           const MyMaterialScreen(),
         ],
       ),
@@ -57,6 +59,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               icon: const Icon(Icons.slow_motion_video_outlined),
               selectedIcon: const Icon(Icons.slow_motion_video),
               label: t('nav.shorts')),
+          NavigationDestination(icon: const Icon(Icons.search), label: t('nav.search')),
           NavigationDestination(
               icon: const Icon(Icons.menu_book_outlined), selectedIcon: const Icon(Icons.menu_book), label: t('nav.material')),
         ],

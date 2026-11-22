@@ -25,7 +25,32 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 | PDF reading (Phase C) | [pdfrx](https://pub.dev/packages/pdfrx) (Google's PDFium) extracts the text layer on the device. Labelled results ("Theorem 7.1 (Integration by Parts). …") are read by rules; the on-device model reads each section for the rest. |
 | Relevance (Phase D) | Retrieval from concept tags, keyword search (BM25) on your material's statement over video transcripts, and prerequisite videos. Then the same on-device model judges each video (topic, level, depth, prerequisites) and the scores are cached. |
 
-## Status: Phase D (relevance engine) ✅
+## Status: Phase E (search) ✅
+
+Search runs entirely on the device, so it always works offline, with or without a network connection.
+
+1. **Query understanding.** An empty query shows a hint. A **formula** (∫, Σ, √, `^`, `=`, or LaTeX like `e^{i\pi}`)
+   is normalised and matched against concepts' LaTeX and descriptions. Up to 6 words are matched as a **concept**,
+   tolerating typos (token_set_ratio ≥ 85, with the graph's aliases). Anything else is **natural language**.
+2. **Scope first.** Every search runs inside the same universe as the feeds: videos for your active material's concepts,
+   plus the curated theorem-pool shorts. With no active material, only the theorem pool is searched, with a notice.
+3. **Retrieval.** For a concept, a direct lookup of every in-scope video tagged with it (this always wins). Also BM25
+   over title, description and transcript. If the best concept match is something you aren't studying ("series" →
+   Infinite Series), search falls back to free text in your universe, so Taylor, Fourier and geometric series still
+   come back grouped.
+4. **Re-rank (§11.4).** +1.0 for the primary concept, +0.5 for a secondary tag, +0.3 per query term in the title,
+   +0.3 × BM25, and −0.1 per completed viewing. Videos tagged with the queried concept always land in its group's top 3.
+5. **Grouping.** Results are grouped by concept, with reason labels, "N videos · from Chapter 7.2", a coverage-gap card
+   when a concept in your material has no videos, and prerequisite-gap cards with *Find videos*. A query outside your
+   universe gets an out-of-scope card ("Not in your material…") with *Search theorem pool instead*. Never a silent empty.
+
+- **Speed and cache.** About a millisecond per query here (target < 150 ms). Results are cached for an hour, keyed
+  by a signature of the library, so any change to material, videos or judgements invalidates them at once.
+- **Golden set (§11.8).** `test/search_eval_test.dart` runs 20 queries (exact, alias, typo, natural language, formula,
+  theorem pool, multi-concept, coverage gap, out-of-scope) against a fixture library on the real graph.
+  All of them put the expected concept in the top 3 groups or return the right card. Run it on every search change.
+
+### Phase D (relevance engine) ✅
 
 - **Layer A: retrieval (§9.1).** For each concept in your material, candidates come from three signals:
   - its explicit concept tag;
@@ -102,8 +127,8 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 - Home feed and native player (quality, speed, captions).
 - 5 seed videos, written on first launch through a labelled sample material.
 
-Next: **Phase E**, search: the five-stage pipeline (intent → scope → hybrid retrieval → re-rank → group),
-grouped results with coverage-gap and out-of-scope cards, and the 20-query search evaluation.
+Next: **Phase F**, polish: exam-proximity and auto-archive are already in, so it's preloading the next
+3 shorts, image caching, watch history, and an offline cache for feeds.
 
 ## Using it
 
@@ -168,6 +193,8 @@ The guardrail tests run on every change:
 - **Keeping up with YouTube.** YouTube changes often, and stream extraction can break until the
   `youtube_explode_dart` package is updated. With no server, the fix means rebuilding the app with
   the updated package: `flutter pub upgrade youtube_explode_dart && flutter build apk`.
+- **Search is lexical, not hybrid vector + BM25.** Without an embedding model, stage 3 is concept-tag lookup plus BM25,
+  and the §11.3 vector weight goes to BM25. Typo tolerance and aliases come from the fuzzy concept matcher instead.
 - **Golden set built in the app.** The spec ships a hand-picked golden list in a test file. Picking real videos
   needs YouTube and your judgement, so labelling happens on the device instead. The metric arithmetic is unit-tested
   with synthetic judges that pass and fail.

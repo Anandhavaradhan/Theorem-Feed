@@ -88,7 +88,7 @@ class _UploadEmptyState extends ConsumerWidget {
       body: t('home.empty.body'),
       action: FilledButton.icon(
         onPressed: () {
-          ref.read(tabProvider.notifier).select(2);
+          ref.read(tabProvider.notifier).select(3);
           ref.read(materialControllerProvider.notifier).pickAndUpload();
         },
         icon: const Icon(Icons.upload),
