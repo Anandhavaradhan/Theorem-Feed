@@ -26,6 +26,7 @@ class ExtractedConcept {
     this.prerequisitesMentioned = const [],
     required this.importance,
     this.fromRule = false,
+    this.needsCheck = false,
   });
 
   final String name;
@@ -40,7 +41,11 @@ class ExtractedConcept {
   final double importance; // 0..1
   final bool fromRule;
 
-  ExtractedConcept copyWith({double? importance, List<String>? prerequisitesMentioned, String? latex}) =>
+  /// Found by a weak rule (a lone word, a passing mention): the on-device AI
+  /// decides. Confident finds (headings, box titles, "X is called …") skip it.
+  final bool needsCheck;
+
+  ExtractedConcept copyWith({double? importance, List<String>? prerequisitesMentioned, String? latex, bool? needsCheck}) =>
       ExtractedConcept(
         name: name,
         type: type,
@@ -53,6 +58,7 @@ class ExtractedConcept {
         prerequisitesMentioned: prerequisitesMentioned ?? this.prerequisitesMentioned,
         importance: importance ?? this.importance,
         fromRule: fromRule,
+        needsCheck: needsCheck ?? this.needsCheck,
       );
 }
 

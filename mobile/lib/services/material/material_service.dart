@@ -126,6 +126,9 @@ class MaterialService {
   final bool deepRead;
   final double mapThreshold;
   final ConceptMatcher _matcher;
+
+  /// At most this many doubtful finds are sent to the AI per upload.
+  static const maxAiCandidates = 40;
   static const _uuid = Uuid();
 
   // --- upload ---------------------------------------------------------------
@@ -170,30 +173,33 @@ class MaterialService {
     String? verifyError;
     final vm = model;
     if (verify && vm != null) {
-      final loose = mergeExtracted(extractByRules(paragraphs, dict, loose: true))
+      // Confident finds stay as they are; only the weak ones go to the AI.
+      final strictNames = [for (final e in mergeExtracted(strict)) normalizeText(e.name)];
+      final doubtful = mergeExtracted(extractByRules(paragraphs, dict, loose: true))
+          .where((e) => e.needsCheck && !strictNames.any((n) => sameConceptName(n, normalizeText(e.name))))
+          .toList()
         ..sort((a, b) => b.importance.compareTo(a.importance));
-      final candidates = loose.take(64).toList();
-      final vr = await verifyCandidates(
-        vm,
-        candidates,
-        strictNames: {for (final e in mergeExtracted(strict)) e.name},
-        isCancelled: isCancelled,
-        onProgress: (done, total) => onProgress?.call(UploadStage.extracting, done, total),
-      );
-      checked = vr.checked;
-      verifyError = vr.error;
-      verified = true;
-      // Mentioned-only concepts become prerequisites of the section's concepts.
-      extracted = [
-        for (final c in vr.concepts)
-          c.copyWith(prerequisitesMentioned: {
-            ...c.prerequisitesMentioned,
-            for (final m in vr.mentionedOnly)
-              if (m.section != null && m.section == c.section && m.name != c.name) m.name,
-          }.toList()),
-      ];
-      // Never end with nothing because of the AI: fall back to the strict rules.
-      if (extracted.isEmpty && strict.isNotEmpty) extracted = strict;
+      final candidates = doubtful.take(maxAiCandidates).toList();
+      if (candidates.isNotEmpty) {
+        final vr = await verifyCandidates(
+          vm,
+          candidates,
+          isCancelled: isCancelled,
+          onProgress: (done, total) => onProgress?.call(UploadStage.extracting, done, total),
+        );
+        checked = vr.checked;
+        verifyError = vr.error;
+        verified = true;
+        // Mentioned-only concepts become prerequisites of the section's concepts.
+        extracted = [
+          for (final c in [...strict, ...vr.concepts])
+            c.copyWith(prerequisitesMentioned: {
+              ...c.prerequisitesMentioned,
+              for (final m in vr.mentionedOnly)
+                if (m.section != null && m.section == c.section && m.name != c.name) m.name,
+            }.toList()),
+        ];
+      }
     }
 
     // Optional deep read: the AI over each section.
@@ -231,8 +237,30 @@ class MaterialService {
         [materialId, name, hash, pages.length, t.millisecondsSinceEpoch],
       );
       final byConcept = <String, (ExtractedConcept, Set<String>)>{};
-      for (final e in mergeExtracted(extracted)) {
-        final conceptId = _resolveOrCreate(e);
+      final merged = mergeExtracted(extracted);
+      // A graph concept may list another taught concept as an alias (one graph entry
+      // naming a second, separately taught idea). When this material teaches both, the alias gets its own concept
+      // instead of being folded in. Names equal to the graph name are placed first.
+      final hits = {for (final e in merged) e: _matcher.match(e.name)};
+      merged.sort((a, b) {
+        bool canon(ExtractedConcept e) => hits[e] != null && sameConceptName(normalizeText(hits[e]!.name), normalizeText(e.name));
+        return (canon(b) ? 1 : 0) - (canon(a) ? 1 : 0);
+      });
+      final claimed = <String, ExtractedConcept>{}; // concept id → the find that claimed it
+      for (final e in merged) {
+        final hit = hits[e];
+        final owner = hit == null ? null : claimed[hit.id];
+        String conceptId;
+        if (hit != null &&
+            owner != null &&
+            owner.section != e.section && // same section: two names for one thing
+            !sameConceptName(normalizeText(owner.name), normalizeText(e.name)) &&
+            !sameConceptName(normalizeText(hit.name), normalizeText(e.name))) {
+          conceptId = _create(e);
+        } else {
+          conceptId = hit?.id ?? _create(e);
+        }
+        claimed.putIfAbsent(conceptId, () => e);
         final prev = byConcept[conceptId];
         // Same graph concept under two names in one material: keep the more important one (§6.4.1).
         if (prev == null || e.importance > prev.$1.importance) {
@@ -281,15 +309,16 @@ class MaterialService {
   }
 
   ConceptDictionary _dictionary() => ConceptDictionary([
-        for (final r in _db.select('SELECT canonical_name, aliases, type FROM concepts'))
-          (r['canonical_name'] as String, parseJsonList(r['aliases'] as String?), r['type'] as String),
+        for (final r in _db.select('SELECT canonical_name, aliases, type, subject FROM concepts'))
+          (r['canonical_name'] as String, parseJsonList(r['aliases'] as String?), r['type'] as String,
+              r['subject'] as String? ?? 'math'),
       ]);
 
-  /// §6.4 step 2: attach to an existing concept (fuzzy name/alias match), else
-  /// create a new concept node with canonical_name = name.
-  String _resolveOrCreate(ExtractedConcept e) {
-    final hit = _matcher.match(e.name);
-    if (hit != null) return hit.id;
+  /// §6.4 step 2: a new concept node with canonical_name = name (used when no
+  /// existing concept matches by fuzzy name/alias).
+  String _create(ExtractedConcept e) {
+    final existing = _db.select('SELECT id FROM concepts WHERE canonical_name = ?', [e.name]).firstOrNull;
+    if (existing != null) return existing['id'] as String;
     final id = _uuid.v4();
     _db.execute(
       'INSERT INTO concepts (id, canonical_name, aliases, type, subject, description) VALUES (?, ?, ?, ?, ?, ?)',
@@ -406,10 +435,7 @@ List<ExtractedConcept> mergeExtracted(List<ExtractedConcept> items) {
   final groups = <List<ExtractedConcept>>[];
   for (final e in items) {
     final n = normalizeText(e.name);
-    final g = groups.where((g) {
-      final gn = normalizeText(g.first.name);
-      return gn == n || tokenSetRatio(gn, n) >= 90 && (gn.split(' ').length > 1 || n.split(' ').length > 1);
-    }).firstOrNull;
+    final g = groups.where((g) => sameConceptName(normalizeText(g.first.name), n)).firstOrNull;
     g == null ? groups.add([e]) : g.add(e);
   }
   return [
@@ -434,7 +460,20 @@ List<ExtractedConcept> mergeExtracted(List<ExtractedConcept> items) {
           prerequisitesMentioned: prereqs,
           importance: importance,
           fromRule: best.fromRule,
+          needsCheck: g.every((e) => e.needsCheck),
         );
       }(),
   ];
+}
+
+/// Two normalized names for the same concept: equal, a plural, or a close
+/// spelling. A shorter name inside a longer one is a different concept
+/// ("sound" vs "speed of sound", "wave" vs "transverse wave").
+bool sameConceptName(String a, String b) {
+  if (a == b) return true;
+  String sing(String s) => s.split(' ').map((w) => w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.substring(0, w.length - 1) : w).join(' ');
+  if (sing(a) == sing(b)) return true;
+  final ta = a.split(' ').toSet(), tb = b.split(' ').toSet();
+  if (ta.length != tb.length && (ta.containsAll(tb) || tb.containsAll(ta))) return false;
+  return (ta.length > 1 || tb.length > 1) && tokenSetRatio(a, b) >= 90 && ratio(a, b) >= 85;
 }

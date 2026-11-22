@@ -22,7 +22,7 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 | Educational and safety checks (Gates 1, 2) | Instant rules first: a trusted-channel list plus a check that the video plainly covers the concept, and a keyword filter. Everything else goes to the on-device model. |
 | On-device AI model | [llamadart](https://pub.dev/packages/llamadart) (llama.cpp) running **Qwen3.5 0.8B, 4-bit** (about 0.5 GB, downloaded once from Hugging Face). Its output is constrained to a JSON schema, so even this small model gives well-formed answers. Free, offline after the download, no limits. |
 | Knowledge graph | `assets/graph/graph_seed_v1.json`: 364 concepts across math, physics and CS, 520 prerequisite edges, and 71 curated theorems. |
-| PDF reading (Phase C) | [pdfrx](https://pub.dev/packages/pdfrx) (Google's PDFium) extracts the text layer on the device. Labelled results ("Theorem 7.1 (Integration by Parts). …") are read by rules; the on-device model reads each section for the rest. |
+| PDF reading (Phase C) | [pdfrx](https://pub.dev/packages/pdfrx) (Google's PDFium) extracts the text layer on the device. Headings, box titles, defining sentences, bullets and vocabulary lists are read by rules in about a second; the on-device model checks only the doubtful finds. |
 | Relevance (Phase D) | Retrieval from concept tags, keyword search (BM25) on your material's statement over video transcripts, and prerequisite videos. Then the same on-device model judges each video (topic, level, depth, prerequisites) and the scores are cached. |
 
 ## Status: all six phases (A–F) built ✅
@@ -227,10 +227,17 @@ The guardrail tests run on every change:
   upload prompt on Home and the theorem pool on Shorts.
 - **No thumbnail image check.** The on-device model reads text only, so Gate 2 is the keyword filter, trusted channels,
   and the model's check of the title, description and transcript. A vision model would add over a gigabyte.
-- **Reading PDFs: rules first, then AI verification.** Real PDF text has no blank lines between paragraphs, so
-  paragraphs are rebuilt from the line layout. Loose rules (headings, labelled theorems and definitions, "is called…"
-  phrases, known concepts) propose candidates with their sentences as evidence. The on-device model verifies them in
-  batches of 8: taught, only mentioned (kept as a prerequisite), or noise. Any AI failure falls back to the strict rules.
+- **Reading PDFs: the whole text, rules first, AI only for doubtful finds.** Real PDF text has no blank lines
+  between paragraphs, so paragraphs are rebuilt from the line layout. The contents page is skipped; headings are
+  read whether numbered "7.1 …", "4 …" or "Chapter 7 …". Concepts are read from inside the sections too:
+  box titles on their own line ("Plane mirror"), "Term — depends on …" bullets, defining sentences
+  ("A lens is …", "… is called dispersion", "… is the critical angle"), vocabulary lists ("Focal length f",
+  "Power P"), labelled theorems and definitions, and known graph concepts. Sentence-like headings
+  ("It bends towards the normal") are not used as names; "Refraction and dispersion" becomes two concepts. Question
+  banks, formula sheets and exam drills are not mined. Concepts the notes say to review or assume stay
+  prerequisites. Confident finds are kept without the AI; only doubtful ones (a lone word, a phrase in
+  brackets, a passing mention) go to the on-device model, at most 40, in batches of 10, answered with
+  lists of numbers so each call is a few dozen output tokens. If the AI fails, the confident finds stand.
   Settings → *Deep read* additionally has the AI read every section, which is slower.
 - **Faster video checks.** The next 3 candidates' details download in parallel while one is being judged.
   Each candidate's metadata, transcript and orientation are fetched at the same time, and videos too long

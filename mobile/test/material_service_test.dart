@@ -76,8 +76,9 @@ void main() {
     expect(r.title, 'Calculus Ch7');
 
     final names = {for (final row in svc().conceptsOf(r.materialId)) row.name};
-    expect(names, containsAll(['Integration by Parts', 'Partial Fractions', 'Trigonometric Substitution', 'LIATE Rule']));
-    expect(names.length, 4); // the model's "Integration by parts" merged with the rule hit
+    expect(names, containsAll(['Integration by Parts', 'Partial Fractions', 'Trigonometric Substitution', 'LIATE Rule',
+      'Techniques of Integration'])); // the chapter title, ranked below its sections
+    expect(names.length, 5); // the model's "Integration by parts" merged with the rule hit
 
     // Rule statement (as the material states it) + model LaTeX/prereqs + chapter/section from headings.
     final ibp = mc(r.materialId, 'Integration by Parts');
@@ -175,7 +176,7 @@ void main() {
     await svc().upload(pdf.path);
     final s = svc().studyingNow();
     expect(s.materials, 1);
-    expect(s.concepts, 4);
+    expect(s.concepts, 5);
     expect(s.daysToNearestExam, isNull);
   });
 }
