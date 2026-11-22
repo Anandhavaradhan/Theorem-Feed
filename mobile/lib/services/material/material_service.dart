@@ -309,7 +309,7 @@ class MaterialService {
           WHERE mc.material_id = ? AND NOT EXISTS (
             SELECT 1 FROM video_concepts vc JOIN videos v ON v.id = vc.video_id
             WHERE vc.concept_id = mc.concept_id AND vc.is_primary = 1 AND v.status = 'active' AND v.is_short = 0)
-          GROUP BY mc.concept_id ORDER BY max(mc.importance) DESC
+          GROUP BY mc.concept_id ORDER BY max(mc.importance) DESC, min(mc.section), mc.concept_id
         ''', [materialId]))
           r['concept_id'] as String,
       ];
