@@ -58,6 +58,7 @@ class IngestionService {
     SpeechLanguageProbe? speechProbe,
     this.candidatesPerConcept = 8,
     this.acceptPerConcept = 3,
+    this.prefetchAhead = 3,
   })  : _db = db,
         _speech = speechProbe,
         _matcher = ConceptMatcher(db);
@@ -69,6 +70,9 @@ class IngestionService {
   final ConceptMatcher _matcher;
   final int candidatesPerConcept;
   final int acceptPerConcept;
+
+  /// How many upcoming candidates' details download in parallel with the current check.
+  final int prefetchAhead;
   static const _uuid = Uuid();
 
   // --- scope ------------------------------------------------------------------
@@ -152,13 +156,25 @@ class IngestionService {
       return report;
     }
     var acceptedHere = 0;
-    for (final c in candidates) {
+    // Prefetch: while one candidate is being judged, the next few candidates'
+    // details (metadata, transcript, orientation) download in parallel.
+    final details = <String, Future<VideoDetails>>{};
+    Future<VideoDetails> detailsFor(CandidateVideo c) => details[c.id] ??= () {
+          final f = source.details(c.id, needVertical: c.durationSec == null || c.durationSec! <= shortMaxSeconds);
+          f.then((_) {}, onError: (_) {}); // errors surface when awaited, not as unhandled
+          return f;
+        }();
+    final todo = [for (final c in candidates) if (!_alreadySeen(c.id)) c];
+    for (var i = 0; i < todo.length; i++) {
       if (acceptedHere >= acceptPerConcept) break;
-      if (_alreadySeen(c.id)) continue;
+      for (final next in todo.skip(i).take(prefetchAhead + 1)) {
+        if (_passesCheapChecks(next, t)) detailsFor(next);
+      }
+      final c = todo[i];
       report.checked++;
       String outcome;
       try {
-        outcome = await _evaluate(c, t);
+        outcome = await _evaluate(c, t, detailsFor);
       } on ModelApiError catch (e) {
         if (e.isAuth) rethrow; // can't continue: the UI explains
         outcome = _log(c.id, 'error', '$e', t.id);
@@ -204,7 +220,13 @@ class IngestionService {
     return _log(youtubeId, status, reason, t.id);
   }
 
-  Future<String> _evaluate(CandidateVideo c, _Target t) async {
+  /// The instant checks, without side effects (used to decide what to prefetch).
+  bool _passesCheapChecks(CandidateVideo c, _Target t) =>
+      !(t.path == IngestPath.theoremPool && (c.durationSec == null || c.durationSec! > shortMaxSeconds)) &&
+      unsafeKeyword('${c.title}\n${c.description}') == null &&
+      metadataIsEnglish(c.title, c.description);
+
+  Future<String> _evaluate(CandidateVideo c, _Target t, Future<VideoDetails> Function(CandidateVideo) detailsFor) async {
     // Format pre-filter (Path B wants shorts; no point classifying long videos).
     if (t.path == IngestPath.theoremPool && (c.durationSec == null || c.durationSec! > shortMaxSeconds)) {
       return _log(c.id, 'rejected_format', 'not short-form (${c.durationSec}s)', t.id);
@@ -221,7 +243,7 @@ class IngestionService {
           title: c.title, description: c.description, durationSec: c.durationSec, thumbnail: c.thumbnailUrl);
     }
 
-    final d = await source.details(c.id);
+    final d = await detailsFor(c);
     String rejectV(String status, String reason) => _rejectVideo(c.id, status, reason, t,
         title: d.title, description: d.description, durationSec: d.durationSec, thumbnail: d.thumbnailUrl);
 

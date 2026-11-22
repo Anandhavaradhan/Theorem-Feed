@@ -118,7 +118,7 @@ class _EmptySource implements VideoSource {
   @override
   Future<List<CandidateVideo>> search(String query, {int limit = 8}) async => const [];
   @override
-  Future<VideoDetails> details(String id) => throw StateError('not called');
+  Future<VideoDetails> details(String id, {bool needVertical = true}) => throw StateError('not called');
   @override
   Future<String?> downloadAudioClip(String id, {Duration length = const Duration(seconds: 30)}) async => null;
 }

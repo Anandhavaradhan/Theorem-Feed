@@ -37,7 +37,7 @@ class _Source implements VideoSource {
   }
 
   @override
-  Future<VideoDetails> details(String id) => throw StateError('unused');
+  Future<VideoDetails> details(String id, {bool needVertical = true}) => throw StateError('unused');
   @override
   Future<String?> downloadAudioClip(String id, {Duration length = const Duration(seconds: 30)}) async => null;
 }

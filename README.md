@@ -227,6 +227,14 @@ The guardrail tests run on every change:
   upload prompt on Home and the theorem pool on Shorts.
 - **No thumbnail image check.** The on-device model reads text only, so Gate 2 is the keyword filter, trusted channels,
   and the model's check of the title, description and transcript. A vision model would add over a gigabyte.
+- **Reading PDFs: rules first, then AI verification.** Real PDF text has no blank lines between paragraphs, so
+  paragraphs are rebuilt from the line layout. Loose rules (headings, labelled theorems and definitions, "is called…"
+  phrases, known concepts) propose candidates with their sentences as evidence. The on-device model verifies them in
+  batches of 8: taught, only mentioned (kept as a prerequisite), or noise. Any AI failure falls back to the strict rules.
+  Settings → *Deep read* additionally has the AI read every section, which is slower.
+- **Faster video checks.** The next 3 candidates' details download in parallel while one is being judged.
+  Each candidate's metadata, transcript and orientation are fetched at the same time, and videos too long
+  to be shorts skip the stream-list request.
 - **Model memory.** The model is unloaded after 90 seconds without use, freeing roughly 0.6–0.9 GB of RAM.
   The next check, upload or relevance run reloads it from the file on the device in a few seconds,
   without downloading it again.

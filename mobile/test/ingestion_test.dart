@@ -39,7 +39,7 @@ class FakeSource implements VideoSource {
   }
 
   @override
-  Future<VideoDetails> details(String id) async {
+  Future<VideoDetails> details(String id, {bool needVertical = true}) async {
     detailCalls.add(id);
     return details_[id]!;
   }
