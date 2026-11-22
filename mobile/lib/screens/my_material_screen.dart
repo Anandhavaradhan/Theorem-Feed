@@ -93,6 +93,7 @@ class _UploadBanner extends ConsumerWidget {
                   : r.conceptCount == 0
                       ? t('upload.done_none', {'title': r.title})
                       : t('upload.done', {'title': r.title, 'concepts': r.conceptCount}),
+      UploadStatus.stopped => t('upload.stopped'),
       UploadStatus.failed => t('upload.failed', {'message': s.message ?? ''}),
     };
     if (text.isEmpty) return const SizedBox.shrink();
@@ -108,8 +109,13 @@ class _UploadBanner extends ConsumerWidget {
               TextButton(
                 onPressed: () => ref.read(materialControllerProvider.notifier).cancel(),
                 child: Text(t('ingest.cancel')),
-              )
-            else
+              ),
+            if (s.status == UploadStatus.stopped)
+              FilledButton.tonal(
+                onPressed: () => ref.read(materialControllerProvider.notifier).resume(),
+                child: Text(t('ingest.continue')),
+              ),
+            if (!s.isBusy)
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => ref.read(materialControllerProvider.notifier).dismiss(),
@@ -170,6 +176,10 @@ class _MaterialCard extends ConsumerWidget {
         trailing: PopupMenuButton<String>(
           onSelected: (v) async {
             switch (v) {
+              case 'watch':
+                // Home, narrowed to this PDF (with one PDF, All is the same thing).
+                ref.read(homeFilterProvider.notifier).select('m:${m.id}');
+                ref.read(tabProvider.notifier).select(homeTab);
               case 'exam':
                 final now = DateTime.now();
                 final picked = await showDatePicker(
@@ -193,6 +203,7 @@ class _MaterialCard extends ConsumerWidget {
             }
           },
           itemBuilder: (_) => [
+            if (active) PopupMenuItem(value: 'watch', child: Text(t('material.watch'))),
             PopupMenuItem(value: 'exam', child: Text(t('material.set_exam'))),
             if (m.examDate != null) PopupMenuItem(value: 'clear_exam', child: Text(t('material.clear_exam'))),
             PopupMenuItem(value: 'rename', child: Text(t('material.rename'))),

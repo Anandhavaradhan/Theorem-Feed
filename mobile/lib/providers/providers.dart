@@ -83,7 +83,7 @@ final videoSourceProvider = Provider<VideoSource>((ref) {
 
 final speechProbeProvider = Provider<SpeechLanguageProbe?>((ref) => WhisperSpeechProbe());
 
-enum IngestionStatus { idle, preparingModel, running, done, failed }
+enum IngestionStatus { idle, preparingModel, running, stopped, done, failed }
 
 class IngestionState {
   const IngestionState(
@@ -97,11 +97,26 @@ class IngestionState {
   bool get isBusy => status == IngestionStatus.preparingModel || status == IngestionStatus.running;
 }
 
+/// Settings key: concepts still to search after Stop (JSON list), so Continue
+/// works even after the app was closed.
+const ingestResumeKey = 'ingest_resume';
+
 class IngestionController extends Notifier<IngestionState> {
-  bool _cancel = false;
+  /// Each run has a number; Stop or a newer run makes older ones stop.
+  int _runId = 0;
+  int _stoppedRun = -1;
+  Future<void>? _current;
+  Future<void> Function()? _resume;
 
   @override
-  IngestionState build() => const IngestionState();
+  IngestionState build() {
+    final saved = parseJsonList(ref.read(databaseProvider).getSetting(ingestResumeKey));
+    if (saved.isEmpty) return const IngestionState();
+    _resume = () => findVideosFor(saved);
+    return const IngestionState(status: IngestionStatus.stopped);
+  }
+
+  bool get canContinue => _resume != null;
 
   /// Download + load the model, reporting progress. Returns false on failure.
   Future<bool> prepareModel() async {
@@ -120,36 +135,52 @@ class IngestionController extends Notifier<IngestionState> {
     }
   }
 
-  Future<void> _run(Future<IngestReport> Function(IngestionService s, IngestProgress p) job,
-      {bool quiet = false, bool rank = true}) async {
+  Future<void> _run(Future<IngestReport> Function(IngestionService s, IngestProgress p, bool Function() stopped) job,
+      {bool quiet = false, bool rank = true, bool clearsSaved = false, required Future<void> Function() resume}) async {
     if (state.isBusy) return;
-    if (!await prepareModel()) return;
-    _cancel = false;
-    final svc = IngestionService(
-      db: ref.read(databaseProvider),
-      source: ref.read(videoSourceProvider),
-      model: ref.read(jsonModelProvider),
-      speechProbe: ref.read(speechProbeProvider),
-    );
-    state = const IngestionState(status: IngestionStatus.running);
+    final id = ++_runId;
+    bool stopped() => _stoppedRun >= id || _runId != id;
+    final done = Completer<void>();
+    _current = done.future;
+    _resume = resume;
     try {
+      if (!await prepareModel()) return;
+      if (stopped()) return;
+      final svc = IngestionService(
+        db: ref.read(databaseProvider),
+        source: ref.read(videoSourceProvider),
+        model: ref.read(jsonModelProvider),
+        speechProbe: ref.read(speechProbeProvider),
+        isCancelled: stopped,
+      );
+      state = const IngestionState(status: IngestionStatus.running);
       final report = await job(svc, (label, r) {
+        if (stopped()) return; // the banner already says Stopped
         state = IngestionState(status: IngestionStatus.running, label: label, report: r);
         // Show new shorts as soon as they're accepted.
         ref.invalidate(shortsFeedProvider);
-      });
+      }, stopped);
       // §9: judge the new candidates for your material's concepts (cached; only new pairs reach the model).
-      if (rank && !_cancel) {
+      if (rank && !stopped()) {
         await RelevanceService(ref.read(databaseProvider), ref.read(jsonModelProvider)).rankActiveConcepts(
-          isCancelled: () => _cancel,
-          onProgress: (concept, _) =>
-              state = IngestionState(status: IngestionStatus.running, label: concept, report: report, ranking: true),
+          isCancelled: stopped,
+          onProgress: (concept, _) {
+            if (stopped()) return;
+            state = IngestionState(status: IngestionStatus.running, label: concept, report: report, ranking: true);
+          },
         );
       }
-      state = quiet ? const IngestionState() : IngestionState(status: IngestionStatus.done, report: report);
+      if (!stopped()) {
+        if (clearsSaved) ref.read(databaseProvider).setSetting(ingestResumeKey, '[]');
+        // A longer run stopped earlier can still be continued.
+        final saved = parseJsonList(ref.read(databaseProvider).getSetting(ingestResumeKey));
+        _resume = saved.isEmpty ? null : () => findVideosFor(saved);
+        state = quiet ? const IngestionState() : IngestionState(status: IngestionStatus.done, report: report);
+      }
     } catch (e) {
-      state = IngestionState(status: IngestionStatus.failed, report: state.report, message: '$e');
+      if (!stopped()) state = IngestionState(status: IngestionStatus.failed, report: state.report, message: '$e');
     } finally {
+      done.complete();
       ref.invalidate(longformFeedProvider);
       ref.invalidate(shortsFeedProvider);
       ref.invalidate(conceptDetailProvider);
@@ -159,42 +190,74 @@ class IngestionController extends Notifier<IngestionState> {
 
   /// Path B over the whole curated pool (resumable).
   Future<void> buildTheoremPool() =>
-      _run((s, p) => s.buildTheoremPool(onProgress: p, isCancelled: () => _cancel));
+      _run((s, p, stopped) => s.buildTheoremPool(onProgress: p), resume: buildTheoremPool);
 
   /// Path B for the next couple of theorems: the Shorts tab calls this as you scroll.
   Future<void> fillShorts({int theorems = 2}) => _run(
-      (s, p) => s.buildTheoremPool(onProgress: p, isCancelled: () => _cancel, maxTheorems: theorems),
+      (s, p, stopped) => s.buildTheoremPool(onProgress: p, maxTheorems: theorems),
       quiet: true,
-      rank: false);
+      rank: false,
+      resume: () => fillShorts(theorems: theorems));
 
   /// "Find videos" for one concept: Path A for material concepts, Path B for pool theorems.
-  Future<void> findVideos(String conceptId) => _run((s, p) => s.ingestForConcept(conceptId, onProgress: p));
+  Future<void> findVideos(String conceptId) => findVideosFor([conceptId]);
 
-  /// Path A for several material concepts in a row (after an upload).
-  Future<void> findVideosFor(List<String> conceptIds) => _run((s, p) async {
-        final total = IngestReport();
-        for (var i = 0; i < conceptIds.length; i++) {
-          final id = conceptIds[i];
-          if (_cancel) break;
-          if (!s.isActiveConcept(id)) continue;
-          // The next concept's YouTube search runs while this one is checked.
-          if (i + 1 < conceptIds.length) s.warmUp(conceptIds[i + 1]);
-          final r = await s.ingestMaterialConcept(id, onProgress: (label, r) {
-            p(label, IngestReport()
-              ..checked = total.checked + r.checked
-              ..accepted = total.accepted + r.accepted);
-          });
-          total.checked += r.checked;
-          total.accepted += r.accepted;
-          for (final e in r.rejected.entries) {
-            total.rejected[e.key] = (total.rejected[e.key] ?? 0) + e.value;
-          }
-          total.errors.addAll(r.errors);
+  /// Finds videos for several concepts in a row (after an upload, or one from a
+  /// "Find videos" button). After Stop, Continue picks up at the concept that
+  /// was interrupted; videos already decided are never checked again.
+  Future<void> findVideosFor(List<String> conceptIds) {
+    final db = ref.read(databaseProvider);
+    // A one-concept search doesn't replace the saved place of a longer stopped run.
+    final persist = conceptIds.length > 1;
+    var remaining = List.of(conceptIds);
+    return _run((s, p, stopped) async {
+      final total = IngestReport();
+      for (var i = 0; i < conceptIds.length; i++) {
+        final id = conceptIds[i];
+        if (stopped()) break;
+        remaining = conceptIds.sublist(i);
+        if (persist) db.setSetting(ingestResumeKey, jsonList(remaining));
+        if (!s.canIngest(id)) continue;
+        // The next concept's YouTube search runs while this one is checked.
+        if (i + 1 < conceptIds.length) s.warmUp(conceptIds[i + 1]);
+        final r = await s.ingestForConcept(id, onProgress: (label, r) {
+          p(label, IngestReport()
+            ..checked = total.checked + r.checked
+            ..accepted = total.accepted + r.accepted);
+        });
+        total.checked += r.checked;
+        total.accepted += r.accepted;
+        for (final e in r.rejected.entries) {
+          total.rejected[e.key] = (total.rejected[e.key] ?? 0) + e.value;
         }
-        return total;
-      });
+        total.errors.addAll(r.errors);
+      }
+      return total;
+    }, clearsSaved: persist, resume: () => findVideosFor(remaining));
+  }
 
-  void cancel() => _cancel = true;
+  /// Stop: the banner says so at once; the work halts before its next video or
+  /// AI check (an AI answer already being written finishes first).
+  void cancel() {
+    if (!state.isBusy) return;
+    _stoppedRun = _runId;
+    state = IngestionState(status: IngestionStatus.stopped, report: state.report, label: state.label);
+  }
+
+  /// Continue after Stop (also after the app was closed). Waits for the stopped
+  /// run to wind down first.
+  Future<void> resume() async {
+    final r = _resume;
+    if (r == null || state.isBusy) return;
+    state = const IngestionState(status: IngestionStatus.preparingModel);
+    await _current;
+    state = const IngestionState();
+    await r();
+  }
+
+  /// Hide the banner. A stopped run can still be continued from a concept's
+  /// "Find videos" button; the saved place is kept.
+  void dismiss() => state = const IngestionState();
 }
 
 final ingestionControllerProvider = NotifierProvider<IngestionController, IngestionState>(IngestionController.new);
@@ -228,7 +291,7 @@ final deepReadProvider = Provider<bool>((ref) => ref.watch(databaseProvider).get
 /// the rest stay as coverage-gap cards with a "Find videos" button.
 const autoIngestAfterUpload = 15;
 
-enum UploadStatus { idle, preparingModel, processing, done, failed }
+enum UploadStatus { idle, preparingModel, processing, stopped, done, failed }
 
 class UploadState {
   const UploadState({
@@ -253,7 +316,11 @@ class UploadState {
 }
 
 class MaterialController extends Notifier<UploadState> {
-  bool _cancel = false;
+  /// Each upload has a number; Stop or a newer upload makes older ones stop.
+  int _runId = 0;
+  int _stoppedRun = -1;
+  String? _lastPath;
+  Future<void>? _current;
 
   @override
   UploadState build() => const UploadState();
@@ -275,28 +342,46 @@ class MaterialController extends Notifier<UploadState> {
 
   Future<void> upload(String path) async {
     if (state.isBusy) return;
-    _cancel = false;
+    final id = ++_runId;
+    bool stopped() => _stoppedRun >= id || _runId != id;
+    _lastPath = path;
+    final done = Completer<void>();
+    _current = done.future;
+    try {
+      await _upload(path, stopped);
+    } finally {
+      done.complete();
+    }
+  }
+
+  Future<void> _upload(String path, bool Function() stopped) async {
     JsonModel? model;
     var rulesOnly = false;
     state = const UploadState(status: UploadStatus.preparingModel);
     try {
-      await ref.read(modelLoaderProvider)((f) => state = UploadState(status: UploadStatus.preparingModel, modelProgress: f));
+      await ref.read(modelLoaderProvider)((f) {
+        if (!stopped()) state = UploadState(status: UploadStatus.preparingModel, modelProgress: f);
+      });
       ref.read(databaseProvider).setSetting('local_model_ready', '1');
       ref.invalidate(modelReadyProvider);
       model = ref.read(jsonModelProvider);
     } catch (_) {
       rulesOnly = true; // e.g. offline on first use: still read labelled theorems/definitions
     }
+    if (stopped()) return;
     try {
       final db = ref.read(databaseProvider);
       final svc = MaterialService(db,
           pdf: ref.read(pdfTextSourceProvider), model: model, deepRead: db.getSetting(deepReadKey) == '1');
       final result = await svc.upload(
         path,
-        isCancelled: () => _cancel,
-        onProgress: (stage, done, total) => state =
-            UploadState(status: UploadStatus.processing, stage: stage, done: done, total: total, rulesOnly: rulesOnly),
+        isCancelled: stopped,
+        onProgress: (stage, done, total) {
+          if (stopped()) return; // the banner already says Stopped
+          state = UploadState(status: UploadStatus.processing, stage: stage, done: done, total: total, rulesOnly: rulesOnly);
+        },
       );
+      if (stopped()) return;
       state = UploadState(status: UploadStatus.done, result: result, rulesOnly: rulesOnly);
       _refresh();
       // §6.4 step 5: scoped ingestion (Path A) for new concepts with zero videos.
@@ -306,15 +391,32 @@ class MaterialController extends Notifier<UploadState> {
             .findVideosFor(result.gapConceptIds.take(autoIngestAfterUpload).toList()));
       }
     } on NoTextLayer catch (e) {
-      state = UploadState(status: UploadStatus.failed, message: '$e');
+      if (!stopped()) state = UploadState(status: UploadStatus.failed, message: '$e');
     } on UploadCancelled {
-      state = const UploadState();
+      // The banner already says Stopped; nothing was saved.
     } catch (e) {
-      state = UploadState(status: UploadStatus.failed, message: '$e');
+      if (!stopped()) state = UploadState(status: UploadStatus.failed, message: '$e');
     }
   }
 
-  void cancel() => _cancel = true;
+  /// Stop: the banner says so at once; nothing from this upload is saved.
+  void cancel() {
+    if (!state.isBusy) return;
+    _stoppedRun = _runId;
+    state = const UploadState(status: UploadStatus.stopped);
+  }
+
+  /// Continue a stopped upload: reads the same PDF again (the rules take about a second).
+  Future<void> resume() async {
+    final path = _lastPath;
+    if (path == null || state.isBusy) return;
+    state = const UploadState(status: UploadStatus.preparingModel);
+    await _current;
+    state = const UploadState();
+    await upload(path);
+  }
+
+  bool get canContinue => _lastPath != null;
   void dismiss() => state = const UploadState();
 
   void archive(String id) => _apply(() => ref.read(materialServiceProvider).archive(id));
@@ -424,10 +526,10 @@ final searchResultsProvider = FutureProvider.autoDispose<SearchResponse>((ref) a
   return ref.watch(searchServiceProvider).search(q.text, theoremOnly: q.theoremOnly);
 });
 
-// --- Home chips: filter the feed by one of your concepts ---------------------------
+// --- Home chips: All, each PDF, each chapter -------------------------------------
 
 class ActiveConcept {
-  const ActiveConcept(this.id, this.name);
+  ActiveConcept(this.id, this.name);
   final String id;
   final String name;
 }
@@ -442,13 +544,30 @@ final activeConceptsProvider = FutureProvider<List<ActiveConcept>>((ref) async {
   ];
 });
 
+/// The chips above Home: each active PDF (when there are several) and its chapters.
+final feedScopesProvider = FutureProvider<List<FeedScope>>((ref) async {
+  ref.watch(longformFeedProvider); // refresh with the feed
+  return ref.watch(feedServiceProvider).scopes();
+});
+
+/// The selected chip's key; null = All.
 class HomeFilter extends Notifier<String?> {
   @override
-  String? build() => null; // null = All
-  void select(String? conceptId) => state = conceptId;
+  String? build() => null;
+  void select(String? scopeKey) => state = scopeKey;
 }
 
 final homeFilterProvider = NotifierProvider<HomeFilter, String?>(HomeFilter.new);
+
+/// What Home shows: the general feed, or the selected PDF's / chapter's feed.
+final homeFeedProvider = FutureProvider<FeedResponse>((ref) async {
+  final all = await ref.watch(longformFeedProvider.future);
+  final key = ref.watch(homeFilterProvider);
+  if (key == null || all.needsUpload) return all;
+  final scope = (await ref.watch(feedScopesProvider.future)).where((s) => s.key == key).firstOrNull;
+  if (scope == null) return all; // the PDF was archived: back to All
+  return ref.watch(feedServiceProvider).longform(onlyConcepts: scope.conceptIds);
+});
 
 final historyProvider = FutureProvider.autoDispose((ref) async {
   ref.watch(longformFeedProvider);

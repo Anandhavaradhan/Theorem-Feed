@@ -28,6 +28,11 @@ class OutOfScopeIngestion implements Exception {
 
 enum IngestPath { material, theoremPool }
 
+/// Thrown inside a run when Stop was pressed; the run returns what it has.
+class _Stopped implements Exception {
+  const _Stopped();
+}
+
 class IngestReport {
   int checked = 0;
   int accepted = 0;
@@ -59,7 +64,12 @@ class IngestionService {
     this.candidatesPerConcept = 8,
     this.acceptPerConcept = 3,
     this.prefetchAhead = 3,
+    this.isCancelled,
   }) : _speech = speechProbe;
+
+  /// Stop: checked before each video, each download wait and each AI call.
+  final bool Function()? isCancelled;
+  bool get _stopped => isCancelled?.call() ?? false;
 
   final AppDatabase _db;
   final VideoSource source;
@@ -129,7 +139,7 @@ class IngestionService {
       ORDER BY coalesce(c.pool_order, 1e9), c.canonical_name
     ''', [acceptPerConcept]);
     for (final row in maxTheorems == null ? theorems : theorems.take(maxTheorems)) {
-      if (isCancelled?.call() ?? false) break;
+      if ((isCancelled?.call() ?? false) || _stopped) break;
       await _ingest(_target(row['id'] as String, IngestPath.theoremPool), report, onProgress);
     }
     return report;
@@ -179,6 +189,7 @@ class IngestionService {
       ];
 
   Future<IngestReport> _ingest(_Target t, IngestReport report, IngestProgress? onProgress) async {
+    if (_stopped) return report;
     onProgress?.call(t.name, report);
     List<CandidateVideo> candidates;
     try {
@@ -208,6 +219,8 @@ class IngestionService {
       String outcome;
       try {
         outcome = await _evaluate(c, t, detailsFor, context: context, allowSpeech: allowSpeech);
+      } on _Stopped {
+        rethrow;
       } on ModelApiError catch (e) {
         if (e.isAuth) rethrow; // can't continue: the UI explains
         outcome = _log(c.id, 'error', '$e', t.id);
@@ -232,16 +245,20 @@ class IngestionService {
       onProgress?.call(t.name, report);
     }
 
-    for (var i = 0; i < todo.length; i++) {
-      if (acceptedHere >= acceptPerConcept) break;
-      for (final next in todo.skip(i).take(prefetchAhead + 1)) {
-        if (_passesCheapChecks(next, t)) detailsFor(next);
+    try {
+      for (var i = 0; i < todo.length; i++) {
+        if (acceptedHere >= acceptPerConcept || _stopped) break;
+        for (final next in todo.skip(i).take(prefetchAhead + 1)) {
+          if (_passesCheapChecks(next, t)) detailsFor(next);
+        }
+        await check(todo[i], allowSpeech: false);
       }
-      await check(todo[i], allowSpeech: false);
-    }
-    for (final c in List.of(noCaptions)) {
-      if (acceptedHere >= acceptPerConcept) break;
-      await check(c, allowSpeech: true);
+      for (final c in List.of(noCaptions)) {
+        if (acceptedHere >= acceptPerConcept || _stopped) break;
+        await check(c, allowSpeech: true);
+      }
+    } on _Stopped {
+      // Nothing is logged for the video being checked: it is checked again on Continue.
     }
     return report;
   }
@@ -297,6 +314,7 @@ class IngestionService {
     }
 
     final d = await detailsFor(c);
+    if (_stopped) throw const _Stopped();
     String rejectV(String status, String reason) => _rejectVideo(c.id, status, reason, t,
         title: d.title, description: d.description, durationSec: d.durationSec, thumbnail: d.thumbnailUrl);
 
@@ -313,6 +331,7 @@ class IngestionService {
       }
     } else {
       if (!allowSpeech) return _deferred;
+      if (_stopped) throw const _Stopped();
       final probe = _speech;
       if (probe == null) return rejectV('rejected_lang', 'no transcript and no speech probe available');
       final clip = await source.downloadAudioClip(c.id);
@@ -343,6 +362,7 @@ class IngestionService {
       isTheorem = ruleTheorem;
       reason = 'title and captions teach ${t.name}';
     } else {
+      if (_stopped) throw const _Stopped();
       final VideoVerdict v;
       try {
         v = await classifyVideo(

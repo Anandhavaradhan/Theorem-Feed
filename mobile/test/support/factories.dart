@@ -43,9 +43,9 @@ String addMaterial(AppDatabase db,
 }
 
 void addMaterialConcept(AppDatabase db, String materialId, String conceptId,
-        {double importance = 0.8, String statement = 'stmt', String difficulty = 'undergrad'}) =>
+        {double importance = 0.8, String statement = 'stmt', String difficulty = 'undergrad', String? chapter}) =>
     db.execute(
-      'INSERT INTO material_concepts (id, material_id, concept_id, statement, difficulty, importance, '
-      'prerequisites_mentioned) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [_uuid.v4(), materialId, conceptId, statement, difficulty, importance, jsonEncode([])],
+      'INSERT INTO material_concepts (id, material_id, concept_id, statement, chapter, difficulty, importance, '
+      'prerequisites_mentioned) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [_uuid.v4(), materialId, conceptId, statement, chapter, difficulty, importance, jsonEncode([])],
     );

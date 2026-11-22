@@ -13,12 +13,14 @@ import 'player_screen.dart';
 import 'search_screen.dart';
 
 /// Long-form feed: material-concept videos only. No fallback, no padding.
+/// "All" is every concept of every PDF; the chips narrow it to one PDF or one
+/// chapter, like the topic chips on a video app's home page.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final feed = ref.watch(longformFeedProvider);
+    final feed = ref.watch(homeFeedProvider);
     return Scaffold(
       appBar: const BrandAppBar(),
       body: Column(children: [
@@ -74,15 +76,22 @@ class _Chips extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final concepts = ref.watch(activeConceptsProvider).value ?? const [];
+    final scopes = ref.watch(feedScopesProvider).value ?? const [];
     final selected = ref.watch(homeFilterProvider);
-    if (concepts.isEmpty) return const SizedBox.shrink();
-    Widget chip(String label, String? id) => Padding(
+    if (scopes.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    Widget chip(String label, String? key, {bool pdf = false}) => Padding(
           padding: const EdgeInsets.only(right: 8),
           child: ChoiceChip(
-            label: Text(label, style: TextStyle(color: selected == id ? Theme.of(context).colorScheme.surface : null)),
-            selected: selected == id,
-            onSelected: (_) => ref.read(homeFilterProvider.notifier).select(id),
+            avatar: pdf
+                ? Icon(Icons.picture_as_pdf_outlined, size: 16,
+                    color: selected == key ? theme.colorScheme.surface : theme.colorScheme.onSurface)
+                : null,
+            showCheckmark: false,
+            label: Text(label,
+                style: TextStyle(color: selected == key ? theme.colorScheme.surface : null, fontWeight: FontWeight.w500)),
+            selected: selected == key,
+            onSelected: (_) => ref.read(homeFilterProvider.notifier).select(key),
           ),
         );
     return SizedBox(
@@ -90,7 +99,10 @@ class _Chips extends ConsumerWidget {
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: [chip(t('home.all'), null), for (final c in concepts) chip(c.name, c.id)],
+        children: [
+          chip(t('home.all'), null),
+          for (final s in scopes) chip(s.label, s.key, pdf: s.isMaterial),
+        ],
       ),
     );
   }
@@ -103,11 +115,10 @@ class _FeedList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ingesting = ref.watch(ingestionControllerProvider).isBusy;
-    final filter = ref.watch(homeFilterProvider);
     void openConcept(String id) =>
         Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: id)));
-    final items = [for (final c in feed.items) if (filter == null || c.conceptId == filter) c];
-    final gaps = [for (final g in feed.coverageGaps) if (filter == null || g.conceptId == filter) g];
+    final items = feed.items;
+    final gaps = feed.coverageGaps;
     final tiles = <Widget>[
       for (final card in items)
         VideoCard(

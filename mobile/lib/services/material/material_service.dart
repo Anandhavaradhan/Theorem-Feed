@@ -158,6 +158,7 @@ class MaterialService {
     final clock = Stopwatch()..start();
     onProgress?.call(UploadStage.reading, 0, 1);
     final pages = await _pdf.pages(filePath);
+    if (isCancelled?.call() ?? false) throw const UploadCancelled();
     ensureTextLayer(pages);
     final paragraphs = paragraphsFromPages(pages);
     onProgress?.call(UploadStage.reading, 1, 1);
@@ -202,6 +203,8 @@ class MaterialService {
       }
     }
 
+    if (isCancelled?.call() ?? false) throw const UploadCancelled(); // nothing saved
+
     // Optional deep read: the AI over each section.
     var errors = 0, aiCount = 0;
     String? aiError = verifyError;
@@ -228,6 +231,7 @@ class MaterialService {
       onProgress?.call(UploadStage.extracting, 1, 1);
     }
 
+    if (isCancelled?.call() ?? false) throw const UploadCancelled();
     onProgress?.call(UploadStage.saving, 0, 1);
     final materialId = _uuid.v4();
     var count = 0;

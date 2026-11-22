@@ -73,7 +73,7 @@ class FeedService {
 
   bool hasActiveMaterial() => _db.select('SELECT 1 FROM user_active_concepts LIMIT 1').isNotEmpty;
 
-  List<FeedRow> _materialRows({required bool isShort}) => [
+  List<FeedRow> _materialRows({required bool isShort, Set<String>? onlyConcepts}) => [
         for (final r in _db.select('''
           SELECT v.id, v.title, v.thumbnail_url, v.duration_sec, v.is_short,
                  c.id AS concept_id, c.canonical_name, uac.priority, rs.final, rs.reason
@@ -84,6 +84,7 @@ class FeedService {
           LEFT JOIN relevance_scores rs ON rs.video_id = v.id AND rs.concept_id = vc.concept_id
           WHERE v.status = 'active' AND v.is_short = ? AND (rs.topic_fit IS NULL OR rs.topic_fit > ?)
         ''', [boolInt(isShort), offTopicFit]))
+          if (onlyConcepts == null || onlyConcepts.contains(r['concept_id']))
           FeedRow(
             videoId: r['id'] as String,
             title: r['title'] as String,
@@ -143,13 +144,49 @@ class FeedService {
           CoverageGap(conceptId: r['id'] as String, concept: r['canonical_name'] as String),
       ];
 
-  FeedResponse longform({int limit = 30}) {
+  /// The general feed (every concept of every active PDF), or — with
+  /// [onlyConcepts] — one PDF's or one chapter's feed. A scoped feed shows all
+  /// its videos: the per-concept cap only keeps the general feed varied.
+  FeedResponse longform({int limit = 30, Set<String>? onlyConcepts}) {
     if (!hasActiveMaterial()) return FeedResponse(items: const [], needsUpload: true);
-    final rows = capPerConcept(bestPerVideo(_materialRows(isShort: false)), longformPerConceptCap, limit);
+    final best = bestPerVideo(_materialRows(isShort: false, onlyConcepts: onlyConcepts));
+    final rows = onlyConcepts == null ? capPerConcept(best, longformPerConceptCap, limit) : best;
     return FeedResponse(
-      items: rows.take(limit).map((r) => r.toCard()).toList(),
-      coverageGaps: coverageGaps(),
+      items: rows.take(onlyConcepts == null ? limit : 500).map((r) => r.toCard()).toList(),
+      coverageGaps: [
+        for (final g in coverageGaps())
+          if (onlyConcepts == null || onlyConcepts.contains(g.conceptId)) g,
+      ],
     );
+  }
+
+  /// The chips above Home: each active PDF and its chapters, in reading order.
+  List<FeedScope> scopes() {
+    final materials = _db.select("SELECT id, title FROM materials WHERE status = 'active' ORDER BY created_at, title");
+    final out = <FeedScope>[];
+    for (final m in materials) {
+      final id = m['id'] as String;
+      final rows = _db.select(
+          'SELECT DISTINCT concept_id, chapter FROM material_concepts WHERE material_id = ?', [id]);
+      if (rows.isEmpty) continue;
+      final byChapter = <String, Set<String>>{};
+      for (final r in rows) {
+        (byChapter[(r['chapter'] as String?)?.trim() ?? ''] ??= {}).add(r['concept_id'] as String);
+      }
+      if (materials.length > 1) {
+        out.add(FeedScope(key: 'm:$id', label: m['title'] as String, conceptIds: {
+          for (final r in rows) r['concept_id'] as String,
+        }, isMaterial: true, materialTitle: m['title'] as String));
+      }
+      final chapters = byChapter.keys.where((c) => c.isNotEmpty).toList()..sort(compareChapters);
+      // One chapter is the whole PDF: no point in a chip for it.
+      if (chapters.length < 2) continue;
+      for (final c in chapters) {
+        out.add(FeedScope(key: 'c:$id:$c', label: chapterLabel(c), conceptIds: byChapter[c]!,
+            materialTitle: m['title'] as String));
+      }
+    }
+    return out;
   }
 
   FeedResponse shorts({int limit = 30}) {
@@ -169,6 +206,42 @@ class FeedService {
       items: interleave(material, pool, shortsMaterialShare).take(limit).map((r) => r.toCard()).toList(),
     );
   }
+}
+
+/// A Home chip: one PDF, or one chapter of a PDF.
+class FeedScope {
+  FeedScope({
+    required this.key,
+    required this.label,
+    required this.conceptIds,
+    required this.materialTitle,
+    this.isMaterial = false,
+  });
+  final String key;
+  final String label;
+  final Set<String> conceptIds;
+  final String materialTitle;
+  final bool isMaterial;
+}
+
+final _chapterNumberRe = RegExp(r'^\s*(?:chapter|unit|part)?\s*(\d+)\b[\s.:–—-]*', caseSensitive: false);
+
+/// "5 Speed of sound" → "Speed of sound"; "7" (a bare number) → "Chapter 7".
+String chapterLabel(String chapter) {
+  final m = _chapterNumberRe.firstMatch(chapter);
+  if (m == null) return chapter;
+  final rest = chapter.substring(m.end).trim();
+  return rest.isEmpty ? 'Chapter ${m.group(1)}' : rest;
+}
+
+/// Chapters in reading order: by number when they have one ("2" before "10").
+int compareChapters(String a, String b) {
+  final na = int.tryParse(_chapterNumberRe.firstMatch(a)?.group(1) ?? '');
+  final nb = int.tryParse(_chapterNumberRe.firstMatch(b)?.group(1) ?? '');
+  if (na != null && nb != null && na != nb) return na.compareTo(nb);
+  if (na != null && nb == null) return -1;
+  if (na == null && nb != null) return 1;
+  return a.toLowerCase().compareTo(b.toLowerCase());
 }
 
 /// A video can be primary for several active concepts; keep its strongest pairing.

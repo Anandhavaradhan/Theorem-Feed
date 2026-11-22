@@ -26,11 +26,17 @@ class IngestionBanner extends ConsumerWidget {
               '${t('ingest.progress', {'checked': r?.checked ?? 0, 'accepted': r?.accepted ?? 0})}',
           true
         ),
+      IngestionStatus.stopped => (
+          r == null ? t('ingest.stopped_saved') : t('ingest.stopped', {'checked': r.checked, 'accepted': r.accepted}),
+          false
+        ),
       IngestionStatus.done => (t('ingest.done', {'accepted': r?.accepted ?? 0, 'checked': r?.checked ?? 0}), false),
       IngestionStatus.failed => (t('ingest.failed', {'message': s.message ?? ''}), false),
     };
     if (text.isEmpty) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
+    final c = ref.read(ingestionControllerProvider.notifier);
+    final canContinue = !busy && s.status != IngestionStatus.failed && c.canContinue;
     return Material(
       color: scheme.surfaceContainerHigh,
       child: Padding(
@@ -40,10 +46,9 @@ class IngestionBanner extends ConsumerWidget {
           if (busy) const SizedBox(width: 12),
           Expanded(child: Text(text)),
           if (busy && s.status == IngestionStatus.running)
-            TextButton(
-              onPressed: () => ref.read(ingestionControllerProvider.notifier).cancel(),
-              child: Text(t('ingest.cancel')),
-            ),
+            TextButton(onPressed: c.cancel, child: Text(t('ingest.cancel'))),
+          if (canContinue) FilledButton.tonal(onPressed: c.resume, child: Text(t('ingest.continue'))),
+          if (!busy) IconButton(tooltip: t('ingest.dismiss'), icon: const Icon(Icons.close), onPressed: c.dismiss),
         ]),
       ),
     );
