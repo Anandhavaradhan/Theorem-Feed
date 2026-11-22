@@ -18,6 +18,7 @@ import '../llm.dart';
 import '../text_match.dart';
 import 'concept_extractor.dart';
 import 'pdf_text.dart';
+import 'rules_extractor.dart';
 import 'text_pipeline.dart';
 
 enum UploadStage { reading, extracting, saving }
@@ -33,6 +34,11 @@ class UploadResult {
     this.alreadyUploaded = false,
     this.reactivated = false,
     this.chunkErrors = 0,
+    this.elapsed = Duration.zero,
+    this.ruleConcepts = 0,
+    this.aiConcepts = 0,
+    this.aiUsed = false,
+    this.aiError,
   });
 
   final String materialId;
@@ -45,6 +51,13 @@ class UploadResult {
   final bool alreadyUploaded;
   final bool reactivated;
   final int chunkErrors;
+
+  // Diagnostics shown after an upload.
+  final Duration elapsed;
+  final int ruleConcepts; // found by the fast rules
+  final int aiConcepts; // found by the AI deep read
+  final bool aiUsed;
+  final String? aiError; // first AI failure, if any
 }
 
 class MaterialSummary {
@@ -88,15 +101,19 @@ String _ymd(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 class MaterialService {
-  MaterialService(this._db, {PdfTextSource? pdf, this.model, this.mapThreshold = 88})
+  MaterialService(this._db, {PdfTextSource? pdf, this.model, this.deepRead = false, this.mapThreshold = 88})
       : _pdf = pdf ?? PdfrxTextSource(),
         _matcher = ConceptMatcher(_db, threshold: mapThreshold);
 
   final AppDatabase _db;
   final PdfTextSource _pdf;
 
-  /// The on-device model; null → rule-based extraction only.
+  /// The on-device model, used only when [deepRead] is on.
   final JsonModel? model;
+
+  /// Also run the AI over every section (slower; finds unlabelled concepts the
+  /// rules miss). Off by default: the rules handle clear textbooks in seconds.
+  final bool deepRead;
   final double mapThreshold;
   final ConceptMatcher _matcher;
   static const _uuid = Uuid();
@@ -125,28 +142,41 @@ class MaterialService {
       );
     }
 
+    final clock = Stopwatch()..start();
     onProgress?.call(UploadStage.reading, 0, 1);
     final pages = await _pdf.pages(filePath);
     ensureTextLayer(pages);
-    final chunks = chunkParagraphs(paragraphsFromPages(pages));
+    final paragraphs = paragraphsFromPages(pages);
     onProgress?.call(UploadStage.reading, 1, 1);
 
-    final extracted = <ExtractedConcept>[];
-    var errors = 0;
-    for (var i = 0; i < chunks.length; i++) {
-      if (isCancelled?.call() ?? false) throw const UploadCancelled();
-      extracted.addAll(extractLabelled(chunks[i]));
-      final m = model;
-      if (m != null) {
+    // Fast path: rules over the whole document (milliseconds).
+    final extracted = extractByRules(paragraphs, _dictionary());
+    final ruleCount = mergeExtracted(extracted).length;
+
+    // Optional deep read: the AI over each section.
+    var errors = 0, aiCount = 0;
+    String? aiError;
+    final m = model;
+    final useAi = deepRead && m != null;
+    if (useAi) {
+      final chunks = chunkParagraphs(paragraphs);
+      for (var i = 0; i < chunks.length; i++) {
+        if (isCancelled?.call() ?? false) throw const UploadCancelled();
         try {
-          extracted.addAll(await extractWithModel(m, chunks[i]));
-        } on ModelRefusal {
+          final found = await extractWithModel(m, chunks[i]);
+          aiCount += found.length;
+          extracted.addAll(found);
+        } on ModelRefusal catch (e) {
           errors++;
-        } on ModelApiError {
+          aiError ??= '$e';
+        } on ModelApiError catch (e) {
           errors++;
+          aiError ??= e.message;
         }
+        onProgress?.call(UploadStage.extracting, i + 1, chunks.length);
       }
-      onProgress?.call(UploadStage.extracting, i + 1, chunks.length);
+    } else {
+      onProgress?.call(UploadStage.extracting, 1, 1);
     }
 
     onProgress?.call(UploadStage.saving, 0, 1);
@@ -197,8 +227,18 @@ class MaterialService {
       conceptCount: count,
       gapConceptIds: _gapsFor(materialId),
       chunkErrors: errors,
+      elapsed: clock.elapsed,
+      ruleConcepts: ruleCount,
+      aiConcepts: aiCount,
+      aiUsed: useAi,
+      aiError: aiError,
     );
   }
+
+  ConceptDictionary _dictionary() => ConceptDictionary([
+        for (final r in _db.select('SELECT canonical_name, aliases, type FROM concepts'))
+          (r['canonical_name'] as String, parseJsonList(r['aliases'] as String?), r['type'] as String),
+      ]);
 
   /// §6.4 step 2: attach to an existing concept (fuzzy name/alias match), else
   /// create a new concept node with canonical_name = name.

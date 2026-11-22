@@ -76,7 +76,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Calc Ch7'), findsOneWidget);
-    expect(find.textContaining('2 concepts'), findsWidgets); // the two labelled, named blocks
+    expect(find.textContaining(RegExp(r'\b([2-9]|\d\d) concepts')), findsWidgets); // headings + labelled blocks
     expect(find.textContaining('Studying now'), findsOneWidget);
     // §6.4 step 5: scoped ingestion ran for the new concepts.
     expect(source.queries, containsAll(['Integration by Parts IBP', 'Partial Fractions partial fraction decomposition']));

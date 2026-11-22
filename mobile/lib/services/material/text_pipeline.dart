@@ -63,10 +63,13 @@ Heading updateHeading(Heading current, String paragraph) {
 }
 
 class Paragraph {
-  Paragraph(this.text, this.page, this.heading);
+  Paragraph(this.text, this.page, this.heading, {this.isHeading = false});
   final String text;
   final int page;
   final Heading heading;
+
+  /// A chapter/section heading line on its own ("7.1 Integration by Parts").
+  final bool isHeading;
 }
 
 class Chunk {
@@ -97,16 +100,77 @@ class Chunk {
 }
 
 /// Cleaned, header-free paragraphs with page numbers and running headings.
+/// Labels that start a new block in textbooks.
+final blockLabelRe = RegExp(
+    r'^(Theorem|Lemma|Proposition|Corollary|Definition|Example|Proof|Remark|Note|Exercise|Problem|Formula|Law|Principle|Rule|Algorithm|Identity|Claim|Fact)\b',
+    caseSensitive: false);
+
+final _listItemRe = RegExp(r'^(\d{1,3}[.)]|[•▪◦\-–*]|\([a-z]\))\s');
+
+bool _isHeadingLine(String line) {
+  if (_chapterRe.hasMatch(line)) return true;
+  final sec = _sectionRe.firstMatch(line);
+  return sec != null && !line.endsWith('.');
+}
+
+/// Real PDF text has one line per *visual* line and usually no blank lines
+/// between paragraphs. Paragraphs are rebuilt from the layout: a new one starts
+/// at a heading, a labelled block ("Theorem 7.1."), a list item, a blank line,
+/// or after a line that ends a sentence and is clearly shorter than a full line.
+List<String> _paragraphsOfPage(String page) {
+  final lines = page.split('\n').map((l) => l.trim()).toList();
+  final lengths = [for (final l in lines) if (l.isNotEmpty) l.length]..sort();
+  final full = lengths.isEmpty ? 80 : lengths[(lengths.length * 0.8).floor().clamp(0, lengths.length - 1)];
+  final paras = <String>[];
+  final buf = StringBuffer();
+  String prev = '';
+
+  void flush() {
+    final t = buf.toString().trim();
+    if (t.isNotEmpty) paras.add(t);
+    buf.clear();
+    prev = '';
+  }
+
+  for (final line in lines) {
+    if (line.isEmpty) {
+      flush();
+      continue;
+    }
+    final heading = _isHeadingLine(line);
+    final startsBlock = heading || blockLabelRe.hasMatch(line) || _listItemRe.hasMatch(line);
+    final prevEndedParagraph =
+        prev.isNotEmpty && RegExp(r'[.:?!]$').hasMatch(prev) && prev.length < full * 0.85;
+    if (startsBlock || prevEndedParagraph) flush();
+    if (buf.isNotEmpty) {
+      // Re-join hyphenated words split across lines.
+      final b = buf.toString();
+      if (b.endsWith('-') && RegExp(r'^[a-z]').hasMatch(line)) {
+        buf
+          ..clear()
+          ..write(b.substring(0, b.length - 1));
+      } else {
+        buf.write(' ');
+      }
+    }
+    buf.write(line);
+    prev = line;
+    if (heading) flush(); // headings are paragraphs of their own
+  }
+  flush();
+  return paras;
+}
+
+/// Cleaned, header-free paragraphs with page numbers and running headings.
 List<Paragraph> paragraphsFromPages(List<String> rawPages) {
-  final pages = removeRepeatedHeadersFooters(rawPages);
+  final pages = removeRepeatedHeadersFooters([for (final p in rawPages) p.replaceAll('\r\n', '\n').replaceAll('\r', '\n')]);
   final out = <Paragraph>[];
   var heading = Heading();
   for (var i = 0; i < pages.length; i++) {
-    for (final p in cleanText(pages[i]).split(RegExp(r'\n\s*\n'))) {
-      final text = p.trim();
-      if (text.isEmpty) continue;
+    for (final text in _paragraphsOfPage(cleanText(pages[i]))) {
+      final isHeading = _isHeadingLine(text);
       heading = updateHeading(heading, text);
-      out.add(Paragraph(text, i + 1, heading));
+      out.add(Paragraph(text, i + 1, heading, isHeading: isHeading));
     }
   }
   return out;
