@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:llamadart/llamadart.dart';
 
+import 'idle_unloader.dart';
 import 'llm.dart';
 
 class LocalModelSpec {
@@ -29,13 +30,19 @@ const defaultLocalModel = LocalModelSpec(
 );
 
 class LocalLlmModel implements JsonModel {
-  LocalLlmModel({this.spec = defaultLocalModel, this.contextSize = 4096});
+  LocalLlmModel({this.spec = defaultLocalModel, this.contextSize = 4096, this.idleTimeout = const Duration(seconds: 90)});
 
   final LocalModelSpec spec;
   final int contextSize;
+
+  /// Frees the model's memory (≈0.6–0.9 GB) after this long unused. The next
+  /// use reloads it from the file on the device in a few seconds; nothing is
+  /// downloaded again.
+  final Duration idleTimeout;
   LlamaEngine? _engine;
   Future<LlamaEngine>? _loading;
   Future<void> _queue = Future.value(); // one generation at a time
+  late final IdleUnloader _idle = IdleUnloader(timeout: idleTimeout, onIdle: unload);
 
   bool get isLoaded => _engine != null;
 
@@ -53,6 +60,15 @@ class LocalLlmModel implements JsonModel {
     } on LlamaException catch (e) {
       throw ModelApiError(0, 'local_model_load', '$e');
     }
+    if (!_idle.isBusy) _idle.arm(); // loaded for later use: start the idle countdown
+  }
+
+  /// Frees the model's memory now (if nothing is using it).
+  Future<void> unload() async {
+    if (_loading != null || _idle.isBusy) return;
+    final e = _engine;
+    _engine = null;
+    await e?.dispose();
   }
 
   @override
@@ -63,7 +79,7 @@ class LocalLlmModel implements JsonModel {
     String effort = 'low',
     int maxTokens = 512,
   }) {
-    final result = _queue.then((_) => _generate(system, content, schema, maxTokens));
+    final result = _queue.then((_) => _idle.run(() => _generate(system, content, schema, maxTokens)));
     _queue = result.then((_) {}, onError: (_) {});
     return result;
   }
@@ -92,6 +108,7 @@ class LocalLlmModel implements JsonModel {
   }
 
   Future<void> dispose() async {
+    _idle.cancel();
     await _engine?.dispose();
     _engine = null;
   }

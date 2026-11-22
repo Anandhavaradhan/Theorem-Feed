@@ -227,6 +227,9 @@ The guardrail tests run on every change:
   upload prompt on Home and the theorem pool on Shorts.
 - **No thumbnail image check.** The on-device model reads text only, so Gate 2 is the keyword filter, trusted channels,
   and the model's check of the title, description and transcript. A vision model would add over a gigabyte.
+- **Model memory.** The model is unloaded after 90 seconds without use, freeing roughly 0.6–0.9 GB of RAM.
+  The next check, upload or relevance run reloads it from the file on the device in a few seconds,
+  without downloading it again.
 - **Model storage.** llamadart keeps the downloaded model in the app's cache. Android may clear that when storage runs low;
   if so, the model downloads again the next time it's needed.
 - **History.** The earlier server-based version (FastAPI + Postgres + yt-dlp) is in git history at commit
