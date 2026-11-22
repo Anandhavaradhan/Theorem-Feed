@@ -5,7 +5,6 @@ import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../models/feed.dart';
 import '../providers/providers.dart';
-import '../widgets/coverage_gap_card.dart';
 import '../widgets/ingestion_banner.dart';
 import '../widgets/video_card.dart';
 import 'concept_detail_screen.dart';
@@ -108,6 +107,37 @@ class _Chips extends ConsumerWidget {
   }
 }
 
+/// Under the chips, when a chapter or PDF is selected: search just there, or
+/// look for more videos for it.
+class _ScopeActions extends ConsumerWidget {
+  const _ScopeActions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final key = ref.watch(homeFilterProvider);
+    if (key == null) return const SizedBox.shrink();
+    final scope = (ref.watch(feedScopesProvider).value ?? const []).where((s) => s.key == key).firstOrNull;
+    if (scope == null) return const SizedBox.shrink();
+    final busy = ref.watch(ingestionControllerProvider).isBusy;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      child: Wrap(spacing: 8, runSpacing: 4, children: [
+        OutlinedButton.icon(
+          icon: const Icon(Icons.search, size: 18),
+          label: Text(scope.isMaterial ? t('scope.search_pdf') : t('scope.search_chapter')),
+          onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute<void>(builder: (_) => SearchScreen(scope: scope))),
+        ),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.video_library_outlined, size: 18),
+          label: Text(t('scope.find_more')),
+          onPressed: busy ? null : () => ref.read(ingestionControllerProvider.notifier).findMoreFor(scope.conceptIds),
+        ),
+      ]),
+    );
+  }
+}
+
 class _FeedList extends ConsumerWidget {
   const _FeedList({required this.feed});
   final FeedResponse feed;
@@ -117,8 +147,9 @@ class _FeedList extends ConsumerWidget {
     final ingesting = ref.watch(ingestionControllerProvider).isBusy;
     void openConcept(String id) =>
         Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: id)));
+    // Recommendations only: concepts still without videos are listed in My Material
+    // and filled in the background, not shown as cards here.
     final items = feed.items;
-    final gaps = feed.coverageGaps;
     final tiles = <Widget>[
       for (final card in items)
         VideoCard(
@@ -131,12 +162,6 @@ class _FeedList extends ConsumerWidget {
             t('menu.save'): () => ref.read(conceptServiceProvider).toggleSaved(card.videoId),
             t('menu.open_concept'): () => openConcept(card.conceptId),
           },
-        ),
-      for (final gap in gaps)
-        CoverageGapCard(
-          gap: gap,
-          onFind: ingesting ? null : () => ref.read(ingestionControllerProvider.notifier).findVideos(gap.conceptId),
-          onOpen: () => openConcept(gap.conceptId),
         ),
     ];
     return LayoutBuilder(builder: (context, box) {
@@ -153,7 +178,19 @@ class _FeedList extends ConsumerWidget {
       ];
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: [const _Chips(), const SizedBox(height: 4), ...rows],
+        children: [
+          const _Chips(),
+          const _ScopeActions(),
+          const SizedBox(height: 4),
+          ...rows,
+          if (tiles.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(32, 64, 32, 32),
+              child: Text(ingesting ? t('home.filling') : t('home.no_videos_yet'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ),
+        ],
       );
     });
   }

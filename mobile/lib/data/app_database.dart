@@ -51,6 +51,14 @@ class AppDatabase {
         db.execute('PRAGMA user_version = 3');
       });
     }
+    if (version < 4) {
+      transaction(() {
+        for (final stmt in migrationV4) {
+          db.execute(stmt);
+        }
+        db.execute('PRAGMA user_version = 4');
+      });
+    }
   }
 
   T transaction<T>(T Function() body) {

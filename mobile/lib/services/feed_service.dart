@@ -8,6 +8,8 @@
 /// feed is the upload empty state or coverage-gap cards.
 library;
 
+import 'dart:math';
+
 import '../data/app_database.dart';
 import '../models/feed.dart';
 import 'relevance/relevance_service.dart' show offTopicFit;
@@ -29,7 +31,10 @@ class FeedRow {
     required this.fromMaterial,
     this.order = 0,
     this.why,
+    this.channel,
   });
+
+  final String? channel;
 
   final String videoId;
   final String title;
@@ -64,6 +69,7 @@ class FeedRow {
         fromMaterial: fromMaterial,
         score: finalScore,
         why: why,
+        channel: channel,
       );
 }
 
@@ -75,7 +81,7 @@ class FeedService {
 
   List<FeedRow> _materialRows({required bool isShort, Set<String>? onlyConcepts}) => [
         for (final r in _db.select('''
-          SELECT v.id, v.title, v.thumbnail_url, v.duration_sec, v.is_short,
+          SELECT v.id, v.title, v.thumbnail_url, v.duration_sec, v.is_short, v.channel,
                  c.id AS concept_id, c.canonical_name, uac.priority, rs.final, rs.reason
           FROM videos v
           JOIN video_concepts vc ON vc.video_id = v.id AND vc.is_primary = 1
@@ -97,12 +103,13 @@ class FeedService {
             finalScore: (r['final'] as num?)?.toDouble(),
             fromMaterial: true,
             why: r['reason'] as String?,
+            channel: r['channel'] as String?,
           ),
       ];
 
   List<FeedRow> _theoremPoolRows() => [
         for (final r in _db.select('''
-          SELECT v.id, v.title, v.thumbnail_url, v.duration_sec,
+          SELECT v.id, v.title, v.thumbnail_url, v.duration_sec, v.channel,
                  c.id AS concept_id, c.canonical_name, c.pool_order, rs.final, rs.reason
           FROM videos v
           JOIN video_concepts vc ON vc.video_id = v.id AND vc.is_primary = 1
@@ -125,6 +132,7 @@ class FeedService {
             fromMaterial: false,
             order: (r['pool_order'] as int?) ?? 1 << 30,
             why: r['reason'] as String?,
+            channel: r['channel'] as String?,
           ),
       ];
 
@@ -189,13 +197,18 @@ class FeedService {
     return out;
   }
 
-  FeedResponse shorts({int limit = 30}) {
+  /// Shorts: your concepts' shorts and the theorem pool, mixed. With [mixSeed],
+  /// your shorts rotate across all concepts (of every PDF and chapter) in a
+  /// shuffled order instead of following the ranking, so the feed is a mix of
+  /// everything; the same seed gives the same order.
+  FeedResponse shorts({int limit = 30, int? mixSeed}) {
     var pool = _theoremPoolRows();
     if (!hasActiveMaterial()) {
       // Cold start: 100% theorem pool, curated order.
       return FeedResponse(items: interleave(const [], pool, 0).take(limit).map((r) => r.toCard()).toList());
     }
-    final material = bestPerVideo(_materialRows(isShort: true));
+    var material = bestPerVideo(_materialRows(isShort: true));
+    if (mixSeed != null) material = mixAcrossConcepts(material, Random(mixSeed));
     final materialIds = {for (final r in material) r.videoId};
     pool = pool.where((r) => !materialIds.contains(r.videoId)).toList()
       ..sort((a, b) {
@@ -242,6 +255,23 @@ int compareChapters(String a, String b) {
   if (na != null && nb == null) return -1;
   if (na == null && nb != null) return 1;
   return a.toLowerCase().compareTo(b.toLowerCase());
+}
+
+/// Round-robin over concepts in a shuffled order, each concept's own videos
+/// shuffled too: every concept shows up early, none in a long run.
+List<FeedRow> mixAcrossConcepts(List<FeedRow> rows, Random rng) {
+  final byConcept = <String, List<FeedRow>>{};
+  for (final r in rows) {
+    (byConcept[r.conceptId] ??= []).add(r);
+  }
+  final queues = byConcept.values.map((q) => q..shuffle(rng)).toList()..shuffle(rng);
+  final out = <FeedRow>[];
+  while (queues.any((q) => q.isNotEmpty)) {
+    for (final q in queues) {
+      if (q.isNotEmpty) out.add(q.removeAt(0));
+    }
+  }
+  return out;
 }
 
 /// A video can be primary for several active concepts; keep its strongest pairing.

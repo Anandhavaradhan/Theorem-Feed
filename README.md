@@ -245,6 +245,12 @@ The guardrail tests run on every change:
   and captions must read as English too: besides the language detector, a word check rejects Hindi,
   Tamil, Telugu, Malayalam and Kannada written in English letters. Videos added before these checks are
   re-checked once in the background at start-up and removed if they fail.
+- **Home is recommendations only, as on YouTube.** Each card shows the thumbnail, the title and the
+  channel; which concept of your notes a video belongs to stays on the watch page and in the ⋮ menu, and
+  concepts still without videos are filled in the background instead of showing as cards. Chips narrow
+  Home to one PDF or chapter; a chapter then offers *Search this chapter* and *Find more videos* (one more
+  round for its concepts). Shorts are a shuffled mix of every concept of every PDF plus the theorem pool,
+  rotating across concepts; the shuffle stays fixed while the app is open.
 - **Shorts and long videos for every concept, and it keeps going.** After an upload (and whenever the app
   opens) the app fills every concept of your notes round by round: round 1 finds 3 long videos and 3 shorts
   per concept (shorts have their own "#shorts" searches), and each further round adds 3 more of each with

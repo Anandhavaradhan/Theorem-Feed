@@ -40,7 +40,12 @@ final feedServiceProvider = Provider<FeedService>((ref) => FeedService(ref.watch
 final conceptServiceProvider = Provider<ConceptService>((ref) => ConceptService(ref.watch(databaseProvider)));
 
 final longformFeedProvider = FutureProvider<FeedResponse>((ref) async => ref.watch(feedServiceProvider).longform());
-final shortsFeedProvider = FutureProvider<FeedResponse>((ref) async => ref.watch(feedServiceProvider).shorts(limit: 100));
+/// One shuffle per app session: Shorts is a mix of everything, and it doesn't
+/// reshuffle under you while new shorts are added.
+final _shortsMixSeed = DateTime.now().microsecondsSinceEpoch;
+
+final shortsFeedProvider = FutureProvider<FeedResponse>(
+    (ref) async => ref.watch(feedServiceProvider).shorts(limit: 200, mixSeed: _shortsMixSeed));
 
 final conceptDetailProvider = FutureProvider.autoDispose.family<ConceptDetail?, String>(
   (ref, id) async => ref.watch(conceptServiceProvider).detail(id),
@@ -192,6 +197,28 @@ class IngestionController extends Notifier<IngestionState> {
       return total;
     }, resume: () => fillLibrary(startRound: round, ids: remaining));
   }
+
+  /// "Find more videos" for a chapter or PDF: one more round for each of its
+  /// concepts (3 more long videos and 3 more shorts each, with new wording).
+  Future<void> findMoreFor(Set<String> conceptIds) => _run((s, p, stopped) async {
+        final total = IngestReport();
+        for (final id in conceptIds) {
+          if (stopped()) break;
+          if (!s.isActiveConcept(id)) continue;
+          final c = s.videoCounts(id);
+          final round = ((c.long < c.short ? c.long : c.short) ~/ IngestionService.perRound + 1)
+              .clamp(1, IngestionService.maxRounds);
+          final r = await s.fillConcept(id, round: round, onProgress: (label, r) {
+            p(label, IngestReport()
+              ..checked = total.checked + r.checked
+              ..accepted = total.accepted + r.accepted);
+          });
+          total
+            ..checked += r.checked
+            ..accepted += r.accepted;
+        }
+        return total;
+      }, resume: () => findMoreFor(conceptIds));
 
   /// At start-up: continue the keep-filling rounds unless you stopped them.
   Future<void> autoFill() async {
@@ -612,16 +639,20 @@ final evaluationControllerProvider = NotifierProvider<EvaluationController, Eval
 final searchServiceProvider = Provider<SearchService>((ref) => SearchService(ref.watch(databaseProvider)));
 
 class SearchQuery {
-  const SearchQuery(this.text, {this.theoremOnly = false});
+  const SearchQuery(this.text, {this.theoremOnly = false, this.scope});
   final String text;
   final bool theoremOnly;
+
+  /// Search only this chapter's (or PDF's) concepts; null = everything.
+  final FeedScope? scope;
 }
 
 class SearchQueryController extends Notifier<SearchQuery> {
   @override
   SearchQuery build() => const SearchQuery('');
-  void set(String text) => state = SearchQuery(text);
-  void theoremOnly() => state = SearchQuery(state.text, theoremOnly: true);
+  void set(String text) => state = SearchQuery(text, scope: state.scope);
+  void theoremOnly() => state = SearchQuery(state.text, theoremOnly: true, scope: state.scope);
+  void scopeTo(FeedScope? scope) => state = SearchQuery('', scope: scope);
 }
 
 final searchQueryProvider = NotifierProvider<SearchQueryController, SearchQuery>(SearchQueryController.new);
@@ -630,7 +661,17 @@ final searchResultsProvider = FutureProvider.autoDispose<SearchResponse>((ref) a
   final q = ref.watch(searchQueryProvider);
   // Re-run when the library changes (new videos, material changes, judgements).
   ref.watch(longformFeedProvider);
-  return ref.watch(searchServiceProvider).search(q.text, theoremOnly: q.theoremOnly);
+  final r = ref.watch(searchServiceProvider).search(q.text, theoremOnly: q.theoremOnly);
+  final scope = q.scope;
+  if (scope == null || q.text.trim().isEmpty) return r;
+  final groups = [for (final g in r.groups) if (scope.conceptIds.contains(g.conceptId)) g];
+  return SearchResponse(
+    understanding: r.understanding,
+    groups: groups,
+    outOfScope: groups.isEmpty ? const OutOfScope() : null,
+    materialInactive: r.materialInactive,
+    theoremOnly: r.theoremOnly,
+  );
 });
 
 // --- Home chips: All, each PDF, each chapter -------------------------------------

@@ -222,3 +222,8 @@ const List<String> migrationV3 = [
     PRIMARY KEY (concept_id, video_id)
   )""",
 ];
+
+/// v4: the YouTube channel of each video, shown under the title as on YouTube.
+const List<String> migrationV4 = [
+  'ALTER TABLE videos ADD COLUMN channel TEXT',
+];

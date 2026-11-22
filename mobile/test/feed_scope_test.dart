@@ -155,4 +155,19 @@ void main() {
       expect(out[i].conceptId, isNot(out[i - 1].conceptId));
     }
   });
+
+  test('Shorts mix: every concept early, never one concept in a run; same seed, same order', () {
+    final rows = [
+      for (final c in ['a', 'b', 'c', 'd'])
+        for (var i = 0; i < 5; i++)
+          FeedRow(videoId: '$c$i', title: '', thumbnailUrl: null, durationSec: 30, isShort: true, conceptId: c,
+              conceptName: c, priority: c == 'a' ? 9 : 1, finalScore: null, fromMaterial: true),
+    ];
+    final mixed = mixAcrossConcepts(rows, Random(7));
+    expect(mixed.take(4).map((r) => r.conceptId).toSet(), {'a', 'b', 'c', 'd'}); // not all of 'a' first
+    for (var i = 1; i < mixed.length; i++) {
+      expect(mixed[i].conceptId == mixed[i - 1].conceptId, isFalse);
+    }
+    expect(mixAcrossConcepts(rows, Random(7)).map((r) => r.videoId), mixed.map((r) => r.videoId));
+  });
 }

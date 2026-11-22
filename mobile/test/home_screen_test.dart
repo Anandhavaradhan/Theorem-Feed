@@ -28,26 +28,28 @@ void main() {
     expect(find.text('Upload your material'), findsOneWidget);
   });
 
-  testWidgets('seeded library shows the 5 videos with reason labels, from the local database', (tester) async {
+  testWidgets('seeded library shows the 5 videos, YouTube-style, from the local database', (tester) async {
     final db = AppDatabase.inMemory();
     expect(seedPhaseA(db), isTrue);
     expect(seedPhaseA(db), isFalse); // idempotent
+    db.execute("UPDATE videos SET channel = '3Blue1Brown' WHERE title = 'The essence of calculus'");
     await tester.pumpWidget(_app(db));
     await tester.pumpAndSettle();
-    expect(find.text('From your material: Definite Integral'), findsOneWidget);
     expect(find.text('The essence of calculus'), findsOneWidget);
+    expect(find.text('3Blue1Brown'), findsOneWidget); // the channel under the title, as on YouTube
+    // The concept each video belongs to stays out of the feed (watch page and ⋮ menu show it).
+    expect(find.textContaining('From your material'), findsNothing);
     expect(find.text('17:00'), findsOneWidget); // duration badge
     expect(FeedService(db).longform().items.map((c) => c.reasonLabel).toSet().length, 5);
   });
 
-  testWidgets('concept with no videos shows a coverage-gap card', (tester) async {
+  testWidgets('a concept with no videos gets no card on Home: recommendations only', (tester) async {
     final db = AppDatabase.inMemory();
     seedPhaseA(db);
     db.execute("UPDATE videos SET status = 'rejected_lang' WHERE source_id = 'WUvTyaaNkzM'");
     await tester.pumpWidget(_app(db));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('No videos yet: Definite Integral'), 300,
-        scrollable: find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down).first);
-    expect(find.text('No videos yet: Definite Integral'), findsOneWidget);
+    expect(find.text('No videos yet: Definite Integral'), findsNothing);
+    expect(FeedService(db).longform().coverageGaps.map((g) => g.concept), contains('Definite Integral')); // still tracked
   });
 }

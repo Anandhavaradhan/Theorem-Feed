@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../providers/providers.dart';
+import '../services/feed_service.dart' show FeedScope;
 import '../services/search/search_service.dart';
 import '../widgets/ingestion_banner.dart';
 import '../widgets/video_card.dart';
@@ -16,7 +17,10 @@ import 'player_screen.dart';
 /// out-of-scope cards, concept chips that open the concept. Fully on the
 /// device, so it works offline.
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.scope});
+
+  /// Search only this chapter's (or PDF's) concepts.
+  final FeedScope? scope;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -25,6 +29,13 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _ctrl = TextEditingController();
   Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    // A fresh search, limited to the chapter when opened from one.
+    Future.microtask(() => ref.read(searchQueryProvider.notifier).scopeTo(widget.scope));
+  }
 
   @override
   void dispose() {
@@ -48,7 +59,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           autofocus: false,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
-            hintText: t('search.hint'),
+            hintText: widget.scope == null ? t('search.hint') : t('search.in', {'scope': widget.scope!.label}),
             filled: true,
             fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             isDense: true,

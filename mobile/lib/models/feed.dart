@@ -11,7 +11,12 @@ class FeedCard {
     required this.fromMaterial,
     this.score,
     this.why,
+    this.channel,
   });
+
+  /// The YouTube channel, shown under the title (null for videos added before v4
+  /// until the background re-check fills it in).
+  final String? channel;
 
   final String videoId;
   final String title;

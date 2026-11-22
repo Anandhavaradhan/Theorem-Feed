@@ -431,6 +431,9 @@ class IngestionService {
       if (_stopped) break;
       try {
         final d = await source.details(yt, needVertical: false);
+        if (d.channel != null) {
+          _db.execute('UPDATE videos SET channel = ? WHERE id = ? AND channel IS NULL', [d.channel, r['id']]);
+        }
         final spoken = d.spokenLanguage;
         if (spoken != null && !spoken.toLowerCase().startsWith('en')) remove(r['id'] as String, yt, 'spoken language: $spoken');
         onChecked?.call(yt);
@@ -633,10 +636,10 @@ class IngestionService {
     _db.transaction(() {
       _db.execute(
         'INSERT INTO videos (id, source, source_id, title, description, transcript, duration_sec, thumbnail_url, '
-        'is_short, is_theorem, subject, in_theorem_pool, status, created_at) '
-        "VALUES (?, 'youtube', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)",
+        'is_short, is_theorem, subject, in_theorem_pool, status, created_at, channel) '
+        "VALUES (?, 'youtube', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)",
         [videoId, c.id, d.title, d.description, transcript, d.durationSec, d.thumbnailUrl, boolInt(isShort),
-         boolInt(isTheorem), subject, boolInt(t.path == IngestPath.theoremPool), nowMs()],
+         boolInt(isTheorem), subject, boolInt(t.path == IngestPath.theoremPool), nowMs(), channel],
       );
       for (final m in mapped) {
         _db.execute('INSERT INTO video_concepts (video_id, concept_id, confidence, is_primary) VALUES (?, ?, ?, 1)',

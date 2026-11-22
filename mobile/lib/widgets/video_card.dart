@@ -4,9 +4,10 @@ import '../core/theme.dart';
 import '../models/feed.dart';
 import 'thumbnail.dart';
 
-/// A home-feed item: 16:9 thumbnail with a duration badge, then a round concept
-/// avatar, a two-line title, and a grey metadata line that always carries the
-/// reason label (constraint #14).
+/// A home-feed item, as on YouTube: 16:9 thumbnail with a duration badge, then
+/// the channel's round avatar, a two-line title and the channel name. Which
+/// concept of your notes it belongs to stays out of the feed (the watch page
+/// and the ⋮ menu show it).
 class VideoCard extends StatelessWidget {
   const VideoCard({
     super.key,
@@ -60,7 +61,7 @@ class VideoCard extends StatelessWidget {
             Padding(
               padding: EdgeInsets.fromLTRB(inset ? 0 : 12, 12, 0, 0),
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                GestureDetector(onTap: onConceptTap, child: ConceptAvatar(card.conceptName)),
+                GestureDetector(onTap: onConceptTap, child: ConceptAvatar(card.channel ?? card.title)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -68,14 +69,11 @@ class VideoCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, height: 1.25)),
-                    const SizedBox(height: 4),
-                    GestureDetector(
-                      onTap: onConceptTap,
-                      child: Text(card.reasonLabel,
+                    if (card.channel != null && card.channel!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(card.channel!,
                           maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: meta)),
-                    ),
-                    if (card.why != null && card.why!.isNotEmpty)
-                      Text(card.why!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: meta)),
+                    ],
                   ]),
                 ),
                 if (menu != null && menu!.isNotEmpty)
