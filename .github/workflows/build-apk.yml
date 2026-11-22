@@ -42,6 +42,11 @@ jobs:
 
       - run: flutter test
 
+      # Plugins (e.g. whisper_ggml) pin NDK versions the runner hasn't installed;
+      # Gradle can only install them once the SDK licences are accepted.
+      - name: Accept Android SDK licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
       - name: Build release APK (arm64)
         run: flutter build apk --release --target-platform android-arm64
 
