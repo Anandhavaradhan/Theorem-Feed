@@ -53,6 +53,7 @@ class FakeSource implements VideoSource {
 class FakeModel implements JsonModel {
   final edu = <String, Map<String, dynamic>>{}; // keyed by title
   final unsafeTitles = <String>{};
+  final prompts = <String>[];
   int calls = 0;
   Object? throwOnCall;
 
@@ -63,6 +64,7 @@ class FakeModel implements JsonModel {
     if (throwOnCall != null) throw throwOnCall!;
     expect(system, videoCheckSystemPrompt);
     final text = (content.single as TextContent).text;
+    prompts.add(text);
     final title = RegExp(r'^Title: (.*)$', multiLine: true).firstMatch(text)!.group(1)!;
     return edu[title] ??
         {'educational': true, 'safe': !unsafeTitles.contains(title), 'on_topic': true, 'is_theorem': false,
@@ -247,27 +249,75 @@ void main() {
     expect(outcome('a'), 'accepted');
   });
 
-  test('strong evidence is accepted by rule, without the model', () async {
+  test('strong evidence is accepted by rule, without the model; other senses go to the model', () async {
     const q = 'Integration by Parts IBP';
-    // Lesson words in the title: rule.
-    src.add(q, 'lesson', title: 'Integration by parts explained');
-    // No lesson words, but the captions mention 2+ other concepts from the material: rule.
     final m = db.select('SELECT id FROM materials').first['id'] as String;
     for (final n in ['Product Rule', 'Antiderivative']) {
       addMaterialConcept(db, m, addConcept(db, n), importance: 0.5);
     }
     recomputeUserActiveConcepts(db);
-    src.add(q, 'context', title: 'IBP', description: '', transcript: const [
+    const withContext = [
       'integration by parts turns the product rule around',
       'so we can find an antiderivative of a product',
-    ]);
-    // Name in the title but nothing else to go on: the model decides.
-    src.add(q, 'bare', title: 'Integration by parts', description: '');
+    ];
+    // Title names it, captions say it and mention 2+ other concepts from your notes: rule.
+    src.add(q, 'context', title: 'IBP', description: '', transcript: withContext);
+    // Lesson words alone aren't enough for a concept from your notes: the model decides.
+    src.add(q, 'lesson', title: 'Integration by parts explained');
+    // A qualifier your notes never use: another sense, the model decides.
+    src.add(q, 'other', title: 'Stochastic integration by parts', description: '', transcript: withContext);
     final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
-    expect(r.accepted, 3);
-    expect(model.calls, 1); // only 'bare'
-    expect(db.select("SELECT reason FROM ingest_log WHERE source_id = 'lesson'").single['reason'],
+    expect(r.accepted, 3); // the fake model says yes to the other two
+    expect(model.calls, 2);
+    expect(db.select("SELECT reason FROM ingest_log WHERE source_id = 'context'").single['reason'],
         contains('title and captions'));
+  });
+
+  test('the search and the checks use the chapter the concept is in', () async {
+    final m = db.select('SELECT id FROM materials').first['id'] as String;
+    final sp = addConcept(db, 'Superposition', subject: 'physics');
+    db.execute(
+        "UPDATE material_concepts SET chapter = '11 Superposition and standing waves', section = '11.1 Superposition' "
+        'WHERE concept_id = ?', [ibp]);
+    addMaterialConcept(db, m, sp, chapter: '11 Superposition and standing waves');
+    for (final n in ['Standing Wave', 'Amplitude', 'Crest']) {
+      addMaterialConcept(db, m, addConcept(db, n, subject: 'physics'), chapter: '11 Superposition and standing waves');
+    }
+    recomputeUserActiveConcepts(db);
+    const q = 'Superposition standing waves physics';
+    const waveTalk = [
+      'superposition means the displacements add when two waves meet',
+      'a crest meets a crest and the amplitude doubles, and a standing wave forms',
+    ];
+    src.add(q, 'waves', title: 'Superposition of waves', description: '', transcript: waveTalk);
+    src.add(q, 'quantum', title: 'Quantum superposition explained', description: '',
+        transcript: const ['quantum superposition means a particle is in two states', 'amplitude and crest of a wave']);
+    model.edu['Quantum superposition explained'] = {
+      'educational': true, 'safe': true, 'on_topic': false, 'is_theorem': false, 'language': 'en'};
+    final s = IngestionService(db: db, source: src, model: model, acceptPerConcept: 5);
+    await s.ingestMaterialConcept(sp);
+    expect(src.queries.last, q);
+    expect(status('waves'), 'active'); // by rule
+    expect(outcome('quantum'), 'rejected_scope'); // the model, told the notes' chapter, says it's another sense
+    final prompt = model.prompts.single;
+    expect(prompt, contains('From the notes: Notes › Superposition and standing waves'));
+  });
+
+  test('re-check removes library videos in another sense of their concept', () async {
+    final m = db.select('SELECT id FROM materials').first['id'] as String;
+    final sp = addConcept(db, 'Superposition', subject: 'physics');
+    addMaterialConcept(db, m, sp, statement: 'When two waves meet, their displacements add.');
+    recomputeUserActiveConcepts(db);
+    final quantum = addVideo(db, 'qs');
+    db.execute("UPDATE videos SET title = 'Quantum superposition in 5 minutes' WHERE id = ?", [quantum]);
+    final waves = addVideo(db, 'ws');
+    db.execute("UPDATE videos SET title = 'Wave superposition explained' WHERE id = ?", [waves]);
+    tag(db, quantum, sp);
+    tag(db, waves, sp);
+    expect(svc().recheckTopics(), 1);
+    expect(db.select('SELECT 1 FROM video_concepts WHERE video_id = ?', [quantum]), isEmpty); // out of every feed
+    expect(outcome('qs'), 'rejected_scope'); // and never re-added
+    expect(db.select('SELECT 1 FROM video_concepts WHERE video_id = ?', [waves]), hasLength(1)); // "wave" is in the notes
   });
 
   test('videos without captions are checked last, with the speech model, only if still needed', () async {

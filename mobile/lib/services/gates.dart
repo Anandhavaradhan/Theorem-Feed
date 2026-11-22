@@ -256,15 +256,51 @@ int contextHits(Iterable<String> others, String text) {
   return hits;
 }
 
-/// Accept without the model: the title names the concept, the captions say it,
-/// and either the title/description reads as a lesson or the captions mention
-/// at least 2 other concepts from the same material. (The safety-keyword and
-/// English gates have already passed.)
+/// Words that may stand before a concept's name in a title without changing
+/// its meaning ("Understanding superposition", "Wave superposition" is checked
+/// against the notes instead).
+const _neutralQualifiers = {
+  'understanding', 'introduction', 'intro', 'basic', 'basics', 'simple', 'easy', 'easiest', 'complete', 'full',
+  'lesson', 'class', 'physics', 'math', 'maths', 'mathematics', 'chapter', 'grade', 'what', 'learn', 'learning',
+  'about', 'principle', 'law', 'concept', 'concepts', 'visualizing', 'visualising', 'visual', 'animated', 'animation',
+  'quick', 'explained', 'best', 'the', 'and', 'with', 'how', 'why', 'does', 'work', 'works', 'lecture', 'tutorial',
+  'revision', 'review', 'part', 'episode', 'video', 'topic', 'unit', 'module', 'deriving', 'derivation', 'proof',
+};
+
+/// A word right before the concept's name in [title] that your notes never use:
+/// "Quantum superposition" in notes about sound waves. Null if there is none.
+String? foreignQualifier(List<String> names, String title, Set<String> vocabulary) {
+  final words = normalizeText(title).split(' ');
+  for (final n in names) {
+    final nn = normalizeText(n).split(' ');
+    if (nn.isEmpty || nn.first.length < 3) continue;
+    for (var i = 1; i < words.length; i++) {
+      final w = words[i].endsWith('s') && !nn.first.endsWith('s') ? words[i].substring(0, words[i].length - 1) : words[i];
+      if (w != nn.first) continue;
+      final before = words[i - 1];
+      if (before.length < 4 || _neutralQualifiers.contains(before) || RegExp(r'^\d+$').hasMatch(before)) continue;
+      final singular = before.endsWith('s') && !before.endsWith('ss') ? before.substring(0, before.length - 1) : before;
+      if (!vocabulary.contains(before) && !vocabulary.contains(singular) && !vocabulary.contains('${before}s')) {
+        return before;
+      }
+    }
+  }
+  return null;
+}
+
+/// Accept without the model: the title names the concept and the captions say
+/// it, and then
+///  - for a concept from your notes ([materialConcepts] given): the captions
+///    mention at least 2 other concepts from your notes, and the title doesn't
+///    qualify the concept with a word your notes never use ("Quantum");
+///  - for a pool theorem: the title or description reads as a lesson.
+/// (The safety-keyword and English gates have already passed.)
 bool strongEvidence(List<String> names,
     {required String title,
     required String description,
     required String transcript,
-    Iterable<String> materialConcepts = const []}) {
+    Iterable<String>? materialConcepts,
+    Set<String>? vocabulary}) {
   if (!_nameInTitle(names, title) || isHinglish(title, short: true)) return false;
   final tr = normalizeText(transcript);
   final said = names.any((n) {
@@ -272,9 +308,12 @@ bool strongEvidence(List<String> names,
     return nn.length >= 3 && RegExp('\\b${RegExp.escape(nn)}').hasMatch(tr);
   });
   if (!said) return false;
+  if (materialConcepts != null) {
+    if (vocabulary != null && foreignQualifier(names, title, vocabulary) != null) return false;
+    return contextHits(materialConcepts, transcript) >= 2;
+  }
   return _eduCueRe.hasMatch(title) ||
-      _eduCueRe.hasMatch(description.length > 600 ? description.substring(0, 600) : description) ||
-      contextHits(materialConcepts, transcript) >= 2;
+      _eduCueRe.hasMatch(description.length > 600 ? description.substring(0, 600) : description);
 }
 
 // --- Gate 1 + 2 by model: one short on-device call -----------------------------
@@ -283,7 +322,7 @@ const videoCheckSystemPrompt = '''
 You check a YouTube video for a study app. Answer with JSON only.
 educational: true only if it mainly teaches math, science or computer science. False for vlogs, entertainment, music, gaming, news, motivation, "study with me".
 safe: false if anything is sexual, violent, hateful or otherwise inappropriate.
-on_topic: true if it mainly teaches the searched concept.
+on_topic: true if it mainly teaches the searched concept in the sense used in the student's notes (for notes on sound waves, "superposition" means waves adding up, not quantum superposition).
 is_theorem: true if it states or proves a specific theorem, formula or result.
 language: "en" only if the title and description are plain English; "other" for any other language, including Hindi or Tamil written in English letters ("kaise karte hain", "enna solringa").''';
 
@@ -331,6 +370,7 @@ class VideoVerdict {
 Future<VideoVerdict> classifyVideo(
   JsonModel model, {
   required String searchedConcept,
+  String? notesContext,
   required String title,
   required String description,
   required String transcriptExcerpt,
@@ -346,6 +386,7 @@ Future<VideoVerdict> classifyVideo(
     system: videoCheckSystemPrompt,
     content: [
       TextContent('Searched concept: $searchedConcept\n'
+          '${notesContext == null ? '' : 'From the notes: $notesContext\n'}'
           'Channel: ${channel ?? 'unknown'}\n'
           'Duration: ${durationSec ?? 'unknown'} seconds\n'
           'Title: $title\n'

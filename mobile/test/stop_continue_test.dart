@@ -35,7 +35,8 @@ class _Source implements VideoSource {
       description: '',
       durationSec: 600,
       thumbnailUrl: 't',
-      transcriptLines: ['today we study $name in detail', 'so $name is the idea we use in this lesson today'],
+      // Mentions the other concepts of the notes, so the rule accepts it.
+      transcriptLines: ['today we study $name in detail', 'it builds on alpha, beta and gamma from the notes'],
       isVertical: false,
     );
   }

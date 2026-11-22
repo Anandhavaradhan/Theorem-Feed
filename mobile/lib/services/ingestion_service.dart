@@ -13,6 +13,7 @@ import 'package:uuid/uuid.dart';
 import '../data/app_database.dart';
 import 'concept_matcher.dart';
 import 'gates.dart';
+import 'text_match.dart';
 import 'youtube_source.dart';
 import 'llm.dart';
 
@@ -46,14 +47,28 @@ class IngestReport {
 typedef IngestProgress = void Function(String conceptName, IngestReport report);
 
 class _Target {
-  _Target(this.id, this.name, this.aliases, this.subject, this.type, this.path);
+  _Target(this.id, this.name, this.aliases, this.subject, this.type, this.path,
+      {this.contextWords = const [], this.notesLabel});
   final String id;
   final String name;
   final List<String> aliases;
   final String subject;
   final String type;
   final IngestPath path;
+
+  /// Words from the chapter/section the concept sits in ("standing waves" for
+  /// Superposition), so the search and the checks use it in your notes' sense.
+  final List<String> contextWords;
+
+  /// "Sound notes › Superposition and standing waves", for the AI check.
+  final String? notesLabel;
 }
+
+const _contextStopwords = {
+  'a', 'an', 'the', 'of', 'and', 'or', 'in', 'on', 'to', 'for', 'with', 'by', 'its', 'their', 'is', 'are', 'what',
+  'how', 'why', 'introduction', 'intro', 'basics', 'basic', 'part', 'chapter', 'section', 'unit', 'notes', 'more',
+  'two', 'three', 'kinds', 'types', 'uses', 'about',
+};
 
 class IngestionService {
   IngestionService({
@@ -102,8 +117,31 @@ class IngestionService {
           : 'concept is not in the curated math theorem pool');
     }
     final r = _db.select('SELECT canonical_name, aliases, subject, type FROM concepts WHERE id = ?', [conceptId]).first;
-    return _Target(conceptId, r['canonical_name'] as String, parseJsonList(r['aliases'] as String?),
-        r['subject'] as String, r['type'] as String, path);
+    final name = r['canonical_name'] as String;
+    var words = <String>[];
+    String? label;
+    if (path == IngestPath.material) {
+      final where = _db.select('''
+        SELECT m.title, mc.chapter, mc.section FROM material_concepts mc JOIN materials m ON m.id = mc.material_id
+        WHERE mc.concept_id = ? AND m.status = 'active' ORDER BY mc.importance DESC LIMIT 1''', [conceptId]).firstOrNull;
+      if (where != null) {
+        String strip(String? h) => (h ?? '').replaceFirst(RegExp(r'^\s*(chapter\s+)?\d+(\.\d+)*\.?\s*', caseSensitive: false), '');
+        final chapter = strip(where['chapter'] as String?);
+        final section = strip(where['section'] as String?);
+        final nameWords = normalizeText(name).split(' ').toSet();
+        final seen = <String>{};
+        for (final w in normalizeText('$section $chapter').split(' ')) {
+          if (w.length < 3 || _contextStopwords.contains(w) || nameWords.contains(w) || !seen.add(w)) continue;
+          words.add(w);
+        }
+        words = words.take(2).toList();
+        label = [where['title'] as String, if (chapter.isNotEmpty) chapter, if (section.isNotEmpty && section != chapter) section]
+            .join(' › ');
+      }
+    }
+    return _Target(conceptId, name, parseJsonList(r['aliases'] as String?), r['subject'] as String, r['type'] as String,
+        path,
+        contextWords: words, notesLabel: label);
   }
 
   // --- public entry points ----------------------------------------------------
@@ -154,6 +192,8 @@ class IngestionService {
   String _query(_Target t) {
     final alias = t.aliases.where((a) => !t.name.toLowerCase().contains(a.toLowerCase())).firstOrNull;
     var base = alias == null ? t.name : '${t.name} $alias';
+    // "Superposition standing waves": the chapter keeps the search in your notes' sense.
+    if (t.contextWords.isNotEmpty) base = '$base ${t.contextWords.join(' ')}';
     final subject = _subjectWord[t.subject];
     if (t.path == IngestPath.material &&
         subject != null &&
@@ -179,6 +219,22 @@ class IngestionService {
     if (!canIngest(conceptId)) return;
     _search(_target(conceptId, isActiveConcept(conceptId) ? IngestPath.material : IngestPath.theoremPool));
   }
+
+  Set<String>? _vocab;
+
+  /// Every word of your active notes' concept names and statements: a word
+  /// qualifying the concept in a title ("Quantum superposition") that your
+  /// notes never use means another sense of it.
+  Set<String> _vocabulary() => _vocab ??= {
+        for (final r in _db.select('''
+          SELECT c.canonical_name, mc.statement, mc.chapter, mc.section FROM material_concepts mc
+          JOIN materials m ON m.id = mc.material_id JOIN concepts c ON c.id = mc.concept_id
+          WHERE m.status = 'active' '''))
+          for (final w in normalizeText(
+                  '${r['canonical_name']} ${r['statement'] ?? ''} ${r['chapter'] ?? ''} ${r['section'] ?? ''}')
+              .split(' '))
+            if (w.length >= 3) ...{w, if (w.endsWith('s') && !w.endsWith('ss')) w.substring(0, w.length - 1)},
+      };
 
   /// Names of the other concepts in your active material (context for the rule check).
   List<String> _materialNames(String exceptId) => [
@@ -310,6 +366,34 @@ class IngestionService {
     return removed;
   }
 
+  /// Removes library videos whose title qualifies their concept with a word your
+  /// notes never use ("Quantum superposition" for notes on sound waves). Offline
+  /// and instant. Returns how many were removed.
+  int recheckTopics() {
+    final vocab = _vocabulary();
+    if (vocab.isEmpty) return 0;
+    var removed = 0;
+    for (final r in _db.select('''
+      SELECT v.id, v.source_id, v.title, c.id AS concept_id, c.canonical_name, c.aliases FROM videos v
+      JOIN video_concepts vc ON vc.video_id = v.id AND vc.is_primary = 1
+      JOIN user_active_concepts u ON u.concept_id = vc.concept_id
+      JOIN concepts c ON c.id = vc.concept_id
+      WHERE v.status = 'active' AND v.in_theorem_pool = 0''')) {
+      final names = [r['canonical_name'] as String, ...parseJsonList(r['aliases'] as String?)];
+      final q = foreignQualifier(names, r['title'] as String, vocab);
+      if (q == null) continue;
+      // Unlinked from the concept: it leaves every feed, and the log keeps it from coming back.
+      _db.execute('DELETE FROM video_concepts WHERE video_id = ? AND concept_id = ?', [r['id'], r['concept_id']]);
+      _db.execute(
+        'INSERT OR REPLACE INTO ingest_log (source_id, outcome, reason, concept_id, checked_at) VALUES (?, ?, ?, ?, ?)',
+        [r['source_id'], 'rejected_scope', 'recheck: "$q ${r['canonical_name']}" is another sense', r['concept_id'],
+         nowMs()],
+      );
+      removed++;
+    }
+    return removed;
+  }
+
   bool _alreadySeen(String youtubeId) =>
       // Transient errors are retried on the next run; every other outcome is final.
       _db.select("SELECT 1 FROM ingest_log WHERE source_id = ? AND outcome != 'error'", [youtubeId]).isNotEmpty ||
@@ -412,7 +496,11 @@ class IngestionService {
       isTheorem = ruleTheorem;
       reason = 'trusted channel ($channel) covering ${t.name}';
     } else if (strongEvidence(names,
-        title: d.title, description: d.description, transcript: transcript, materialConcepts: context)) {
+        title: d.title,
+        description: d.description,
+        transcript: transcript,
+        materialConcepts: t.path == IngestPath.material ? context : null,
+        vocabulary: t.path == IngestPath.material ? _vocabulary() : null)) {
       mapped = [ConceptRef(t.id, t.name, 95)];
       isTheorem = ruleTheorem;
       reason = 'title and captions teach ${t.name}';
@@ -423,6 +511,7 @@ class IngestionService {
         v = await classifyVideo(
           model,
           searchedConcept: t.name,
+          notesContext: t.notesLabel,
           title: d.title,
           description: d.description,
           transcriptExcerpt: transcript,
@@ -437,7 +526,10 @@ class IngestionService {
       if (!v.english) return rejectV('rejected_lang', 'model: title/description not English');
       // A small model sometimes misses a plain match; if the video plainly covers
       // the concept by the rule above, count it.
-      mapped = v.onTopic || covers ? [ConceptRef(t.id, t.name, v.onTopic ? 90 : 80)] : const [];
+      // ...but not when the title puts the concept in another sense ("Quantum superposition").
+      final otherSense =
+          t.path == IngestPath.material && foreignQualifier(names, d.title, _vocabulary()) != null;
+      mapped = v.onTopic || (covers && !otherSense) ? [ConceptRef(t.id, t.name, v.onTopic ? 90 : 80)] : const [];
       isTheorem = v.isTheorem;
       reason = 'model: educational, on topic';
     }

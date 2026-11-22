@@ -245,15 +245,18 @@ The guardrail tests run on every change:
   and captions must read as English too: besides the language detector, a word check rejects Hindi,
   Tamil, Telugu, Malayalam and Kannada written in English letters. Videos added before these checks are
   re-checked once in the background at start-up and removed if they fail.
-- **Faster video checks.** For each concept the app searches YouTube for its name (short names get their
-  subject: "Echo physics") and checks the top 8 results; the next concept's search starts while the current
-  one is checked, and the next 3 candidates' details download in parallel. Most videos are decided by rule,
-  without the AI: a trusted channel covering the concept, or a title that names it, captions that say it, and
-  either lesson words ("explained", "class 9", "lecture", …) or 2+ other concepts from your material in the
-  captions. The rest get one short model call answered with
-  booleans only (about 25 output tokens). Videos without captions need the speech model, so they are checked
-  last and only if the captioned ones didn't fill the concept. Trade-off: a video accepted by rule skips the
-  model's extra safety read; it still passes the unsafe-word filter and the English checks.
+- **Faster video checks, in your notes' sense.** For each concept the app searches YouTube for its name
+  plus words from its chapter ("Superposition standing waves physics"; short names also get their subject)
+  and checks the top 8 results; the next concept's search starts while the current one is checked, and the
+  next 3 candidates' details download in parallel. Most videos are decided by rule, without the AI: a trusted
+  channel covering the concept, or a title that names it and captions that say it and mention 2+ other
+  concepts from your notes. A title that qualifies the concept with a word your notes never use ("Quantum
+  superposition" for notes on sound waves) always goes to the AI, which is told the PDF and chapter the
+  concept comes from and answers with booleans only (about 25 output tokens). At start-up, videos already in
+  the library in another sense of their concept are unlinked from it. Videos without captions need the speech
+  model, so they are checked last and only if the captioned ones didn't fill the concept. Trade-off: a video
+  accepted by rule skips the model's extra safety read; it still passes the unsafe-word filter and the
+  English checks.
 - **Model memory.** The model is unloaded after 90 seconds without use, freeing roughly 0.6–0.9 GB of RAM.
   The next check, upload or relevance run reloads it from the file on the device in a few seconds,
   without downloading it again.

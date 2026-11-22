@@ -79,7 +79,8 @@ void main() {
     expect(find.textContaining(RegExp(r'\b([2-9]|\d\d) concepts')), findsWidgets); // headings + labelled blocks
     expect(find.textContaining('Studying now'), findsOneWidget);
     // §6.4 step 5: scoped ingestion ran for the new concepts.
-    expect(source.queries, containsAll(['Integration by Parts IBP', 'Partial Fractions partial fraction decomposition']));
+    // Searches carry the chapter: "Techniques of Integration".
+    expect(source.queries, containsAll(['Integration by Parts IBP techniques', 'Partial Fractions partial fraction decomposition techniques integration']));
     expect(FeedService(db).longform().needsUpload, isFalse);
 
     await tester.tap(find.byType(PopupMenuButton<String>));

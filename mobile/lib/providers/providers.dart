@@ -271,7 +271,9 @@ class IngestionController extends Notifier<IngestionState> {
       model: ref.read(jsonModelProvider),
       isCancelled: () => state.isBusy, // never competes with a search you started
     );
-    final removed = await svc.recheckLanguages(checked: checked, onChecked: (yt) {
+    // Videos in another sense of the concept than your notes' ("Quantum superposition").
+    var removed = svc.recheckTopics();
+    removed += await svc.recheckLanguages(checked: checked, onChecked: (yt) {
       checked.add(yt);
       db.setSetting(_spokenCheckedKey, jsonList(checked.toList()));
     });
