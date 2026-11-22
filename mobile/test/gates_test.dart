@@ -41,6 +41,26 @@ void main() {
       expect(metadataIsEnglish('积分的分部积分法', ''), isFalse);
     });
 
+    test('Hindi written in English letters (Hinglish) fails; plain English with similar words passes', () {
+      expect(metadataIsEnglish('Integration by parts kaise karte hain', 'A calculus lesson.'), isFalse);
+      expect(metadataIsEnglish('Echo kya hai? Class 9 Physics', ''), isFalse);
+      expect(metadataIsEnglish('Echo | Class 9 Physics',
+          'Is video mein hum echo ke baare mein padhenge aur numericals bhi karenge.'), isFalse);
+      // English that happens to contain a short word from the list.
+      expect(metadataIsEnglish('Why do power lines hum? The physics of mains hum', ''), isTrue);
+      expect(metadataIsEnglish('Kinetic energy (KE) and potential energy explained', ''), isTrue);
+
+      final hinglish = transcriptLanguage([
+        'toh dosto aaj hum integration by parts ke baare mein baat karenge',
+        'yeh formula bahut important hai exam ke liye',
+        'pehle hum u aur v choose karte hain jaise maine bataya tha',
+        'phir derivative nikalte hain aur integral lagate hain bilkul simple',
+        'agar aapko samajh aa gaya toh video ko like kar dijiye',
+      ]);
+      expect(hinglish.isEnglish, isFalse);
+      expect(transcriptLanguage(_englishTranscript).isEnglish, isTrue);
+    });
+
     test('English transcript passes', () {
       final r = transcriptLanguage(_englishTranscript);
       expect(r.chunks, greaterThan(3));

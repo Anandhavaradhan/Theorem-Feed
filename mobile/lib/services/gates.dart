@@ -44,9 +44,45 @@ bool isConfidentlyNonEnglish(String text) {
   return r != null && r.code != 'en' && r.isReliable;
 }
 
-/// Title + description check (spec: reject if non-en with high confidence).
-bool metadataIsEnglish(String title, String description) =>
-    !isConfidentlyNonEnglish('$title\n${description.length > 600 ? description.substring(0, 600) : description}');
+// Romanised Hindi ("Hinglish") is written in English letters, so a language
+// detector often calls it English. These are its common words that are not
+// English words (ambiguous ones like "to", "the", "me" are left out).
+const _hinglishWords = {
+  'hai', 'hain', 'ka', 'ki', 'ke', 'ko', 'se', 'mein', 'aur', 'ye', 'yeh', 'wo', 'woh', 'kya', 'kaise', 'kyun',
+  'kyon', 'nahi', 'nahin', 'bhi', 'toh', 'hota', 'hoti', 'hote', 'karte', 'karo', 'karna', 'karein', 'kare', 'kar',
+  'raha', 'rahe', 'rahi', 'tha', 'thi', 'jaise', 'isko', 'isme', 'iska', 'iski', 'uska', 'uski', 'apne', 'aap',
+  'tum', 'hum', 'bhai', 'dekho', 'samjho', 'samjhe', 'samjhiye', 'chaliye', 'chalo', 'accha', 'achha', 'acha',
+  'matlab', 'sirf', 'bilkul', 'sabse', 'asaan', 'aasan', 'tarika', 'padhai', 'hindi', 'kijiye', 'sikhe', 'seekhe',
+  'wala', 'wali', 'wale', 'ekdum', 'jaldi', 'bahut', 'zaroor', 'liye', 'kaun', 'kab', 'kitna', 'yaha', 'yahan',
+  'waha', 'wahan', 'agar', 'lekin', 'phir', 'fir', 'abhi', 'sab', 'kuch', 'koi', 'saath', 'baat', 'samajh',
+};
+
+/// Share of words that are romanised-Hindi function words.
+double hinglishShare(String text) {
+  final words = RegExp(r"[a-z']+").allMatches(text.toLowerCase()).map((m) => m.group(0)!).toList();
+  if (words.isEmpty) return 0;
+  return words.where(_hinglishWords.contains).length / words.length;
+}
+
+/// Romanised Hindi: two or more different words of it making up at least 1 word
+/// in 12, or (in a short title) a single unmistakable one.
+bool isHinglish(String text, {bool short = false}) {
+  final words = RegExp(r"[a-z']+").allMatches(text.toLowerCase()).map((m) => m.group(0)!).toList();
+  final hits = words.where(_hinglishWords.contains).length;
+  final distinct = words.where(_hinglishWords.contains).toSet().length;
+  if (short && words.any(const {'kaise', 'kya', 'hai', 'hain', 'nahi', 'karte', 'samjho', 'hindi', 'mein'}.contains)) {
+    return true;
+  }
+  return distinct >= 2 && hits / words.length >= 1 / 12;
+}
+
+/// Title + description check: not another language, and not English letters
+/// spelling Hindi. English only.
+bool metadataIsEnglish(String title, String description) {
+  final desc = description.length > 600 ? description.substring(0, 600) : description;
+  if (isConfidentlyNonEnglish('$title\n$desc')) return false;
+  return !isHinglish(title, short: true) && !isHinglish(desc);
+}
 
 /// Transcript check: split into chunks of ≥ 8 words (single caption lines are
 /// too short to identify); reject if > 15% of identifiable chunks are non-English.
@@ -75,10 +111,11 @@ TranscriptLanguage transcriptLanguage(List<String> lines) {
     // Mostly-math chunks ("f of x equals x squared") can misdetect; only count
     // chunks the detector is reliable about, or that are clearly non-Latin.
     final nonLatin = latinLetterShare(c) < 0.7;
+    final hinglish = hinglishShare(c) >= 0.15; // e.g. "toh yeh formula hai jo hum use karte hain"
     final r = LanguageDetector.detect(c);
-    if (nonLatin || (r != null && r.isReliable)) {
+    if (nonLatin || hinglish || (r != null && r.isReliable)) {
       counted++;
-      if (nonLatin || r!.code != 'en') nonEn++;
+      if (nonLatin || hinglish || r!.code != 'en') nonEn++;
     }
   }
   return TranscriptLanguage(counted, nonEn);
@@ -170,14 +207,6 @@ final _eduCueRe = RegExp(
   caseSensitive: false,
 );
 
-/// Common words of romanised Hindi ("Hinglish"). A language detector reads
-/// these titles as English; the rule leaves them to the model.
-final _hinglishRe = RegExp(
-  r'\b(kaise|kya|hai|hain|karte|karein|kare|samjhe|samjho|sikhe|seekhe|mein|aur|bhai|sabse|asaan|tarika|'
-  r'hindi|padhai|kijiye|dekho|bilkul|sirf|matlab)\b',
-  caseSensitive: false,
-);
-
 bool _nameInTitle(List<String> names, String title) {
   final t = normalizeText(title);
   for (final n in names) {
@@ -213,7 +242,7 @@ bool strongEvidence(List<String> names,
     required String description,
     required String transcript,
     Iterable<String> materialConcepts = const []}) {
-  if (!_nameInTitle(names, title) || _hinglishRe.hasMatch(title)) return false;
+  if (!_nameInTitle(names, title) || isHinglish(title, short: true)) return false;
   final tr = normalizeText(transcript);
   final said = names.any((n) {
     final nn = normalizeText(n);
@@ -233,7 +262,7 @@ educational: true only if it mainly teaches math, science or computer science. F
 safe: false if anything is sexual, violent, hateful or otherwise inappropriate.
 on_topic: true if it mainly teaches the searched concept.
 is_theorem: true if it states or proves a specific theorem, formula or result.
-language: "en" if the title and description are English, else "other" (Hindi-English mix is "other").''';
+language: "en" only if the title and description are plain English; "other" for any other language, including Hindi written in English letters ("kaise karte hain").''';
 
 /// Booleans only: the answer is about 25 tokens, so a sub-1B model on a phone
 /// CPU answers in a second or two instead of writing sentences.
