@@ -239,9 +239,15 @@ The guardrail tests run on every change:
   brackets, a passing mention) go to the on-device model, at most 40, in batches of 10, answered with
   lists of numbers so each call is a few dozen output tokens. If the AI fails, the confident finds stand.
   Settings → *Deep read* additionally has the AI read every section, which is slower.
-- **Faster video checks.** The next 3 candidates' details download in parallel while one is being judged.
-  Each candidate's metadata, transcript and orientation are fetched at the same time, and videos too long
-  to be shorts skip the stream-list request.
+- **Faster video checks.** For each concept the app searches YouTube for its name (short names get their
+  subject: "Echo physics") and checks the top 8 results; the next concept's search starts while the current
+  one is checked, and the next 3 candidates' details download in parallel. Most videos are decided by rule,
+  without the AI: a trusted channel covering the concept, or a title that names it, captions that say it, and
+  either lesson words ("explained", "class 9", "lecture", …) or 2+ other concepts from your material in the
+  captions. Romanised-Hindi titles always go to the model. The rest get one short model call answered with
+  booleans only (about 25 output tokens). Videos without captions need the speech model, so they are checked
+  last and only if the captioned ones didn't fill the concept. Trade-off: a video accepted by rule skips the
+  model's extra safety read; it still passes the unsafe-word filter and the English checks.
 - **Model memory.** The model is unloaded after 90 seconds without use, freeing roughly 0.6–0.9 GB of RAM.
   The next check, upload or relevance run reloads it from the file on the device in a few seconds,
   without downloading it again.

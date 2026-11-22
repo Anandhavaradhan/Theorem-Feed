@@ -63,8 +63,8 @@ class FakeModel implements JsonModel {
     final text = (content.single as TextContent).text;
     final title = RegExp(r'^Title: (.*)$', multiLine: true).firstMatch(text)!.group(1)!;
     return edu[title] ??
-        {'educational': true, 'safe': !unsafeTitles.contains(title), 'reason': 'teaches it', 'subject': 'math',
-         'is_theorem': false, 'primary_concepts': ['Integration by Parts'], 'text_language': 'en'};
+        {'educational': true, 'safe': !unsafeTitles.contains(title), 'on_topic': true, 'is_theorem': false,
+         'language': 'en'};
   }
 }
 
@@ -158,16 +158,13 @@ void main() {
   test('model gates: educational, safety, language, and scope', () async {
     const q = 'Integration by Parts IBP';
     src.add(q, 'vlog', title: 'My study vlog');
-    model.edu['My study vlog'] = {'educational': false, 'safe': true, 'reason': 'vlog', 'subject': 'other',
-      'is_theorem': false, 'primary_concepts': <String>[], 'text_language': 'en'};
+    model.edu['My study vlog'] = {'educational': false, 'safe': true, 'on_topic': false, 'is_theorem': false, 'language': 'en'};
     src.add(q, 'hinglish', title: 'Integration by parts kaise karte hain');
-    model.edu['Integration by parts kaise karte hain'] = {'educational': true, 'safe': true, 'reason': 'x',
-      'subject': 'math', 'is_theorem': false, 'primary_concepts': ['Integration by Parts'], 'text_language': 'hi'};
-    src.add(q, 'unsafe', title: 'IBP trick');
+    model.edu['Integration by parts kaise karte hain'] = {'educational': true, 'safe': true, 'on_topic': true, 'is_theorem': false, 'language': 'other'};
+    src.add(q, 'unsafe', title: 'IBP trick', description: ''); // nothing for the rule: the model decides
     model.unsafeTitles.add('IBP trick');
     src.add(q, 'offtopic', title: 'Laplace transforms explained');
-    model.edu['Laplace transforms explained'] = {'educational': true, 'safe': true, 'reason': 'x', 'subject': 'math',
-      'is_theorem': false, 'primary_concepts': ['Laplace Transform'], 'text_language': 'en'};
+    model.edu['Laplace transforms explained'] = {'educational': true, 'safe': true, 'on_topic': false, 'is_theorem': false, 'language': 'en'};
 
     final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
     expect(status('vlog'), 'rejected_edu');
@@ -180,8 +177,7 @@ void main() {
 
   test('Path B: pool shorts only — prefilter, vertical theorem short accepted, re-run skips seen', () async {
     const q = 'Pythagorean Theorem #shorts';
-    final pythEdu = {'educational': true, 'safe': true, 'reason': 'proof', 'subject': 'math', 'is_theorem': true,
-      'primary_concepts': ['Pythagorean theorem'], 'text_language': 'en'};
+    final pythEdu = {'educational': true, 'safe': true, 'on_topic': true, 'is_theorem': true, 'language': 'en'};
     src.add(q, 'long', title: 'Pythagoras full lecture', duration: 1800);
     src.add(q, 'wide', title: 'Pythagoras proof (landscape)', duration: 50, vertical: false);
     model.edu['Pythagoras proof (landscape)'] = pythEdu;
@@ -211,8 +207,7 @@ void main() {
     // A trusted channel video that is NOT about the concept still goes to the model.
     src.add('Integration by Parts IBP', 'khan2', title: 'Limits intro', channel: 'Khan Academy',
         transcript: const ['today we look at limits of functions as x approaches a value', 'and why they matter']);
-    model.edu['Limits intro'] = {'educational': true, 'safe': true, 'reason': 'limits', 'subject': 'math',
-      'is_theorem': false, 'primary_concepts': ['Limit of a Function'], 'text_language': 'en'};
+    model.edu['Limits intro'] = {'educational': true, 'safe': true, 'on_topic': false, 'is_theorem': false, 'language': 'en'};
     final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
     expect(status('khan'), 'active');
     expect(outcome('khan2'), 'rejected_scope');
@@ -222,8 +217,7 @@ void main() {
 
   test('model paraphrasing the concept still counts when the video plainly covers it', () async {
     src.add('Integration by Parts IBP', 'para', title: 'Integration by parts: 5 examples');
-    model.edu['Integration by parts: 5 examples'] = {'educational': true, 'safe': true, 'reason': 'x',
-      'subject': 'math', 'is_theorem': false, 'primary_concepts': ['integrating products'], 'text_language': 'en'};
+    model.edu['Integration by parts: 5 examples'] = {'educational': true, 'safe': true, 'on_topic': false, 'is_theorem': false, 'language': 'en'};
     expect((await svc().ingestMaterialConcept(ibp)).accepted, 1);
   });
 
@@ -234,13 +228,13 @@ void main() {
   });
 
   test('a fatal model error stops the run instead of logging every candidate as an error', () async {
-    src.add('Integration by Parts IBP', 'a');
+    src.add('Integration by Parts IBP', 'a', title: 'Integration by parts', description: '');
     model.throwOnCall = ModelApiError(401, 'authentication_error', 'invalid x-api-key', isAuth: true);
     expect(svc().ingestMaterialConcept(ibp), throwsA(isA<ModelApiError>()));
   });
 
   test('other API errors are logged and the run continues', () async {
-    src.add('Integration by Parts IBP', 'a');
+    src.add('Integration by Parts IBP', 'a', title: 'Integration by parts', description: '');
     model.throwOnCall = ModelApiError(500, 'api_error', 'boom');
     final r = await svc().ingestMaterialConcept(ibp);
     expect(r.errors, hasLength(1));
@@ -250,4 +244,72 @@ void main() {
     expect((await svc().ingestMaterialConcept(ibp)).accepted, 1);
     expect(outcome('a'), 'accepted');
   });
+
+  test('strong evidence is accepted by rule, without the model', () async {
+    const q = 'Integration by Parts IBP';
+    // Lesson words in the title: rule.
+    src.add(q, 'lesson', title: 'Integration by parts explained');
+    // No lesson words, but the captions mention 2+ other concepts from the material: rule.
+    final m = db.select('SELECT id FROM materials').first['id'] as String;
+    for (final n in ['Product Rule', 'Antiderivative']) {
+      addMaterialConcept(db, m, addConcept(db, n), importance: 0.5);
+    }
+    recomputeUserActiveConcepts(db);
+    src.add(q, 'context', title: 'IBP', description: '', transcript: const [
+      'integration by parts turns the product rule around',
+      'so we can find an antiderivative of a product',
+    ]);
+    // Name in the title but nothing else to go on: the model decides.
+    src.add(q, 'bare', title: 'Integration by parts', description: '');
+    final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
+    expect(r.accepted, 3);
+    expect(model.calls, 1); // only 'bare'
+    expect(db.select("SELECT reason FROM ingest_log WHERE source_id = 'lesson'").single['reason'],
+        contains('title and captions'));
+  });
+
+  test('videos without captions are checked last, with the speech model, only if still needed', () async {
+    const q = 'Integration by Parts IBP';
+    var probed = 0;
+    final probe = _CountingProbe(_en.join(' '), () => probed++);
+    src.add(q, 'silent', title: 'IBP worked example', transcript: const []);
+    src.add(q, 'cap1', title: 'Integration by parts explained');
+    src.add(q, 'cap2', title: 'Integration by parts lesson 2');
+    final svc = IngestionService(db: db, source: src, model: model, speechProbe: probe, acceptPerConcept: 2);
+    final r = await svc.ingestMaterialConcept(ibp);
+    expect(r.accepted, 2);
+    expect(probed, 0); // two captioned videos filled the concept first
+    expect(db.select("SELECT 1 FROM ingest_log WHERE source_id = 'silent'"), isEmpty); // not decided: retried later
+
+    final r2 = await IngestionService(db: db, source: src, model: model, speechProbe: probe, acceptPerConcept: 3)
+        .ingestMaterialConcept(ibp);
+    expect(r2.accepted, 1);
+    expect(probed, 1);
+    expect(status('silent'), 'active');
+  });
+
+  test('short names get their subject in the query; the next search can start early', () async {
+    final m = db.select('SELECT id FROM materials').first['id'] as String;
+    final echo = addConcept(db, 'Echo', subject: 'physics');
+    addMaterialConcept(db, m, echo, importance: 0.5);
+    recomputeUserActiveConcepts(db);
+    final s = svc();
+    s.warmUp(echo);
+    expect(src.queries, ['Echo physics']); // started before its turn
+    await s.ingestMaterialConcept(echo);
+    expect(src.queries, ['Echo physics']); // and reused, not searched twice
+    await s.ingestMaterialConcept(ibp);
+    expect(src.queries.last, 'Integration by Parts IBP'); // long names stay as they are
+  });
+}
+
+class _CountingProbe implements SpeechLanguageProbe {
+  _CountingProbe(this.text, this.onCall);
+  final String text;
+  final void Function() onCall;
+  @override
+  Future<String?> transcribeClip(String path) async {
+    onCall();
+    return text;
+  }
 }

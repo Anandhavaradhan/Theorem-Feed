@@ -158,28 +158,95 @@ bool coversConcept(List<String> names,
   return false;
 }
 
-// --- Gate 1 + 2 by model: one on-device call ----------------------------------
+// --- Gates 1 + 2 by rule: strong evidence -------------------------------------
+
+/// Words that mark a teaching video in a title or description.
+final _eduCueRe = RegExp(
+  r'\b(explained|explanation|explain|lecture|lesson|tutorial|class ?\d{1,2}|grade ?\d{1,2}|chapter|physics|'
+  r'maths?|mathematics|calculus|algebra|geometry|trigonometry|statistics|probability|chemistry|'
+  r'computer science|algorithms?|proof|prove|theorem|derivation|derive|formula|ncert|cbse|icse|igcse|gcse|'
+  r'a-level|jee|neet|ap physics|ap calculus|olympiad|numericals?|solved examples?|worked examples?|'
+  r'concept|introduction to|intro to|how to (solve|find|calculate)|crash course|revision|visuali[sz]ed?|intuition)\b',
+  caseSensitive: false,
+);
+
+/// Common words of romanised Hindi ("Hinglish"). A language detector reads
+/// these titles as English; the rule leaves them to the model.
+final _hinglishRe = RegExp(
+  r'\b(kaise|kya|hai|hain|karte|karein|kare|samjhe|samjho|sikhe|seekhe|mein|aur|bhai|sabse|asaan|tarika|'
+  r'hindi|padhai|kijiye|dekho|bilkul|sirf|matlab)\b',
+  caseSensitive: false,
+);
+
+bool _nameInTitle(List<String> names, String title) {
+  final t = normalizeText(title);
+  for (final n in names) {
+    final nn = normalizeText(n);
+    if (nn.length < 3) continue;
+    if (RegExp('\\b${RegExp.escape(nn)}s?\\b').hasMatch(t)) return true;
+    if (nn.split(' ').length > 1 && tokenSetRatio(nn, t) >= 90) return true;
+  }
+  return false;
+}
+
+/// How many different [others] (other concepts from the same material) the
+/// text mentions. A physics video on echoes says "sound", "reflection",
+/// "frequency"; a song called "Echo" doesn't.
+int contextHits(Iterable<String> others, String text) {
+  final t = normalizeText(text);
+  var hits = 0;
+  for (final o in others) {
+    final n = normalizeText(o);
+    if (n.length < 4) continue;
+    if (RegExp('\\b${RegExp.escape(n)}s?\\b').hasMatch(t)) hits++;
+    if (hits >= 3) break;
+  }
+  return hits;
+}
+
+/// Accept without the model: the title names the concept, the captions say it,
+/// and either the title/description reads as a lesson or the captions mention
+/// at least 2 other concepts from the same material. (The safety-keyword and
+/// English gates have already passed.)
+bool strongEvidence(List<String> names,
+    {required String title,
+    required String description,
+    required String transcript,
+    Iterable<String> materialConcepts = const []}) {
+  if (!_nameInTitle(names, title) || _hinglishRe.hasMatch(title)) return false;
+  final tr = normalizeText(transcript);
+  final said = names.any((n) {
+    final nn = normalizeText(n);
+    return nn.length >= 3 && RegExp('\\b${RegExp.escape(nn)}').hasMatch(tr);
+  });
+  if (!said) return false;
+  return _eduCueRe.hasMatch(title) ||
+      _eduCueRe.hasMatch(description.length > 600 ? description.substring(0, 600) : description) ||
+      contextHits(materialConcepts, transcript) >= 2;
+}
+
+// --- Gate 1 + 2 by model: one short on-device call -----------------------------
 
 const videoCheckSystemPrompt = '''
-You check YouTube videos for a study app. Answer with JSON only.
-educational: true only if the video mainly teaches a concept, proof, technique or theorem in math, science or computer science. False for vlogs, entertainment, music, gaming, news, motivation, "study with me", or videos that only mention the topic.
-safe: false if the title, description or transcript has sexual, violent, hateful or otherwise inappropriate content.
-text_language: ISO 639-1 code of the title and description ("en" for English; mixed Hindi-English is "hi").
+You check a YouTube video for a study app. Answer with JSON only.
+educational: true only if it mainly teaches math, science or computer science. False for vlogs, entertainment, music, gaming, news, motivation, "study with me".
+safe: false if anything is sexual, violent, hateful or otherwise inappropriate.
+on_topic: true if it mainly teaches the searched concept.
 is_theorem: true if it states or proves a specific theorem, formula or result.
-primary_concepts: the 1-3 concepts it mainly teaches, using textbook names. If it mainly teaches the searched concept, include that name exactly.''';
+language: "en" if the title and description are English, else "other" (Hindi-English mix is "other").''';
 
+/// Booleans only: the answer is about 25 tokens, so a sub-1B model on a phone
+/// CPU answers in a second or two instead of writing sentences.
 const videoCheckSchema = {
   'type': 'object',
   'properties': {
     'educational': {'type': 'boolean'},
     'safe': {'type': 'boolean'},
-    'subject': {'type': 'string', 'enum': ['math', 'physics', 'cs', 'other']},
+    'on_topic': {'type': 'boolean'},
     'is_theorem': {'type': 'boolean'},
-    'primary_concepts': {'type': 'array', 'items': {'type': 'string'}},
-    'text_language': {'type': 'string'},
-    'reason': {'type': 'string'},
+    'language': {'type': 'string', 'enum': ['en', 'other']},
   },
-  'required': ['educational', 'safe', 'subject', 'is_theorem', 'primary_concepts', 'text_language', 'reason'],
+  'required': ['educational', 'safe', 'on_topic', 'is_theorem', 'language'],
   'additionalProperties': false,
 };
 
@@ -187,34 +254,28 @@ class VideoVerdict {
   VideoVerdict({
     required this.educational,
     required this.safe,
-    required this.reason,
-    required this.subject,
+    required this.onTopic,
     required this.isTheorem,
-    required this.primaryConcepts,
-    required this.textLanguage,
+    required this.english,
   });
 
   final bool educational;
   final bool safe;
-  final String reason;
-  final String subject;
+  final bool onTopic;
   final bool isTheorem;
-  final List<String> primaryConcepts;
-  final String textLanguage;
+  final bool english;
 
   factory VideoVerdict.fromJson(Map<String, dynamic> j) => VideoVerdict(
         educational: j['educational'] as bool,
         safe: j['safe'] as bool,
-        reason: j['reason'] as String? ?? '',
-        subject: j['subject'] as String,
+        onTopic: j['on_topic'] as bool,
         isTheorem: j['is_theorem'] as bool,
-        primaryConcepts: (j['primary_concepts'] as List).cast<String>(),
-        textLanguage: (j['text_language'] as String).toLowerCase(),
+        english: (j['language'] as String).toLowerCase() == 'en',
       );
 }
 
-/// One on-device model call covering the educational and (text-based) safety
-/// checks. Inputs are kept short so a sub-1B model answers in a second or two.
+/// One on-device model call covering the educational, (text-based) safety and
+/// topic checks. Inputs are kept short: reading the prompt dominates on a phone.
 Future<VideoVerdict> classifyVideo(
   JsonModel model, {
   required String searchedConcept,
@@ -224,7 +285,11 @@ Future<VideoVerdict> classifyVideo(
   required int? durationSec,
   String? channel,
 }) async {
-  String clip(String s, int n) => s.length > n ? s.substring(0, n) : s;
+  String clip(String s, int n) {
+    final t = s.replaceAll(RegExp(r'\s+'), ' ');
+    return t.length > n ? t.substring(0, n) : t;
+  }
+
   final json = await model.generateJson(
     system: videoCheckSystemPrompt,
     content: [
@@ -232,11 +297,11 @@ Future<VideoVerdict> classifyVideo(
           'Channel: ${channel ?? 'unknown'}\n'
           'Duration: ${durationSec ?? 'unknown'} seconds\n'
           'Title: $title\n'
-          'Description: ${clip(description, 500)}\n'
-          'Transcript start: ${clip(transcriptExcerpt, 1200)}'),
+          'Description: ${clip(description, 300)}\n'
+          'Transcript start: ${clip(transcriptExcerpt, 700)}'),
     ],
     schema: videoCheckSchema,
-    maxTokens: 256,
+    maxTokens: 48,
   );
   return VideoVerdict.fromJson(json);
 }

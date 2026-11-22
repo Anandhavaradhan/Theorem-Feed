@@ -52,22 +52,19 @@ class _Target {
 
 class IngestionService {
   IngestionService({
-    required AppDatabase db,
+    required this._db,
     required this.source,
     required this.model,
     SpeechLanguageProbe? speechProbe,
     this.candidatesPerConcept = 8,
     this.acceptPerConcept = 3,
     this.prefetchAhead = 3,
-  })  : _db = db,
-        _speech = speechProbe,
-        _matcher = ConceptMatcher(db);
+  }) : _speech = speechProbe;
 
   final AppDatabase _db;
   final VideoSource source;
   final JsonModel model;
   final SpeechLanguageProbe? _speech;
-  final ConceptMatcher _matcher;
   final int candidatesPerConcept;
   final int acceptPerConcept;
 
@@ -140,21 +137,59 @@ class IngestionService {
 
   // --- pipeline ---------------------------------------------------------------
 
+  static const _subjectWord = {'physics': 'physics', 'math': 'math', 'cs': 'computer science'};
+
+  /// The YouTube query. A short name ("Echo", "Phase", "Pitch") also matches
+  /// songs, brands and games, so its subject is added ("Echo physics").
   String _query(_Target t) {
     final alias = t.aliases.where((a) => !t.name.toLowerCase().contains(a.toLowerCase())).firstOrNull;
-    final base = alias == null ? t.name : '${t.name} $alias';
+    var base = alias == null ? t.name : '${t.name} $alias';
+    final subject = _subjectWord[t.subject];
+    if (t.path == IngestPath.material &&
+        subject != null &&
+        alias == null &&
+        t.name.split(' ').length <= 2 &&
+        !base.toLowerCase().contains(subject)) {
+      base = '$base $subject';
+    }
     return t.path == IngestPath.theoremPool ? '$base #shorts' : base;
   }
+
+  final _searches = <String, Future<List<CandidateVideo>>>{};
+
+  Future<List<CandidateVideo>> _search(_Target t) => _searches.putIfAbsent(t.id, () {
+        final f = source.search(_query(t), limit: candidatesPerConcept);
+        f.then((_) {}, onError: (_) {}); // surfaced when awaited
+        return f;
+      });
+
+  /// Starts the YouTube search for a concept that will be checked next, so it
+  /// is ready when the current concept finishes.
+  void warmUp(String conceptId) {
+    if (!canIngest(conceptId)) return;
+    _search(_target(conceptId, isActiveConcept(conceptId) ? IngestPath.material : IngestPath.theoremPool));
+  }
+
+  /// Names of the other concepts in your active material (context for the rule check).
+  List<String> _materialNames(String exceptId) => [
+        for (final r in _db.select('''
+          SELECT c.canonical_name FROM user_active_concepts u JOIN concepts c ON c.id = u.concept_id
+          WHERE c.id != ? ORDER BY u.priority DESC LIMIT 200''', [exceptId]))
+          r['canonical_name'] as String,
+      ];
 
   Future<IngestReport> _ingest(_Target t, IngestReport report, IngestProgress? onProgress) async {
     onProgress?.call(t.name, report);
     List<CandidateVideo> candidates;
     try {
-      candidates = await source.search(_query(t), limit: candidatesPerConcept);
+      candidates = await _search(t);
     } catch (e) {
+      _searches.remove(t.id);
       report.errors.add('search "${t.name}": $e');
       return report;
     }
+    _searches.remove(t.id); // a later run searches afresh
+    final context = t.path == IngestPath.material ? _materialNames(t.id) : const <String>[];
     var acceptedHere = 0;
     // Prefetch: while one candidate is being judged, the next few candidates'
     // details (metadata, transcript, orientation) download in parallel.
@@ -165,16 +200,14 @@ class IngestionService {
           return f;
         }();
     final todo = [for (final c in candidates) if (!_alreadySeen(c.id)) c];
-    for (var i = 0; i < todo.length; i++) {
-      if (acceptedHere >= acceptPerConcept) break;
-      for (final next in todo.skip(i).take(prefetchAhead + 1)) {
-        if (_passesCheapChecks(next, t)) detailsFor(next);
-      }
-      final c = todo[i];
-      report.checked++;
+    // Videos without captions need the speech model, the slowest check by far;
+    // they wait until the captioned ones have had their turn.
+    final noCaptions = <CandidateVideo>[];
+
+    Future<void> check(CandidateVideo c, {required bool allowSpeech}) async {
       String outcome;
       try {
-        outcome = await _evaluate(c, t, detailsFor);
+        outcome = await _evaluate(c, t, detailsFor, context: context, allowSpeech: allowSpeech);
       } on ModelApiError catch (e) {
         if (e.isAuth) rethrow; // can't continue: the UI explains
         outcome = _log(c.id, 'error', '$e', t.id);
@@ -185,6 +218,11 @@ class IngestionService {
         outcome = _log(c.id, 'error', '$e', t.id);
         report.errors.add('${c.id}: $e');
       }
+      if (outcome == _deferred) {
+        noCaptions.add(c);
+        return;
+      }
+      report.checked++;
       if (outcome == 'accepted') {
         report.accepted++;
         acceptedHere++;
@@ -193,8 +231,22 @@ class IngestionService {
       }
       onProgress?.call(t.name, report);
     }
+
+    for (var i = 0; i < todo.length; i++) {
+      if (acceptedHere >= acceptPerConcept) break;
+      for (final next in todo.skip(i).take(prefetchAhead + 1)) {
+        if (_passesCheapChecks(next, t)) detailsFor(next);
+      }
+      await check(todo[i], allowSpeech: false);
+    }
+    for (final c in List.of(noCaptions)) {
+      if (acceptedHere >= acceptPerConcept) break;
+      await check(c, allowSpeech: true);
+    }
     return report;
   }
+
+  static const _deferred = '_deferred';
 
   bool _alreadySeen(String youtubeId) =>
       // Transient errors are retried on the next run; every other outcome is final.
@@ -226,7 +278,8 @@ class IngestionService {
       unsafeKeyword('${c.title}\n${c.description}') == null &&
       metadataIsEnglish(c.title, c.description);
 
-  Future<String> _evaluate(CandidateVideo c, _Target t, Future<VideoDetails> Function(CandidateVideo) detailsFor) async {
+  Future<String> _evaluate(CandidateVideo c, _Target t, Future<VideoDetails> Function(CandidateVideo) detailsFor,
+      {List<String> context = const [], bool allowSpeech = true}) async {
     // Format pre-filter (Path B wants shorts; no point classifying long videos).
     if (t.path == IngestPath.theoremPool && (c.durationSec == null || c.durationSec! > shortMaxSeconds)) {
       return _log(c.id, 'rejected_format', 'not short-form (${c.durationSec}s)', t.id);
@@ -259,6 +312,7 @@ class IngestionService {
             'transcript ${(lang.nonEnglishShare * 100).round()}% non-English (${lang.nonEnglish}/${lang.chunks})');
       }
     } else {
+      if (!allowSpeech) return _deferred;
       final probe = _speech;
       if (probe == null) return rejectV('rejected_lang', 'no transcript and no speech probe available');
       final clip = await source.downloadAudioClip(c.id);
@@ -266,21 +320,28 @@ class IngestionService {
       if (text == null || !speechIsEnglish(text)) return rejectV('rejected_lang', 'speech not verified as English');
     }
 
-    // Gates 1 + 2. Trusted educational channels that plainly cover the concept
-    // are decided by rule (instant); everything else goes to the on-device model.
+    // Gates 1 + 2. Decided by rule when the evidence is strong (instant):
+    //  - a trusted educational channel that plainly covers the concept, or
+    //  - the title names it, the captions say it, and the title/description reads
+    //    as a lesson or the captions mention 2+ other concepts from your material.
+    // Everything else gets one short on-device model call.
     final transcript = d.transcript;
     final names = [t.name, ...t.aliases];
     final covers = coversConcept(names, title: d.title, description: d.description, transcript: transcript);
     final channel = d.channel ?? c.channel;
     List<ConceptRef> mapped;
     bool isTheorem;
-    String subjectOut;
     String reason;
+    final ruleTheorem = t.path == IngestPath.theoremPool || const {'theorem', 'formula'}.contains(t.type);
     if (isTrustedChannel(channel) && covers) {
       mapped = [ConceptRef(t.id, t.name, 100)];
-      isTheorem = t.path == IngestPath.theoremPool || const {'theorem', 'formula'}.contains(t.type);
-      subjectOut = t.subject;
+      isTheorem = ruleTheorem;
       reason = 'trusted channel ($channel) covering ${t.name}';
+    } else if (strongEvidence(names,
+        title: d.title, description: d.description, transcript: transcript, materialConcepts: context)) {
+      mapped = [ConceptRef(t.id, t.name, 95)];
+      isTheorem = ruleTheorem;
+      reason = 'title and captions teach ${t.name}';
     } else {
       final VideoVerdict v;
       try {
@@ -296,17 +357,16 @@ class IngestionService {
       } on ModelRefusal catch (e) {
         return rejectV('rejected_safety', 'model refusal (${e.category})');
       }
-      if (!v.educational) return rejectV('rejected_edu', v.reason);
-      if (!v.safe) return rejectV('rejected_safety', 'model: ${v.reason}');
-      if (v.textLanguage != 'en') return rejectV('rejected_lang', 'model: text language ${v.textLanguage}');
-      mapped = _matcher.matchAll(v.primaryConcepts).take(3).toList();
-      // A small model sometimes paraphrases the searched concept; if the video
-      // plainly covers it by the rule above, count it.
-      if (covers && !mapped.any((m) => m.id == t.id)) mapped = [ConceptRef(t.id, t.name, 90), ...mapped.take(2)];
+      if (!v.educational) return rejectV('rejected_edu', 'model: not educational');
+      if (!v.safe) return rejectV('rejected_safety', 'model: unsafe');
+      if (!v.english) return rejectV('rejected_lang', 'model: title/description not English');
+      // A small model sometimes misses a plain match; if the video plainly covers
+      // the concept by the rule above, count it.
+      mapped = v.onTopic || covers ? [ConceptRef(t.id, t.name, v.onTopic ? 90 : 80)] : const [];
       isTheorem = v.isTheorem;
-      subjectOut = v.subject == 'other' ? t.subject : v.subject;
-      reason = v.reason;
+      reason = 'model: educational, on topic';
     }
+    final subjectOut = t.subject;
 
     // Concept tagging + scope check.
     final isShort = (d.durationSec ?? 1 << 30) <= shortMaxSeconds && d.isVertical;
@@ -314,11 +374,11 @@ class IngestionService {
       case IngestPath.material:
         // Reject at ingestion if none of its primary concepts is active — keeps the library clean.
         if (!mapped.any((m) => isActiveConcept(m.id))) {
-          return _log(c.id, 'rejected_scope', 'primary concepts ${mapped.map((m) => m.name)} not in active material', t.id);
+          return _log(c.id, 'rejected_scope', 'not mainly about ${t.name}', t.id);
         }
       case IngestPath.theoremPool:
         if (!mapped.any((m) => m.id == t.id)) {
-          return _log(c.id, 'rejected_scope', 'not primarily about ${t.name}: ${mapped.map((m) => m.name)}', t.id);
+          return _log(c.id, 'rejected_scope', 'not mainly about ${t.name}', t.id);
         }
         if (!isShort || !isTheorem) {
           return _log(c.id, 'rejected_format', 'pool needs a theorem short (short=$isShort theorem=$isTheorem)', t.id);

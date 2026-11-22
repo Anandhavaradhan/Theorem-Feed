@@ -110,17 +110,32 @@ void main() {
 
     test('classifyVideo sends a short prompt and parses the verdict', () async {
       final model = _FakeModel((s, c) => {
-            'educational': true, 'safe': true, 'reason': 'teaches IBP', 'subject': 'math', 'is_theorem': false,
-            'primary_concepts': ['Integration by Parts'], 'text_language': 'EN',
+            'educational': true, 'safe': true, 'on_topic': true, 'is_theorem': false, 'language': 'EN',
           });
       final v = await classifyVideo(model,
           searchedConcept: 'Integration by Parts', title: 'IBP', description: 'd' * 5000,
           transcriptExcerpt: 't' * 5000, durationSec: 600, channel: 'Someone');
-      expect(v.educational && v.safe, isTrue);
-      expect(v.textLanguage, 'en');
+      expect(v.educational && v.safe && v.onTopic && v.english, isTrue);
       final text = (model.calls.single.single as TextContent).text;
       expect(text, contains('Searched concept: Integration by Parts'));
-      expect(text.length, lessThan(2000)); // small-model friendly
+      expect(text.length, lessThan(1200)); // a short prompt: reading it dominates on a phone
+      // Booleans only: the answer is a few dozen tokens.
+      final props = (videoCheckSchema['properties']! as Map).values.cast<Map>();
+      expect(props.every((p) => p['type'] == 'boolean' || p['enum'] != null), isTrue);
+    });
+
+    test('strongEvidence: name in the title and captions, plus lesson words or material context', () {
+      const names = ['Echo'];
+      const physicsTalk = 'an echo is sound reflected from a wall; the reflection arrives later';
+      expect(strongEvidence(names, title: 'Echo | Class 9 Physics', description: '', transcript: physicsTalk), isTrue);
+      expect(strongEvidence(names, title: 'Echo', description: '', transcript: physicsTalk,
+          materialConcepts: ['Sound', 'Reflection', 'Pitch']), isTrue);
+      // A song called "Echo": no lesson words, no other concepts from the material.
+      expect(strongEvidence(names, title: 'Echo (Official Music Video)', description: 'Stream the new single',
+          transcript: 'echo echo in my heart tonight', materialConcepts: ['Sound', 'Reflection', 'Pitch']), isFalse);
+      // Title doesn't name it: never by rule.
+      expect(strongEvidence(names, title: 'Physics class 9 full chapter', description: '', transcript: physicsTalk),
+          isFalse);
     });
   });
 }

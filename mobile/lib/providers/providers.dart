@@ -173,9 +173,12 @@ class IngestionController extends Notifier<IngestionState> {
   /// Path A for several material concepts in a row (after an upload).
   Future<void> findVideosFor(List<String> conceptIds) => _run((s, p) async {
         final total = IngestReport();
-        for (final id in conceptIds) {
+        for (var i = 0; i < conceptIds.length; i++) {
+          final id = conceptIds[i];
           if (_cancel) break;
           if (!s.isActiveConcept(id)) continue;
+          // The next concept's YouTube search runs while this one is checked.
+          if (i + 1 < conceptIds.length) s.warmUp(conceptIds[i + 1]);
           final r = await s.ingestMaterialConcept(id, onProgress: (label, r) {
             p(label, IngestReport()
               ..checked = total.checked + r.checked
