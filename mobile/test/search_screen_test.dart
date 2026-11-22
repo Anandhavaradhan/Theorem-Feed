@@ -48,8 +48,8 @@ void main() {
     expect(find.textContaining('Search what you\'re studying'), findsOneWidget);
 
     await type(tester, 'integraton by part');
-    expect(find.text('INTEGRATION BY PARTS'), findsOneWidget);
-    expect(find.text('From your material: Integration by Parts'), findsOneWidget);
+    expect(find.text('Integration by Parts'), findsOneWidget); // group header
+    expect(find.textContaining('From your material: Integration by Parts'), findsWidgets);
     expect(find.text('Integration by parts explained'), findsOneWidget);
 
     await type(tester, 'chocolate cake recipe');

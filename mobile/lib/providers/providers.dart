@@ -322,7 +322,9 @@ class MaterialController extends Notifier<UploadState> {
 
 final materialControllerProvider = NotifierProvider<MaterialController, UploadState>(MaterialController.new);
 
-/// Selected bottom-navigation tab (0 Home, 1 Shorts, 2 Search, 3 My Material).
+const homeTab = 0, shortsTab = 1, materialTab = 2, youTab = 3;
+
+/// Selected bottom-navigation tab: [homeTab], [shortsTab], [materialTab], [youTab].
 class SelectedTab extends Notifier<int> {
   @override
   int build() => 0;
@@ -410,4 +412,40 @@ final searchResultsProvider = FutureProvider.autoDispose<SearchResponse>((ref) a
   // Re-run when the library changes (new videos, material changes, judgements).
   ref.watch(longformFeedProvider);
   return ref.watch(searchServiceProvider).search(q.text, theoremOnly: q.theoremOnly);
+});
+
+// --- Home chips: filter the feed by one of your concepts ---------------------------
+
+class ActiveConcept {
+  const ActiveConcept(this.id, this.name);
+  final String id;
+  final String name;
+}
+
+final activeConceptsProvider = FutureProvider<List<ActiveConcept>>((ref) async {
+  ref.watch(longformFeedProvider); // refresh with the feed
+  return [
+    for (final r in ref.watch(databaseProvider).select('''
+      SELECT c.id, c.canonical_name FROM user_active_concepts u JOIN concepts c ON c.id = u.concept_id
+      ORDER BY u.priority DESC, c.canonical_name LIMIT 30'''))
+      ActiveConcept(r['id'] as String, r['canonical_name'] as String),
+  ];
+});
+
+class HomeFilter extends Notifier<String?> {
+  @override
+  String? build() => null; // null = All
+  void select(String? conceptId) => state = conceptId;
+}
+
+final homeFilterProvider = NotifierProvider<HomeFilter, String?>(HomeFilter.new);
+
+final historyProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(longformFeedProvider);
+  return ref.watch(watchHistoryProvider).history();
+});
+
+final savedProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(longformFeedProvider);
+  return ref.watch(watchHistoryProvider).saved();
 });

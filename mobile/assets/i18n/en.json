@@ -131,5 +131,20 @@
   "settings.storage.title": "Storage",
   "settings.storage.body": "Cached video links and thumbnails are rebuilt automatically. Clearing them never touches your material, concepts, saved videos or watch history.",
   "settings.storage.clear": "Clear cached links and thumbnails",
-  "settings.storage.cleared": "Cleared."
+  "settings.storage.cleared": "Cleared.",
+  "home.all": "All",
+  "menu.save": "Save to Saved",
+  "menu.open_concept": "Go to concept",
+  "nav.you": "You",
+  "nav.create": "Upload",
+  "you.history": "History",
+  "you.history_empty": "Videos you watch show up here.",
+  "you.saved": "Saved",
+  "you.saved_empty": "Save videos from a short or a video's ⋮ menu.",
+  "player.from_material": "From your material",
+  "player.theorem_pool": "Theorem pool",
+  "player.view_concept": "View concept",
+  "player.up_next": "Up next",
+  "player.more": "...more",
+  "shorts.concept": "Concept"
 }

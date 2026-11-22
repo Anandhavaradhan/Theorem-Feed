@@ -7,10 +7,14 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../core/i18n.dart';
+import '../core/theme.dart';
+import '../models/feed.dart';
 import '../models/resolved_video.dart';
 import '../providers/providers.dart';
 import '../services/resolver.dart';
 import '../services/watch_history.dart';
+import '../widgets/video_card.dart';
+import 'concept_detail_screen.dart';
 
 /// Native, ad-free player. Streams come straight from YouTube to the phone;
 /// for HD, the separate video and audio streams are combined on the device by
@@ -26,7 +30,7 @@ class PlayerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final resolved = ref.watch(resolveProvider(videoId));
     return Scaffold(
-      appBar: AppBar(title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      appBar: AppBar(toolbarHeight: 44),
       body: resolved.when(
         loading: () => Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -238,44 +242,122 @@ class _PlayerState extends ConsumerState<_Player> {
     super.dispose();
   }
 
+  bool _saved = false;
+  bool _expanded = false;
+
+  Widget _pill(IconData icon, String label, VoidCallback onTap) => Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: OutlinedButton.icon(
+          onPressed: onTap,
+          icon: Icon(icon, size: 18),
+          label: Text(label),
+          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final hasCaptions = widget.video.captions.isNotEmpty;
+    final hasCaptions = _video.captions.isNotEmpty;
+    final meta = Theme.of(context).colorScheme.onSurfaceVariant;
+    final concepts = ref.read(conceptServiceProvider);
+    _saved = concepts.isSaved(_video.videoId);
+    final feed = ref.watch(longformFeedProvider).value?.items ?? const <FeedCard>[];
+    final current = feed.where((c) => c.videoId == _video.videoId).firstOrNull;
+    // Up next: same concept first, then the rest of your feed.
+    final upNext = [
+      ...feed.where((c) => c.videoId != _video.videoId && c.conceptId == current?.conceptId),
+      ...feed.where((c) => c.videoId != _video.videoId && c.conceptId != current?.conceptId),
+    ].take(20).toList();
+    final description = _video.description.trim();
+
     return ListView(
       children: [
         AspectRatio(
-          aspectRatio: widget.video.isVertical ? 9 / 16 : 16 / 9,
+          aspectRatio: _video.isVertical ? 9 / 16 : 16 / 9,
           child: Video(controller: _controller),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(children: [
-            TextButton.icon(
-              onPressed: _chooseQuality,
-              icon: const Icon(Icons.high_quality),
-              label: Text(_option?.quality ?? ''),
-            ),
-            TextButton.icon(onPressed: _chooseSpeed, icon: const Icon(Icons.speed), label: Text('${_speed}x')),
-            if (hasCaptions)
-              TextButton.icon(
-                onPressed: () async {
-                  setState(() => _captions = !_captions);
-                  await _applyCaptions();
-                },
-                icon: Icon(_captions ? Icons.closed_caption : Icons.closed_caption_off),
-                label: Text(_captions ? t('player.captions_on') : t('player.captions_off')),
-              ),
-          ]),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: Text(_video.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.25)),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(widget.reasonLabel,
-                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            Text(widget.video.title, style: Theme.of(context).textTheme.titleLarge),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            [widget.reasonLabel, if (_video.durationSec != null) formatDuration(_video.durationSec!)].join(' · '),
+            style: TextStyle(fontSize: 12, color: meta),
+          ),
+        ),
+        if (current != null)
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            leading: ConceptAvatar(current.conceptName),
+            title: Text(current.conceptName, style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(current.fromMaterial ? t('player.from_material') : t('player.theorem_pool'),
+                style: TextStyle(color: meta, fontSize: 12)),
+            trailing: FilledButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => ConceptDetailScreen(conceptId: current.conceptId),
+              )),
+              child: Text(t('player.view_concept')),
+            ),
+          ),
+        SizedBox(
+          height: 44,
+          child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: [
+            _pill(_saved ? Icons.bookmark : Icons.bookmark_border, _saved ? t('shorts.saved') : t('shorts.save'), () {
+              setState(() => _saved = concepts.toggleSaved(_video.videoId));
+            }),
+            _pill(Icons.high_quality_outlined, _option?.quality ?? t('player.quality'), _chooseQuality),
+            _pill(Icons.speed, '${_speed}x', _chooseSpeed),
+            if (hasCaptions)
+              _pill(_captions ? Icons.closed_caption : Icons.closed_caption_off,
+                  _captions ? t('player.captions_on') : t('player.captions_off'), () async {
+                setState(() => _captions = !_captions);
+                await _applyCaptions();
+              }),
           ]),
         ),
+        if (description.isNotEmpty || current?.why != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  if (current?.why != null && current!.why!.isNotEmpty)
+                    Text(current.why!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  if (description.isNotEmpty)
+                    Text(description,
+                        maxLines: _expanded ? null : 3,
+                        overflow: _expanded ? null : TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13)),
+                  if (!_expanded && description.length > 160)
+                    Text(t('player.more'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                ]),
+              ),
+            ),
+          ),
+        if (upNext.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 4),
+            child: Text(t('player.up_next'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          ),
+          for (final c in upNext)
+            VideoRow(
+              card: c,
+              onTap: () => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+                builder: (_) => PlayerScreen(videoId: c.videoId, title: c.title, reasonLabel: c.reasonLabel),
+              )),
+            ),
+        ],
+        const SizedBox(height: 24),
       ],
     );
   }

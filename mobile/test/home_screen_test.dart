@@ -36,7 +36,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('From your material: Definite Integral'), findsOneWidget);
     expect(find.text('The essence of calculus'), findsOneWidget);
-    expect(find.text('17 min'), findsOneWidget);
+    expect(find.text('17:00'), findsOneWidget); // duration badge
     expect(FeedService(db).longform().items.map((c) => c.reasonLabel).toSet().length, 5);
   });
 
@@ -46,7 +46,8 @@ void main() {
     db.execute("UPDATE videos SET status = 'rejected_lang' WHERE source_id = 'WUvTyaaNkzM'");
     await tester.pumpWidget(_app(db));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('No videos yet: Definite Integral'), 300);
+    await tester.scrollUntilVisible(find.text('No videos yet: Definite Integral'), 300,
+        scrollable: find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down).first);
     expect(find.text('No videos yet: Definite Integral'), findsOneWidget);
   });
 }

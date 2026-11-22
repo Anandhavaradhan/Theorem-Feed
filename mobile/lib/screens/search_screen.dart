@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/i18n.dart';
-import '../models/feed.dart';
+import '../core/theme.dart';
 import '../providers/providers.dart';
 import '../services/search/search_service.dart';
 import '../widgets/ingestion_banner.dart';
+import '../widgets/video_card.dart';
 import 'concept_detail_screen.dart';
 import 'player_screen.dart';
 
@@ -48,8 +49,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             hintText: t('search.hint'),
-            border: InputBorder.none,
-            prefixIcon: const Icon(Icons.search),
+            filled: true,
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
             suffixIcon: _ctrl.text.isEmpty
                 ? null
                 : IconButton(
@@ -154,17 +158,29 @@ class _Group extends ConsumerWidget {
     };
     final title = g.kind == GroupKind.prerequisiteGap ? t('search.prerequisite', {'name': g.conceptName}) : g.conceptName;
     final busy = ref.watch(ingestionControllerProvider).isBusy;
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(children: [
+            ConceptAvatar(g.conceptName),
+            const SizedBox(width: 12),
             Expanded(
               child: InkWell(
                 onTap: () => Navigator.of(context)
                     .push(MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: g.conceptId))),
-                child: Text(title.toUpperCase(), style: theme.textTheme.titleSmall?.copyWith(letterSpacing: 0.5)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(
+                    g.isGap
+                        ? g.reasonLabel
+                        : g.chapter == null
+                            ? '${g.reasonLabel} · ${t('search.count', {'n': g.videos.length})}'
+                            : '${g.reasonLabel} · ${t('search.count_chapter', {'n': g.videos.length, 'chapter': g.chapter!})}',
+                    style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                  ),
+                ]),
               ),
             ),
             Container(
@@ -173,50 +189,30 @@ class _Group extends ConsumerWidget {
               child: Text(chip, style: TextStyle(color: color, fontSize: 12)),
             ),
           ]),
-          const SizedBox(height: 4),
-          Text(g.reasonLabel, style: theme.textTheme.bodySmall?.copyWith(color: color)),
-          if (g.isGap) ...[
-            const SizedBox(height: 4),
-            Row(children: [
-              Text(t('search.no_videos')),
+        ),
+        if (g.isGap)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(64, 4, 12, 0),
+            child: Row(children: [
+              Text(t('search.no_videos'), style: TextStyle(color: scheme.onSurfaceVariant)),
               const Spacer(),
-              TextButton.icon(
+              FilledButton.icon(
                 onPressed: busy ? null : () => ref.read(ingestionControllerProvider.notifier).findVideos(g.conceptId),
                 icon: const Icon(Icons.search, size: 18),
                 label: Text(t('search.find')),
               ),
             ]),
-          ] else ...[
-            Text(
-              g.chapter == null
-                  ? t('search.count', {'n': g.videos.length})
-                  : t('search.count_chapter', {'n': g.videos.length, 'chapter': g.chapter!}),
-              style: theme.textTheme.bodySmall,
+          )
+        else
+          for (final v in g.videos)
+            VideoRow(
+              card: v,
+              subtitle: v.durationSec == null ? v.reasonLabel : '${v.reasonLabel} · ${formatDuration(v.durationSec!)}',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => PlayerScreen(videoId: v.videoId, title: v.title, reasonLabel: v.reasonLabel),
+              )),
             ),
-            for (final v in g.videos) _VideoRow(card: v),
-          ],
-        ]),
-      ),
-    );
-  }
-}
-
-class _VideoRow extends StatelessWidget {
-  const _VideoRow({required this.card});
-  final FeedCard card;
-
-  @override
-  Widget build(BuildContext context) {
-    final minutes = card.durationSec == null ? null : (card.durationSec! / 60).round();
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      leading: Icon(card.isShort ? Icons.slow_motion_video : Icons.play_circle_outline),
-      title: Text(card.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: minutes == null ? null : Text(t('card.duration', {'min': minutes})),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => PlayerScreen(videoId: card.videoId, title: card.title, reasonLabel: card.reasonLabel),
-      )),
+      ]),
     );
   }
 }

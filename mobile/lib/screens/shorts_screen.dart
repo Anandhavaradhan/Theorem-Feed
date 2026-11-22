@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../core/i18n.dart';
+import '../core/theme.dart';
 import '../models/feed.dart';
 import '../providers/providers.dart';
 import '../services/local_llm.dart';
@@ -272,65 +273,106 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
           ),
         ),
       ),
-      Positioned(
+      // Header, as on full-screen short-video apps.
+      const Positioned(
         left: 16,
-        right: 88,
-        bottom: 24,
+        top: 0,
         child: SafeArea(
-          top: false,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: card.fromMaterial ? Colors.indigoAccent : Colors.teal,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(card.fromMaterial ? t('shorts.chip.material') : t('shorts.chip.theorem'),
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: card.conceptId))),
-              child: Text(card.conceptName,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 4),
-            Text(card.reasonLabel, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-            const SizedBox(height: 4),
-            Text(card.title,
-                maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 14)),
-          ]),
+          child: Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Text('Shorts',
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700,
+                    shadows: [Shadow(blurRadius: 6, color: Colors.black54)])),
+          ),
         ),
       ),
+      // Bottom-left: the concept as the "channel", then the title.
       Positioned(
-        right: 8,
-        bottom: 32,
-        child: SafeArea(
-          top: false,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _SideButton(
-              icon: _saved ? Icons.bookmark : Icons.bookmark_border,
-              label: _saved ? t('shorts.saved') : t('shorts.save'),
-              onTap: () => setState(() => _saved = ref.read(conceptServiceProvider).toggleSaved(card.videoId)),
-            ),
-            if (_deeper != null) ...[
-              const SizedBox(height: 16),
-              _SideButton(
-                icon: Icons.school,
-                label: t('shorts.go_deeper'),
-                onTap: () {
-                  _player?.pause();
-                  setState(() => _paused = true);
-                  Navigator.of(context).push(MaterialPageRoute<void>(
-                    builder: (_) => PlayerScreen(videoId: _deeper.videoId, title: _deeper.title, reasonLabel: _deeper.reasonLabel),
-                  ));
-                },
+        left: 12,
+        right: 80,
+        bottom: 20,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: card.conceptId))),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              ConceptAvatar(card.conceptName, radius: 16),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(card.conceptName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
               ),
-            ],
-          ]),
-        ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                child: Text(card.fromMaterial ? t('shorts.chip.material') : t('shorts.chip.theorem'),
+                    style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          Text(card.title,
+              maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text(card.reasonLabel, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ]),
       ),
+      // Right-hand action rail.
+      Positioned(
+        right: 6,
+        bottom: 24,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          _SideButton(
+            icon: _saved ? Icons.bookmark : Icons.bookmark_border,
+            label: _saved ? t('shorts.saved') : t('shorts.save'),
+            onTap: () => setState(() => _saved = ref.read(conceptServiceProvider).toggleSaved(card.videoId)),
+          ),
+          if (_deeper != null) ...[
+            const SizedBox(height: 20),
+            _SideButton(
+              icon: Icons.school_outlined,
+              label: t('shorts.go_deeper'),
+              onTap: () {
+                _player?.pause();
+                setState(() => _paused = true);
+                Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => PlayerScreen(videoId: _deeper.videoId, title: _deeper.title, reasonLabel: _deeper.reasonLabel),
+                ));
+              },
+            ),
+          ],
+          const SizedBox(height: 20),
+          _SideButton(
+            icon: Icons.info_outline,
+            label: t('shorts.concept'),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: card.conceptId))),
+          ),
+        ]),
+      ),
+      // Thin progress bar along the bottom edge.
+      if (_player != null)
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: StreamBuilder<Duration>(
+            stream: _player!.stream.position,
+            builder: (context, snap) {
+              final total = _player?.state.duration.inMilliseconds ?? 0;
+              final pos = snap.data?.inMilliseconds ?? 0;
+              return LinearProgressIndicator(
+                value: total <= 0 ? 0 : (pos / total).clamp(0, 1).toDouble(),
+                minHeight: 2,
+                backgroundColor: Colors.white24,
+                valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+              );
+            },
+          ),
+        ),
     ]);
   }
 }
