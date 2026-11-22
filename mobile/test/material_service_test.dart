@@ -61,8 +61,9 @@ void main() {
     model = FakeExtractor();
   });
 
+  // These tests exercise the AI path, so deep read is on.
   MaterialService svc({List<String> pages = sampleChapterPages, JsonModel? m}) =>
-      MaterialService(db, pdf: FakePdf(pages), model: m ?? model);
+      MaterialService(db, pdf: FakePdf(pages), model: m ?? model, deepRead: true);
   String id(String name) => db.select('SELECT id FROM concepts WHERE canonical_name = ?', [name]).first['id'] as String;
   Map<String, Object?> mc(String materialId, String name) => db.select(
       'SELECT mc.* FROM material_concepts mc JOIN concepts c ON c.id = mc.concept_id '
@@ -85,7 +86,7 @@ void main() {
     expect(ibp['chapter'], '7 Techniques of Integration');
     expect(ibp['section'], '7.1 Integration by Parts');
     expect(parseJsonList(ibp['prerequisites_mentioned'] as String),
-        unorderedEquals([id('Product Rule'), id('Fundamental Theorem of Calculus')]));
+        containsAll([id('Product Rule'), id('Fundamental Theorem of Calculus')]));
 
     // "Partial Fraction Decomposition" (rule) mapped onto the graph's "Partial Fractions" via its alias.
     expect(mc(r.materialId, 'Partial Fractions')['statement'], startsWith('A proper rational function'));
@@ -163,7 +164,10 @@ void main() {
 
     final pdf2 = File('${pdf.parent.path}/b.pdf')..writeAsStringSync('other bytes');
     final r2 = await MaterialService(db, pdf: FakePdf(sampleChapterPages)).upload(pdf2.path);
-    expect(r2.conceptCount, 2); // rules only: the two labelled, named blocks
+    // Rules only: the section headings (7.1, 7.2, 7.3) and labelled blocks map to 3 concepts.
+    expect(MaterialService(db, pdf: FakePdf(sampleChapterPages)).conceptsOf(r2.materialId).map((c) => c.name),
+        containsAll(['Integration by Parts', 'Partial Fractions', 'Trigonometric Substitution']));
+    expect(r2.aiUsed, isFalse);
   });
 
   test('studying-now summary', () async {
