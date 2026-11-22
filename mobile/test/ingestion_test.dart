@@ -24,12 +24,14 @@ class FakeSource implements VideoSource {
 
   void add(String query, String id,
       {String title = 'Integration by parts explained', int duration = 600, bool vertical = false,
-      List<String> transcript = _en, String description = 'A calculus lesson.', String channel = 'Some Channel'}) {
+      List<String> transcript = _en, String description = 'A calculus lesson.', String channel = 'Some Channel',
+      String? spoken = 'en'}) {
     (results[query] ??= [])
         .add(CandidateVideo(id: id, title: title, description: description, durationSec: duration, channel: channel));
     details_[id] = VideoDetails(title: title, description: description, durationSec: duration,
         thumbnailUrl: 'https://i.ytimg.com/vi/$id/hqdefault.jpg', transcriptLines: transcript, isVertical: vertical,
-        channel: channel);
+        // No captions at all means no speech track either: the spoken language is unknown.
+        channel: channel, spokenLanguage: transcript.isEmpty ? null : spoken);
   }
 
   @override
@@ -300,6 +302,52 @@ void main() {
     expect(src.queries, ['Echo physics']); // and reused, not searched twice
     await s.ingestMaterialConcept(ibp);
     expect(src.queries.last, 'Integration by Parts IBP'); // long names stay as they are
+  });
+
+  test('English only: the spoken language decides, not English subtitles', () async {
+    const q = 'Integration by Parts IBP';
+    // Tamil speech with English subtitles: YouTube's speech track says "ta".
+    src.add(q, 'tamil', title: 'Integration by parts explained', spoken: 'ta');
+    // No speech track: checked with the probe, last.
+    src.add(q, 'unknown', title: 'Integration by parts lesson', spoken: null);
+    var probed = 0;
+    await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5,
+            speechProbe: _CountingProbe('இந்த வீடியோவில் நாம் பகுதி தொகையீடு பற்றி படிப்போம் இது முக்கியம்', () => probed++))
+        .ingestMaterialConcept(ibp);
+    expect(status('tamil'), 'rejected_lang');
+    expect(outcome('tamil'), 'rejected_lang');
+    expect(probed, 1);
+    expect(status('unknown'), 'rejected_lang'); // the probe heard Tamil
+
+    src.add(q, 'tanglish', title: 'Integration by parts enna nu paakalam', description: '');
+    await svc().ingestMaterialConcept(ibp);
+    expect(status('tanglish'), 'rejected_lang');
+  });
+
+  test('re-check removes non-English videos already in the library, asking YouTube once per video', () async {
+    // Added before the stricter checks: a Tanglish title, and a video spoken in Tamil.
+    final tanglish = addVideo(db, 'tg');
+    db.execute("UPDATE videos SET title = 'Superposition enna nu paakalam' WHERE id = ?", [tanglish]);
+    final spokenTa = addVideo(db, 'sta');
+    final fine = addVideo(db, 'ok');
+    for (final v in [tanglish, spokenTa, fine]) {
+      tag(db, v, ibp);
+    }
+    src.details_['sta'] = VideoDetails(title: 'Video sta', description: '', durationSec: 900, thumbnailUrl: 't',
+        transcriptLines: _en, isVertical: false, spokenLanguage: 'ta');
+    src.details_['ok'] = VideoDetails(title: 'Video ok', description: '', durationSec: 900, thumbnailUrl: 't',
+        transcriptLines: _en, isVertical: false, spokenLanguage: 'en');
+    final checked = <String>{};
+    final removed = await svc().recheckLanguages(checked: checked, onChecked: checked.add);
+    expect(removed, 2);
+    expect(status('tg'), 'rejected_lang');
+    expect(status('sta'), 'rejected_lang');
+    expect(status('ok'), 'active');
+    expect(checked, {'ok', 'sta'});
+
+    src.detailCalls.clear();
+    await svc().recheckLanguages(checked: checked);
+    expect(src.detailCalls, isEmpty); // once per video
   });
 }
 

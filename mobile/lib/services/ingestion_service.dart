@@ -265,6 +265,51 @@ class IngestionService {
 
   static const _deferred = '_deferred';
 
+  /// Removes videos already in the library that the English-only rules now
+  /// reject: first from what's stored (title, description, captions — instant,
+  /// offline), then by asking YouTube which language is spoken (once per video;
+  /// [checked] remembers which were done). Returns how many were removed.
+  Future<int> recheckLanguages({required Set<String> checked, void Function(String youtubeId)? onChecked}) async {
+    var removed = 0;
+    void remove(String id, String youtubeId, String reason) {
+      _db.execute("UPDATE videos SET status = 'rejected_lang' WHERE id = ?", [id]);
+      _db.execute(
+        'INSERT OR REPLACE INTO ingest_log (source_id, outcome, reason, concept_id, checked_at) VALUES (?, ?, ?, NULL, ?)',
+        [youtubeId, 'rejected_lang', 'recheck: $reason', nowMs()],
+      );
+      removed++;
+    }
+
+    final rows = _db.select("SELECT id, source_id, title, description, transcript FROM videos WHERE status = 'active'");
+    final remaining = <Map<String, Object?>>[];
+    for (final r in rows) {
+      final title = r['title'] as String? ?? '';
+      final desc = r['description'] as String? ?? '';
+      final lines = (r['transcript'] as String? ?? '').split('\n').where((l) => l.trim().isNotEmpty).toList();
+      if (!metadataIsEnglish(title, desc)) {
+        remove(r['id'] as String, r['source_id'] as String, 'title/description not English');
+      } else if (lines.isNotEmpty && !transcriptLanguage(lines).isEnglish) {
+        remove(r['id'] as String, r['source_id'] as String, 'captions not English');
+      } else {
+        remaining.add(r);
+      }
+    }
+    for (final r in remaining) {
+      final yt = r['source_id'] as String;
+      if (checked.contains(yt)) continue;
+      if (_stopped) break;
+      try {
+        final d = await source.details(yt, needVertical: false);
+        final spoken = d.spokenLanguage;
+        if (spoken != null && !spoken.toLowerCase().startsWith('en')) remove(r['id'] as String, yt, 'spoken language: $spoken');
+        onChecked?.call(yt);
+      } catch (_) {
+        // offline or unavailable: tried again next time
+      }
+    }
+    return removed;
+  }
+
   bool _alreadySeen(String youtubeId) =>
       // Transient errors are retried on the next run; every other outcome is final.
       _db.select("SELECT 1 FROM ingest_log WHERE source_id = ? AND outcome != 'error'", [youtubeId]).isNotEmpty ||
@@ -322,18 +367,28 @@ class IngestionService {
     if (kw2 != null) return rejectV('rejected_safety', 'keyword: $kw2');
     if (!metadataIsEnglish(d.title, d.description)) return rejectV('rejected_lang', 'title/description not English');
 
-    // Gate 3: transcript language, or Whisper on the first 30 s when there's none.
+    // Gate 3, English only:
+    //  - the spoken language YouTube heard must be English (English subtitles on a
+    //    video spoken in another language don't count);
+    //  - the captions must read as English (not another language, not Hindi or
+    //    Tamil written in English letters);
+    //  - with no speech track, the first 30 s are checked on the device (slow, so last).
+    final spoken = d.spokenLanguage;
+    if (spoken != null && !spoken.toLowerCase().startsWith('en')) {
+      return rejectV('rejected_lang', 'spoken language: $spoken');
+    }
     if (d.transcriptLines.isNotEmpty) {
       final lang = transcriptLanguage(d.transcriptLines);
       if (!lang.isEnglish) {
         return rejectV('rejected_lang',
             'transcript ${(lang.nonEnglishShare * 100).round()}% non-English (${lang.nonEnglish}/${lang.chunks})');
       }
-    } else {
+    }
+    if (spoken == null) {
       if (!allowSpeech) return _deferred;
       if (_stopped) throw const _Stopped();
       final probe = _speech;
-      if (probe == null) return rejectV('rejected_lang', 'no transcript and no speech probe available');
+      if (probe == null) return rejectV('rejected_lang', 'spoken language unknown and no speech probe available');
       final clip = await source.downloadAudioClip(c.id);
       final text = clip == null ? null : await probe.transcribeClip(clip);
       if (text == null || !speechIsEnglish(text)) return rejectV('rejected_lang', 'speech not verified as English');

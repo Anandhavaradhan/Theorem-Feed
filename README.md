@@ -239,10 +239,12 @@ The guardrail tests run on every change:
   brackets, a passing mention) go to the on-device model, at most 40, in batches of 10, answered with
   lists of numbers so each call is a few dozen output tokens. If the AI fails, the confident finds stand.
   Settings → *Deep read* additionally has the AI read every section, which is slower.
-- **English only.** Titles, descriptions, captions and (for videos without captions) the first 30 s of
-  speech must be English. Besides the language detector, a check for romanised Hindi ("kaise karte hain",
-  "yeh formula hai") rejects Hinglish titles and descriptions before anything is downloaded, and counts
-  Hinglish caption chunks as non-English. The AI check is told the same.
+- **English only.** The spoken language must be English: YouTube's speech-recognised caption track
+  tells which language it heard, so a Tamil or Hindi video with English subtitles is rejected. With no
+  speech track, the first 30 s are checked on the device (last, since it's slow). Titles, descriptions
+  and captions must read as English too: besides the language detector, a word check rejects Hindi,
+  Tamil, Telugu, Malayalam and Kannada written in English letters. Videos added before these checks are
+  re-checked once in the background at start-up and removed if they fail.
 - **Faster video checks.** For each concept the app searches YouTube for its name (short names get their
   subject: "Echo physics") and checks the top 8 results; the next concept's search starts while the current
   one is checked, and the next 3 candidates' details download in parallel. Most videos are decided by rule,

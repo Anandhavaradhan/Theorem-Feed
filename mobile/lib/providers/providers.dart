@@ -100,6 +100,7 @@ class IngestionState {
 /// Settings key: concepts still to search after Stop (JSON list), so Continue
 /// works even after the app was closed.
 const ingestResumeKey = 'ingest_resume';
+const _spokenCheckedKey = 'spoken_language_checked';
 
 class IngestionController extends Notifier<IngestionState> {
   /// Each run has a number; Stop or a newer run makes older ones stop.
@@ -258,6 +259,28 @@ class IngestionController extends Notifier<IngestionState> {
   /// Hide the banner. A stopped run can still be continued from a concept's
   /// "Find videos" button; the saved place is kept.
   void dismiss() => state = const IngestionState();
+
+  /// English only, for videos added before the stricter checks: runs quietly in
+  /// the background at start-up; each video's spoken language is asked once.
+  Future<void> recheckLanguages() async {
+    final db = ref.read(databaseProvider);
+    final checked = parseJsonList(db.getSetting(_spokenCheckedKey)).toSet();
+    final svc = IngestionService(
+      db: db,
+      source: ref.read(videoSourceProvider),
+      model: ref.read(jsonModelProvider),
+      isCancelled: () => state.isBusy, // never competes with a search you started
+    );
+    final removed = await svc.recheckLanguages(checked: checked, onChecked: (yt) {
+      checked.add(yt);
+      db.setSetting(_spokenCheckedKey, jsonList(checked.toList()));
+    });
+    if (removed > 0) {
+      ref.invalidate(longformFeedProvider);
+      ref.invalidate(shortsFeedProvider);
+      ref.invalidate(conceptDetailProvider);
+    }
+  }
 }
 
 final ingestionControllerProvider = NotifierProvider<IngestionController, IngestionState>(IngestionController.new);

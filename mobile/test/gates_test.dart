@@ -58,6 +58,17 @@ void main() {
         'agar aapko samajh aa gaya toh video ko like kar dijiye',
       ]);
       expect(hinglish.isEnglish, isFalse);
+
+      // Tamil written in English letters ("Tanglish").
+      expect(metadataIsEnglish('Echo enna? Class 9 Physics in Tamil', ''), isFalse);
+      expect(metadataIsEnglish('Superposition epdi work aagudhu', ''), isFalse);
+      final tanglish = transcriptLanguage([
+        'vanakkam nanbargale inniki naama superposition pathi paakalam',
+        'intha concept romba important exam ku konjam kavanama paarunga',
+        'rendu waves onna serum podhu enna aagum nu paakalam seri ya',
+        'ithu thaan constructive interference puriyuma illa na comment pannunga',
+      ]);
+      expect(tanglish.isEnglish, isFalse);
       expect(transcriptLanguage(_englishTranscript).isEnglish, isTrue);
     });
 

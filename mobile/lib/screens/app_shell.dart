@@ -26,7 +26,11 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     // §6.5 daily job: archive materials whose exam date has passed (at start, then daily).
-    WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(materialControllerProvider.notifier).autoArchive());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(materialControllerProvider.notifier).autoArchive();
+      // English only: drop videos added before the stricter checks (background, once each).
+      unawaited(ref.read(ingestionControllerProvider.notifier).recheckLanguages().catchError((_) {}));
+    });
     _daily = Timer.periodic(
         const Duration(hours: 24), (_) => ref.read(materialControllerProvider.notifier).autoArchive());
   }

@@ -44,10 +44,26 @@ bool isConfidentlyNonEnglish(String text) {
   return r != null && r.code != 'en' && r.isReliable;
 }
 
-// Romanised Hindi ("Hinglish") is written in English letters, so a language
-// detector often calls it English. These are its common words that are not
-// English words (ambiguous ones like "to", "the", "me" are left out).
+// Hindi, Tamil, Telugu, Malayalam and Kannada written in English letters
+// ("kaise karte hain", "enna solringa") read as English to a language
+// detector. These are their common words that are not English words
+// (ambiguous ones like "to", "the", "me", "an", "and" are left out).
 const _hinglishWords = {
+  // Tamil
+  'enna', 'epdi', 'eppadi', 'ippo', 'ippadi', 'appadi', 'apdi', 'ipdi', 'naan', 'neenga', 'nee', 'romba', 'paakalam',
+  'pakalam', 'paarunga', 'parunga', 'sollunga', 'solren', 'sollren', 'theriyuma', 'theriyum', 'vanakkam', 'iruku',
+  'irukku', 'irukum', 'pannunga', 'panna', 'pannalam', 'nalla', 'inniki', 'innaiku', 'intha', 'antha', 'athu', 'ithu',
+  'unga', 'namma', 'nambha', 'konjam', 'seri', 'sari', 'illa', 'illai', 'venum', 'vendam', 'vaanga', 'kandippa',
+  'enga', 'ellam', 'ellarum', 'pathi', 'paathu', 'vidunga', 'mattum', 'aana', 'aprom', 'apram', 'kooda', 'thaan',
+  'dhaan', 'nanba', 'nanbargale', 'puriyuma', 'puriyum', 'tamil', 'tanglish',
+  // Telugu
+  'ela', 'emiti', 'enti', 'meeru', 'nenu', 'chala', 'baga', 'ledu', 'undi', 'cheyyandi', 'chudandi', 'cheppandi',
+  'telugu', 'manam', 'kada', 'avunu', 'kaadu', 'ippudu', 'tharvatha', 'kosam', 'lo',
+  // Malayalam
+  'enthanu', 'engane', 'ningal', 'njan', 'valare', 'undu', 'cheyyam', 'nokkam', 'malayalam',
+  // Kannada
+  'hegide', 'yenu', 'neevu', 'naanu', 'tumba', 'illi', 'alli', 'maadi', 'nodi', 'kannada', 'yaake',
+  // Hindi
   'hai', 'hain', 'ka', 'ki', 'ke', 'ko', 'se', 'mein', 'aur', 'ye', 'yeh', 'wo', 'woh', 'kya', 'kaise', 'kyun',
   'kyon', 'nahi', 'nahin', 'bhi', 'toh', 'hota', 'hoti', 'hote', 'karte', 'karo', 'karna', 'karein', 'kare', 'kar',
   'raha', 'rahe', 'rahi', 'tha', 'thi', 'jaise', 'isko', 'isme', 'iska', 'iski', 'uska', 'uski', 'apne', 'aap',
@@ -70,7 +86,14 @@ bool isHinglish(String text, {bool short = false}) {
   final words = RegExp(r"[a-z']+").allMatches(text.toLowerCase()).map((m) => m.group(0)!).toList();
   final hits = words.where(_hinglishWords.contains).length;
   final distinct = words.where(_hinglishWords.contains).toSet().length;
-  if (short && words.any(const {'kaise', 'kya', 'hai', 'hain', 'nahi', 'karte', 'samjho', 'hindi', 'mein'}.contains)) {
+  if (short &&
+      words.any(const {
+        'kaise', 'kya', 'hai', 'hain', 'nahi', 'karte', 'samjho', 'hindi', 'mein', // Hindi
+        'enna', 'epdi', 'eppadi', 'tamil', 'sollunga', 'paakalam', 'theriyuma', 'puriyuma', // Tamil
+        'telugu', 'emiti', 'ela', 'cheyyandi', // Telugu
+        'malayalam', 'enthanu', 'engane', // Malayalam
+        'kannada', 'hegide', // Kannada
+      }.contains)) {
     return true;
   }
   return distinct >= 2 && hits / words.length >= 1 / 12;
@@ -262,7 +285,7 @@ educational: true only if it mainly teaches math, science or computer science. F
 safe: false if anything is sexual, violent, hateful or otherwise inappropriate.
 on_topic: true if it mainly teaches the searched concept.
 is_theorem: true if it states or proves a specific theorem, formula or result.
-language: "en" only if the title and description are plain English; "other" for any other language, including Hindi written in English letters ("kaise karte hain").''';
+language: "en" only if the title and description are plain English; "other" for any other language, including Hindi or Tamil written in English letters ("kaise karte hain", "enna solringa").''';
 
 /// Booleans only: the answer is about 25 tokens, so a sub-1B model on a phone
 /// CPU answers in a second or two instead of writing sentences.
