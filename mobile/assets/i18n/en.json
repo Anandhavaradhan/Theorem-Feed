@@ -3,7 +3,7 @@
   "nav.home": "Home",
   "home.title": "Your study feed",
   "home.empty.title": "Upload your material",
-  "home.empty.body": "Your feed only shows videos for concepts in your study material. Upload a text-based PDF of your notes or textbook to get started.",
+  "home.empty.body": "Your feed only shows videos for concepts in your study material. Add a text-based PDF of your notes or textbook to get started.",
   "home.empty.cta": "Upload material",
   "home.empty.cta_soon": "Material upload arrives in the next build.",
   "home.error": "Couldn't load your feed.",
@@ -18,5 +18,6 @@
   "player.retry": "Retry now",
   "player.quality": "Quality",
   "player.captions_on": "Captions on",
-  "player.captions_off": "Captions off"
+  "player.captions_off": "Captions off",
+  "player.speed": "Speed"
 }

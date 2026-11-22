@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:chewie/chewie.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
-import '../core/api_client.dart';
-import '../core/captions.dart';
 import '../core/i18n.dart';
 import '../models/resolved_video.dart';
 import '../providers/providers.dart';
+import '../services/resolver.dart';
 
-/// Native, ad-free player: direct stream URL from /resolve → video_player + chewie.
-/// No IFrame, no embedded YouTube player, no tracking.
+/// Native, ad-free player. Streams come straight from YouTube to the phone;
+/// for HD, the separate video and audio streams are combined on the device by
+/// media_kit (libmpv). No IFrame, no embedded YouTube player, no tracking.
 class PlayerScreen extends ConsumerWidget {
   const PlayerScreen({super.key, required this.videoId, required this.title, required this.reasonLabel});
 
@@ -35,7 +35,7 @@ class PlayerScreen extends ConsumerWidget {
           ]),
         ),
         error: (e, _) => _ResolveError(
-          retryAfterSec: e is ResolveFailed ? e.retryAfterSec : null,
+          retryAfterSec: e is ResolveFailed ? e.retryAfterSec : resolveRetryAfterSec,
           onRetry: () => ref.invalidate(resolveProvider(videoId)),
         ),
         data: (video) => _Player(video: video, reasonLabel: reasonLabel),
@@ -46,7 +46,7 @@ class PlayerScreen extends ConsumerWidget {
 
 class _ResolveError extends StatefulWidget {
   const _ResolveError({required this.retryAfterSec, required this.onRetry});
-  final int? retryAfterSec;
+  final int retryAfterSec;
   final VoidCallback onRetry;
 
   @override
@@ -54,23 +54,20 @@ class _ResolveError extends StatefulWidget {
 }
 
 class _ResolveErrorState extends State<_ResolveError> {
+  late int _left = widget.retryAfterSec;
   Timer? _timer;
-  int _left = 0;
 
   @override
   void initState() {
     super.initState();
-    if (widget.retryAfterSec != null) {
-      _left = widget.retryAfterSec!;
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_left <= 1) {
-          timer.cancel();
-          widget.onRetry();
-        } else {
-          setState(() => _left--);
-        }
-      });
-    }
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_left <= 1) {
+        timer.cancel();
+        widget.onRetry();
+      } else {
+        setState(() => _left--);
+      }
+    });
   }
 
   @override
@@ -84,10 +81,8 @@ class _ResolveErrorState extends State<_ResolveError> {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(t('player.failed')),
-        if (_timer?.isActive ?? false) ...[
-          const SizedBox(height: 4),
-          Text(t('player.retry_in', {'sec': _left})),
-        ],
+        const SizedBox(height: 4),
+        Text(t('player.retry_in', {'sec': _left})),
         const SizedBox(height: 12),
         FilledButton(onPressed: widget.onRetry, child: Text(t('player.retry'))),
       ]),
@@ -95,154 +90,140 @@ class _ResolveErrorState extends State<_ResolveError> {
   }
 }
 
-class _Player extends ConsumerStatefulWidget {
+class _Player extends StatefulWidget {
   const _Player({required this.video, required this.reasonLabel});
   final ResolvedVideo video;
   final String reasonLabel;
 
   @override
-  ConsumerState<_Player> createState() => _PlayerState();
+  State<_Player> createState() => _PlayerState();
 }
 
-class _PlayerState extends ConsumerState<_Player> {
-  VideoPlayerController? _video;
-  ChewieController? _chewie;
-  StreamFormat? _format;
-  List<Subtitle> _subtitles = const [];
+class _PlayerState extends State<_Player> {
+  static const _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+
+  late final Player _player = Player();
+  late final VideoController _controller = VideoController(_player);
+  PlaybackOption? _option;
+  double _speed = 1.0;
+  bool _captions = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_format == null) {
+    if (_option == null) {
       final mq = MediaQuery.of(context);
       final shortSidePx = (math.min(mq.size.width, mq.size.height) * mq.devicePixelRatio).round();
-      _open(widget.video.pickFormat(shortSidePx));
-      _loadCaptions();
+      _captions = widget.video.captions.isNotEmpty;
+      _open(widget.video.pickOption(shortSidePx));
     }
   }
 
-  Future<void> _loadCaptions() async {
+  Future<void> _open(PlaybackOption option, {Duration start = Duration.zero}) async {
+    setState(() => _option = option);
+    await _player.open(Media(option.videoUrl, start: start), play: false);
+    if (!option.isMuxed) {
+      // Video-only stream + separate audio stream, combined on the device.
+      await _player.setAudioTrack(AudioTrack.uri(option.audioUrl!, title: 'English', language: 'en'));
+    }
+    await _applyCaptions();
+    await _player.setRate(_speed);
+    await _player.play();
+  }
+
+  Future<void> _applyCaptions() async {
     final tracks = widget.video.captions;
-    if (tracks.isEmpty) return;
-    try {
-      final raw = await ref.read(apiClientProvider).fetchText(tracks.first.url);
-      final subs = parseCaptions(raw);
-      if (!mounted || subs.isEmpty) return;
-      setState(() => _subtitles = subs);
-      _rebuildChewie(autoPlay: _video?.value.isPlaying ?? true);
-    } catch (_) {
-      // Captions are optional; playback continues without them.
-    }
-  }
-
-  Future<void> _open(StreamFormat format, {Duration startAt = Duration.zero}) async {
-    final old = _video;
-    final oldChewie = _chewie;
-    setState(() {
-      _format = format;
-      _chewie = null;
-    });
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(format.url),
-      formatHint: format.isHls ? VideoFormat.hls : null,
+    await _player.setSubtitleTrack(
+      _captions && tracks.isNotEmpty
+          ? SubtitleTrack.uri(tracks.first.url, title: 'English', language: 'en')
+          : SubtitleTrack.no(),
     );
-    _video = controller;
-    oldChewie?.dispose();
-    await old?.dispose();
-    await controller.initialize();
-    if (startAt > Duration.zero) await controller.seekTo(startAt);
-    if (!mounted || _video != controller) return;
-    _rebuildChewie(autoPlay: true);
-  }
-
-  void _rebuildChewie({required bool autoPlay}) {
-    final controller = _video;
-    if (controller == null || !controller.value.isInitialized) return;
-    final previous = _chewie;
-    setState(() {
-      _chewie = ChewieController(
-        videoPlayerController: controller,
-        autoPlay: autoPlay,
-        aspectRatio: controller.value.aspectRatio,
-        playbackSpeeds: const [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
-        allowedScreenSleep: false,
-        subtitle: _subtitles.isEmpty ? null : Subtitles(_subtitles),
-        showSubtitles: _subtitles.isNotEmpty,
-        subtitleBuilder: (context, text) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          color: Colors.black54,
-          child: Text('$text', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16)),
-        ),
-        additionalOptions: (context) => [
-          OptionItem(
-            onTap: (ctx) {
-              Navigator.of(ctx).pop();
-              _chooseQuality();
-            },
-            iconData: Icons.high_quality,
-            title: '${t('player.quality')}: ${_format?.quality ?? ''}',
-          ),
-        ],
-      );
-    });
-    previous?.dispose();
   }
 
   Future<void> _chooseQuality() async {
-    final picked = await showModalBottomSheet<StreamFormat>(
+    final picked = await showModalBottomSheet<PlaybackOption>(
       context: context,
       builder: (ctx) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            ListTile(title: Text(t('player.quality'), style: Theme.of(ctx).textTheme.titleMedium)),
-            for (final f in widget.video.formats)
-              ListTile(
-                title: Text(f.quality),
-                subtitle: Text(f.isHls ? 'HLS' : 'MP4'),
-                trailing: identical(f, _format) ? const Icon(Icons.check) : null,
-                onTap: () => Navigator.of(ctx).pop(f),
-              ),
-          ],
-        ),
+        child: ListView(shrinkWrap: true, children: [
+          ListTile(title: Text(t('player.quality'), style: Theme.of(ctx).textTheme.titleMedium)),
+          for (final o in widget.video.options)
+            ListTile(
+              title: Text(o.quality),
+              trailing: identical(o, _option) ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(ctx).pop(o),
+            ),
+        ]),
       ),
     );
-    if (picked != null && !identical(picked, _format)) {
-      await _open(picked, startAt: _video?.value.position ?? Duration.zero);
+    if (picked != null && !identical(picked, _option)) {
+      await _open(picked, start: _player.state.position);
+    }
+  }
+
+  Future<void> _chooseSpeed() async {
+    final picked = await showModalBottomSheet<double>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(shrinkWrap: true, children: [
+          ListTile(title: Text(t('player.speed'), style: Theme.of(ctx).textTheme.titleMedium)),
+          for (final s in _speeds)
+            ListTile(
+              title: Text('${s}x'),
+              trailing: s == _speed ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(ctx).pop(s),
+            ),
+        ]),
+      ),
+    );
+    if (picked != null) {
+      setState(() => _speed = picked);
+      await _player.setRate(picked);
     }
   }
 
   @override
   void dispose() {
-    _chewie?.dispose();
-    _video?.dispose();
+    _player.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final chewie = _chewie;
-    final aspect = widget.video.isVertical ? 9 / 16 : 16 / 9;
+    final hasCaptions = widget.video.captions.isNotEmpty;
     return ListView(
       children: [
         AspectRatio(
-          aspectRatio: chewie?.aspectRatio ?? aspect,
-          child: ColoredBox(
-            color: Colors.black,
-            child: chewie == null ? const Center(child: CircularProgressIndicator()) : Chewie(controller: chewie),
-          ),
+          aspectRatio: widget.video.isVertical ? 9 / 16 : 16 / 9,
+          child: Video(controller: _controller),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.reasonLabel,
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 6),
-              Text(widget.video.title, style: Theme.of(context).textTheme.titleLarge),
-            ],
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(children: [
+            TextButton.icon(
+              onPressed: _chooseQuality,
+              icon: const Icon(Icons.high_quality),
+              label: Text(_option?.quality ?? ''),
+            ),
+            TextButton.icon(onPressed: _chooseSpeed, icon: const Icon(Icons.speed), label: Text('${_speed}x')),
+            if (hasCaptions)
+              TextButton.icon(
+                onPressed: () async {
+                  setState(() => _captions = !_captions);
+                  await _applyCaptions();
+                },
+                icon: Icon(_captions ? Icons.closed_caption : Icons.closed_caption_off),
+                label: Text(_captions ? t('player.captions_on') : t('player.captions_off')),
+              ),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(widget.reasonLabel,
+                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text(widget.video.title, style: Theme.of(context).textTheme.titleLarge),
+          ]),
         ),
       ],
     );

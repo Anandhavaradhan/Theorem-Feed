@@ -57,7 +57,7 @@ class VideoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ReasonChip(kind: card.reasonKind, label: card.reasonLabel),
+                  ReasonChip(fromMaterial: card.fromMaterial, label: card.reasonLabel),
                   const SizedBox(height: 6),
                   Text(card.title, style: theme.textTheme.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],
@@ -71,15 +71,15 @@ class VideoCard extends StatelessWidget {
 }
 
 class ReasonChip extends StatelessWidget {
-  const ReasonChip({super.key, required this.kind, required this.label});
+  const ReasonChip({super.key, required this.fromMaterial, required this.label});
 
-  final String kind;
+  final bool fromMaterial;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isMaterial = kind == 'material';
+    final isMaterial = fromMaterial;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

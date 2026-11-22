@@ -1,11 +1,21 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:media_kit/media_kit.dart';
 
 import 'app.dart';
 import 'core/i18n.dart';
+import 'data/app_database.dart';
+import 'providers/providers.dart';
+import 'services/seed.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   await Strings.load();
-  runApp(const ProviderScope(child: TheoremFeedApp()));
+  final db = await AppDatabase.open();
+  seedPhaseA(db);
+  runApp(ProviderScope(
+    overrides: [databaseProvider.overrideWithValue(db)],
+    child: const TheoremFeedApp(),
+  ));
 }

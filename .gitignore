@@ -1,9 +1,4 @@
-__pycache__/
-*.pyc
-.venv/
-.pytest_cache/
 .env
-*.egg-info/
 # Flutter
 mobile/.dart_tool/
 mobile/build/
@@ -11,5 +6,4 @@ mobile/.flutter-plugins*
 mobile/.packages
 mobile/ios/Pods/
 mobile/android/.gradle/
-pgdata/
-backend/build/
+mobile/android/local.properties

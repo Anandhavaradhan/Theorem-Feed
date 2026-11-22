@@ -7,14 +7,18 @@ environment:
   sdk: ^3.14.0
 
 dependencies:
-  chewie: ^1.18.1
-  dio: ^5.11.1
   flutter:
     sdk: flutter
   flutter_riverpod: ^3.5.0
   material_ui: ^1.1.0
-  video_player: ^2.14.1
-
+  media_kit: ^1.2.6
+  media_kit_libs_video: ^1.0.7
+  media_kit_video: ^2.0.1
+  path: ^1.9.1
+  path_provider: ^2.1.6
+  sqlite3: ^3.9.1
+  uuid: ^4.6.0
+  youtube_explode_dart: ^3.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -24,3 +28,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/i18n/en.json
+
+# sqlite3 bundles its own SQLite (FTS5 enabled) into the Android app.
+# On a Linux dev/test host we use the system library instead, so `flutter test`
+# works offline.
+hooks:
+  user_defines:
+    sqlite3:
+      source:
+        linux: system
