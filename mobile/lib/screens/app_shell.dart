@@ -29,7 +29,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(materialControllerProvider.notifier).autoArchive();
       // English only: drop videos added before the stricter checks (background, once each).
-      unawaited(ref.read(ingestionControllerProvider.notifier).recheckLanguages().catchError((_) {}));
+      final ingest = ref.read(ingestionControllerProvider.notifier);
+      unawaited(() async {
+        try {
+          await ingest.recheckLanguages();
+        } catch (_) {}
+        // Keep filling every concept with videos and shorts (unless you pressed Stop).
+        await ingest.autoFill();
+      }());
     });
     _daily = Timer.periodic(
         const Duration(hours: 24), (_) => ref.read(materialControllerProvider.notifier).autoArchive());

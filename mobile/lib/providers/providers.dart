@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -87,9 +88,16 @@ enum IngestionStatus { idle, preparingModel, running, stopped, done, failed }
 
 class IngestionState {
   const IngestionState(
-      {this.status = IngestionStatus.idle, this.label = '', this.report, this.message, this.modelProgress, this.ranking = false});
+      {this.status = IngestionStatus.idle,
+      this.label = '',
+      this.report,
+      this.message,
+      this.modelProgress,
+      this.ranking = false,
+      this.round = 0});
   final IngestionStatus status;
   final String label; // concept currently being searched
+  final int round; // keep-filling round (0 = a one-off search)
   final IngestReport? report;
   final String? message;
   final double? modelProgress; // 0..1 while the model downloads
@@ -100,6 +108,11 @@ class IngestionState {
 /// Settings key: concepts still to search after Stop (JSON list), so Continue
 /// works even after the app was closed.
 const ingestResumeKey = 'ingest_resume';
+
+/// Settings: where the keep-filling rounds are ({"round": 2, "ids": [...]}), and
+/// whether you stopped them (then they wait for Continue, even after a restart).
+const fillResumeKey = 'fill_resume';
+const fillStoppedKey = 'fill_stopped';
 const _spokenCheckedKey = 'spoken_language_checked';
 
 class IngestionController extends Notifier<IngestionState> {
@@ -111,10 +124,82 @@ class IngestionController extends Notifier<IngestionState> {
 
   @override
   IngestionState build() {
-    final saved = parseJsonList(ref.read(databaseProvider).getSetting(ingestResumeKey));
+    final db = ref.read(databaseProvider);
+    final fill = _savedFill();
+    if (fill != null && db.getSetting(fillStoppedKey) == '1') {
+      _resume = () => fillLibrary(startRound: fill.round, ids: fill.ids);
+      return IngestionState(status: IngestionStatus.stopped, round: fill.round);
+    }
+    final saved = parseJsonList(db.getSetting(ingestResumeKey));
     if (saved.isEmpty) return const IngestionState();
     _resume = () => findVideosFor(saved);
     return const IngestionState(status: IngestionStatus.stopped);
+  }
+
+  ({int round, List<String> ids})? _savedFill() {
+    final raw = ref.read(databaseProvider).getSetting(fillResumeKey);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final j = jsonDecode(raw) as Map<String, dynamic>;
+      return (round: j['round'] as int, ids: (j['ids'] as List).cast<String>());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Keeps adding long videos and shorts for every concept of your notes, round
+  /// after round (3 more of each per round), until each has
+  /// [IngestionService.maxPerKind] of both or YouTube has nothing new. Runs
+  /// after an upload and when the app opens; Stop pauses it until Continue.
+  Future<void> fillLibrary({int startRound = 1, List<String>? ids}) {
+    final db = ref.read(databaseProvider);
+    db.setSetting(fillStoppedKey, '0');
+    var round = startRound;
+    var remaining = ids;
+    return _run((s, p, stopped) async {
+      final total = IngestReport();
+      state = IngestionState(status: IngestionStatus.running, round: round);
+      for (; round <= IngestionService.maxRounds; round++) {
+        final target = (IngestionService.perRound * round).clamp(1, IngestionService.maxPerKind);
+        final todo = remaining ?? s.conceptsBelow(target);
+        remaining = null;
+        final freshBefore = total.fresh;
+        for (var i = 0; i < todo.length; i++) {
+          if (stopped()) break;
+          remaining = todo.sublist(i);
+          db.setSetting(fillResumeKey, jsonEncode({'round': round, 'ids': remaining}));
+          if (!s.isActiveConcept(todo[i])) continue;
+          final r = await s.fillConcept(todo[i], round: round, onProgress: (label, r) {
+            p(label, IngestReport()
+              ..checked = total.checked + r.checked
+              ..accepted = total.accepted + r.accepted
+              ..acceptedShorts = total.acceptedShorts + r.acceptedShorts);
+            state = IngestionState(status: IngestionStatus.running, label: label, report: state.report, round: round);
+          });
+          total
+            ..checked += r.checked
+            ..accepted += r.accepted
+            ..acceptedShorts += r.acceptedShorts
+            ..fresh += r.fresh;
+          total.errors.addAll(r.errors);
+        }
+        if (stopped()) return total;
+        remaining = null;
+        // A whole round with nothing new from YouTube: the library is as full as it gets.
+        if (todo.isEmpty || (round > 1 && total.fresh == freshBefore)) break;
+      }
+      db.setSetting(fillResumeKey, '');
+      return total;
+    }, resume: () => fillLibrary(startRound: round, ids: remaining));
+  }
+
+  /// At start-up: continue the keep-filling rounds unless you stopped them.
+  Future<void> autoFill() async {
+    final db = ref.read(databaseProvider);
+    if (db.getSetting(fillStoppedKey) == '1' || state.isBusy) return;
+    if (db.select('SELECT 1 FROM user_active_concepts LIMIT 1').isEmpty) return;
+    final fill = _savedFill();
+    await fillLibrary(startRound: fill?.round ?? 1, ids: fill?.ids);
   }
 
   bool get canContinue => _resume != null;
@@ -157,7 +242,7 @@ class IngestionController extends Notifier<IngestionState> {
       state = const IngestionState(status: IngestionStatus.running);
       final report = await job(svc, (label, r) {
         if (stopped()) return; // the banner already says Stopped
-        state = IngestionState(status: IngestionStatus.running, label: label, report: r);
+        state = IngestionState(status: IngestionStatus.running, label: label, report: r, round: state.round);
         // Show new shorts as soon as they're accepted.
         ref.invalidate(shortsFeedProvider);
       }, stopped);
@@ -242,7 +327,8 @@ class IngestionController extends Notifier<IngestionState> {
   void cancel() {
     if (!state.isBusy) return;
     _stoppedRun = _runId;
-    state = IngestionState(status: IngestionStatus.stopped, report: state.report, label: state.label);
+    if (state.round > 0) ref.read(databaseProvider).setSetting(fillStoppedKey, '1');
+    state = IngestionState(status: IngestionStatus.stopped, report: state.report, label: state.label, round: state.round);
   }
 
   /// Continue after Stop (also after the app was closed). Waits for the stopped
@@ -311,10 +397,6 @@ final pdfPickerProvider = Provider<Future<String?> Function()>((ref) => () async
 const deepReadKey = 'deep_read';
 
 final deepReadProvider = Provider<bool>((ref) => ref.watch(databaseProvider).getSetting(deepReadKey) == '1');
-
-/// How many new concepts get automatic video search right after an upload;
-/// the rest stay as coverage-gap cards with a "Find videos" button.
-const autoIngestAfterUpload = 15;
 
 enum UploadStatus { idle, preparingModel, processing, stopped, done, failed }
 
@@ -411,9 +493,9 @@ class MaterialController extends Notifier<UploadState> {
       _refresh();
       // §6.4 step 5: scoped ingestion (Path A) for new concepts with zero videos.
       if (result.gapConceptIds.isNotEmpty) {
-        unawaited(ref
-            .read(ingestionControllerProvider.notifier)
-            .findVideosFor(result.gapConceptIds.take(autoIngestAfterUpload).toList()));
+        // A new PDF: rounds start again from round 1 for every concept (filled ones are skipped).
+        ref.read(databaseProvider).setSetting(fillResumeKey, '');
+        unawaited(ref.read(ingestionControllerProvider.notifier).fillLibrary());
       }
     } on NoTextLayer catch (e) {
       if (!stopped()) state = UploadState(status: UploadStatus.failed, message: '$e');

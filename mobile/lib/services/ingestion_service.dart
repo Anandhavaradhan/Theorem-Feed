@@ -37,6 +37,10 @@ class _Stopped implements Exception {
 class IngestReport {
   int checked = 0;
   int accepted = 0;
+  int acceptedShorts = 0;
+
+  /// Candidates not seen before (0 for a whole round: YouTube has nothing new).
+  int fresh = 0;
   final Map<String, int> rejected = {};
   final List<String> errors = [];
   void reject(String outcome) => rejected[outcome] = (rejected[outcome] ?? 0) + 1;
@@ -151,6 +155,61 @@ class IngestionService {
   Future<IngestReport> ingestMaterialConcept(String conceptId, {IngestProgress? onProgress}) =>
       _ingest(_target(conceptId, IngestPath.material), IngestReport(), onProgress);
 
+  // --- keep filling: long videos and shorts, round after round ---------------
+
+  /// Per concept, the library grows to this many long videos and shorts.
+  static const maxPerKind = 20;
+
+  /// Each round raises the target by this much for both kinds.
+  static const perRound = 3;
+
+  /// Rounds after which every concept has had its chance at [maxPerKind].
+  static int get maxRounds => (maxPerKind / perRound).ceil();
+
+  /// Each round words the search differently, so YouTube returns new videos.
+  static const longVariants = ['', 'explained', 'examples', 'problems solved', 'lecture', 'animation', 'tutorial'];
+  static const shortVariants = [
+    '#shorts', 'explained #shorts', 'in 60 seconds', 'trick #shorts', 'animation #shorts', 'example #shorts',
+    'shorts',
+  ];
+
+  /// Active long videos and shorts whose primary concept is [conceptId].
+  ({int long, int short}) videoCounts(String conceptId) {
+    final r = _db.select('''
+      SELECT coalesce(sum(v.is_short = 0), 0) AS l, coalesce(sum(v.is_short = 1), 0) AS s FROM videos v
+      JOIN video_concepts vc ON vc.video_id = v.id AND vc.is_primary = 1
+      WHERE vc.concept_id = ? AND v.status = 'active' ''', [conceptId]).first;
+    return (long: (r['l'] as num).toInt(), short: (r['s'] as num).toInt());
+  }
+
+  /// Your concepts that have fewer than [target] long videos or shorts, most
+  /// important first.
+  List<String> conceptsBelow(int target) => [
+        for (final r in _db.select('SELECT concept_id FROM user_active_concepts ORDER BY priority DESC'))
+          if (videoCounts(r['concept_id'] as String) case final c when c.long < target || c.short < target)
+            r['concept_id'] as String,
+      ];
+
+  /// One round for one concept of your notes: tops up long videos and shorts to
+  /// [target] each (capped at [maxPerKind]), with round [round]'s wording.
+  Future<IngestReport> fillConcept(String conceptId,
+      {required int round, IngestProgress? onProgress, IngestReport? into}) async {
+    final t = _target(conceptId, IngestPath.material);
+    final report = into ?? IngestReport();
+    final target = (perRound * round).clamp(perRound, maxPerKind);
+    var c = videoCounts(conceptId);
+    if (c.long < target) {
+      await _ingest(t, report, onProgress,
+          variant: longVariants[(round - 1) % longVariants.length], wantShort: false, need: target - c.long);
+    }
+    c = videoCounts(conceptId);
+    if (c.short < target && !_stopped) {
+      await _ingest(t, report, onProgress,
+          variant: shortVariants[(round - 1) % shortVariants.length], wantShort: true, need: target - c.short);
+    }
+    return report;
+  }
+
   /// Path B for one pool theorem.
   Future<IngestReport> ingestPoolTheorem(String conceptId, {IngestProgress? onProgress}) =>
       _ingest(_target(conceptId, IngestPath.theoremPool), IngestReport(), onProgress);
@@ -189,7 +248,7 @@ class IngestionService {
 
   /// The YouTube query. A short name ("Echo", "Phase", "Pitch") also matches
   /// songs, brands and games, so its subject is added ("Echo physics").
-  String _query(_Target t) {
+  String _query(_Target t, {String variant = ''}) {
     final alias = t.aliases.where((a) => !t.name.toLowerCase().contains(a.toLowerCase())).firstOrNull;
     var base = alias == null ? t.name : '${t.name} $alias';
     // "Superposition standing waves": the chapter keeps the search in your notes' sense.
@@ -202,13 +261,14 @@ class IngestionService {
         !base.toLowerCase().contains(subject)) {
       base = '$base $subject';
     }
-    return t.path == IngestPath.theoremPool ? '$base #shorts' : base;
+    if (t.path == IngestPath.theoremPool) return '$base #shorts';
+    return variant.isEmpty ? base : '$base $variant';
   }
 
   final _searches = <String, Future<List<CandidateVideo>>>{};
 
-  Future<List<CandidateVideo>> _search(_Target t) => _searches.putIfAbsent(t.id, () {
-        final f = source.search(_query(t), limit: candidatesPerConcept);
+  Future<List<CandidateVideo>> _search(String query) => _searches.putIfAbsent(query, () {
+        final f = source.search(query, limit: candidatesPerConcept);
         f.then((_) {}, onError: (_) {}); // surfaced when awaited
         return f;
       });
@@ -217,7 +277,7 @@ class IngestionService {
   /// is ready when the current concept finishes.
   void warmUp(String conceptId) {
     if (!canIngest(conceptId)) return;
-    _search(_target(conceptId, isActiveConcept(conceptId) ? IngestPath.material : IngestPath.theoremPool));
+    _search(_query(_target(conceptId, isActiveConcept(conceptId) ? IngestPath.material : IngestPath.theoremPool)));
   }
 
   Set<String>? _vocab;
@@ -244,18 +304,27 @@ class IngestionService {
           r['canonical_name'] as String,
       ];
 
-  Future<IngestReport> _ingest(_Target t, IngestReport report, IngestProgress? onProgress) async {
+  /// [wantShort]: null = any video counts towards [need] (default
+  /// [acceptPerConcept]); true = only shorts count (long results are skipped
+  /// unchecked, so the long-video search can still use them); false = only
+  /// long videos count.
+  Future<IngestReport> _ingest(_Target t, IngestReport report, IngestProgress? onProgress,
+      {String variant = '', bool? wantShort, int? need}) async {
     if (_stopped) return report;
     onProgress?.call(t.name, report);
+    final query = wantShort == true && t.path == IngestPath.material
+        ? _query(t, variant: variant.isEmpty ? '#shorts' : variant)
+        : _query(t, variant: variant);
+    final wanted = need ?? acceptPerConcept;
     List<CandidateVideo> candidates;
     try {
-      candidates = await _search(t);
+      candidates = await _search(query);
     } catch (e) {
-      _searches.remove(t.id);
+      _searches.remove(query);
       report.errors.add('search "${t.name}": $e');
       return report;
     }
-    _searches.remove(t.id); // a later run searches afresh
+    _searches.remove(query); // a later run searches afresh
     final context = t.path == IngestPath.material ? _materialNames(t.id) : const <String>[];
     var acceptedHere = 0;
     // Prefetch: while one candidate is being judged, the next few candidates'
@@ -266,7 +335,11 @@ class IngestionService {
           f.then((_) {}, onError: (_) {}); // errors surface when awaited, not as unhandled
           return f;
         }();
-    final todo = [for (final c in candidates) if (!_alreadySeen(c.id)) c];
+    final todo = [
+      for (final c in candidates)
+        if (!_alreadySeen(c.id) && !(wantShort == true && (c.durationSec ?? 0) > shortMaxSeconds)) c,
+    ];
+    report.fresh += todo.length;
     // Videos without captions need the speech model, the slowest check by far;
     // they wait until the captioned ones have had their turn.
     final noCaptions = <CandidateVideo>[];
@@ -294,7 +367,9 @@ class IngestionService {
       report.checked++;
       if (outcome == 'accepted') {
         report.accepted++;
-        acceptedHere++;
+        final short = _db.select('SELECT is_short FROM videos WHERE source_id = ?', [c.id]).firstOrNull?['is_short'] == 1;
+        if (short) report.acceptedShorts++;
+        if (wantShort == null || wantShort == short) acceptedHere++;
       } else if (outcome != 'error') {
         report.reject(outcome);
       }
@@ -303,14 +378,14 @@ class IngestionService {
 
     try {
       for (var i = 0; i < todo.length; i++) {
-        if (acceptedHere >= acceptPerConcept || _stopped) break;
+        if (acceptedHere >= wanted || _stopped) break;
         for (final next in todo.skip(i).take(prefetchAhead + 1)) {
           if (_passesCheapChecks(next, t)) detailsFor(next);
         }
         await check(todo[i], allowSpeech: false);
       }
       for (final c in List.of(noCaptions)) {
-        if (acceptedHere >= acceptPerConcept || _stopped) break;
+        if (acceptedHere >= wanted || _stopped) break;
         await check(c, allowSpeech: true);
       }
     } on _Stopped {

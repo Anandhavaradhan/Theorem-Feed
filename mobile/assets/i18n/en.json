@@ -44,6 +44,8 @@
   "concept.badge.theorem": "Theorem pool",
   "concept.not_found": "Concept not found.",
   "ingest.searching": "Finding videos: {concept}",
+  "ingest.round": "Adding videos (round {round}): {concept}",
+  "ingest.progress_shorts": "{checked} checked · {long} videos · {shorts} shorts added",
   "ingest.progress": "{checked} checked · {accepted} added",
   "ingest.done": "Done: {accepted} added from {checked} checked.",
   "ingest.failed": "Couldn't finish: {message}",

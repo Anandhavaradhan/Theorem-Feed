@@ -245,6 +245,12 @@ The guardrail tests run on every change:
   and captions must read as English too: besides the language detector, a word check rejects Hindi,
   Tamil, Telugu, Malayalam and Kannada written in English letters. Videos added before these checks are
   re-checked once in the background at start-up and removed if they fail.
+- **Shorts and long videos for every concept, and it keeps going.** After an upload (and whenever the app
+  opens) the app fills every concept of your notes round by round: round 1 finds 3 long videos and 3 shorts
+  per concept (shorts have their own "#shorts" searches), and each further round adds 3 more of each with
+  differently worded searches ("explained", "examples", "problems solved", …) until every concept has 20 long
+  videos and 20 shorts, or YouTube has nothing new. The banner shows the round; Stop pauses it (also across
+  restarts) until Continue.
 - **Faster video checks, in your notes' sense.** For each concept the app searches YouTube for its name
   plus words from its chapter ("Superposition standing waves physics"; short names also get their subject)
   and checks the top 8 results; the next concept's search starts while the current one is checked, and the
