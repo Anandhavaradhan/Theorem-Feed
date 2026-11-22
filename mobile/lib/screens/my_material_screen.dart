@@ -116,6 +116,20 @@ class _UploadBanner extends ConsumerWidget {
               ),
           ]),
           if (s.isBusy) LinearProgressIndicator(value: progress ?? s.modelProgress),
+          if (r != null && s.status == UploadStatus.done && !r.alreadyUploaded && !r.reactivated)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                [
+                  t('upload.diag.time', {'sec': (r.elapsed.inMilliseconds / 1000).toStringAsFixed(1)}),
+                  t('upload.diag.rules', {'n': r.ruleConcepts}),
+                  if (r.aiVerified) t('upload.diag.verified', {'n': r.candidatesChecked}) else t('upload.diag.no_ai'),
+                  if (r.aiUsed) t('upload.diag.deep', {'n': r.aiConcepts}),
+                  if (r.aiError != null) t('upload.diag.ai_error', {'error': r.aiError!}),
+                ].join(' · '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           if (s.rulesOnly && s.status == UploadStatus.done)
             Padding(
               padding: const EdgeInsets.only(top: 4),

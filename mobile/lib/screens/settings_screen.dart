@@ -38,6 +38,16 @@ class SettingsScreen extends ConsumerWidget {
                 label: Text(t('settings.model.download')),
               ),
             ],
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(t('settings.deep_read.title')),
+              subtitle: Text(t('settings.deep_read.body')),
+              value: ref.watch(deepReadProvider),
+              onChanged: (v) {
+                ref.read(databaseProvider).setSetting(deepReadKey, v ? '1' : '0');
+                ref.invalidate(deepReadProvider);
+              },
+            ),
             const Divider(height: 40),
             Text(t('settings.pool.title'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),

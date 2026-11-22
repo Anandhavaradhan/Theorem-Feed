@@ -216,6 +216,11 @@ final pdfPickerProvider = Provider<Future<String?> Function()>((ref) => () async
       return files.isEmpty ? null : files.first.path;
     });
 
+/// Settings key: also run the AI over every section (slower).
+const deepReadKey = 'deep_read';
+
+final deepReadProvider = Provider<bool>((ref) => ref.watch(databaseProvider).getSetting(deepReadKey) == '1');
+
 /// How many new concepts get automatic video search right after an upload;
 /// the rest stay as coverage-gap cards with a "Find videos" button.
 const autoIngestAfterUpload = 15;
@@ -280,7 +285,9 @@ class MaterialController extends Notifier<UploadState> {
       rulesOnly = true; // e.g. offline on first use: still read labelled theorems/definitions
     }
     try {
-      final svc = MaterialService(ref.read(databaseProvider), pdf: ref.read(pdfTextSourceProvider), model: model);
+      final db = ref.read(databaseProvider);
+      final svc = MaterialService(db,
+          pdf: ref.read(pdfTextSourceProvider), model: model, deepRead: db.getSetting(deepReadKey) == '1');
       final result = await svc.upload(
         path,
         isCancelled: () => _cancel,

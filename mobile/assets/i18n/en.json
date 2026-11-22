@@ -146,5 +146,13 @@
   "player.view_concept": "View concept",
   "player.up_next": "Up next",
   "player.more": "...more",
-  "shorts.concept": "Concept"
+  "shorts.concept": "Concept",
+  "upload.diag.time": "read in {sec} s",
+  "upload.diag.rules": "{n} found by rules",
+  "upload.diag.verified": "{n} candidates checked by AI",
+  "upload.diag.no_ai": "AI not used",
+  "upload.diag.deep": "{n} from deep read",
+  "upload.diag.ai_error": "AI problem: {error}",
+  "settings.deep_read.title": "Deep read with AI (slower)",
+  "settings.deep_read.body": "Besides checking the concepts it finds, the AI also reads every section of your PDF. Finds a few more unlabelled concepts but takes minutes per chapter."
 }

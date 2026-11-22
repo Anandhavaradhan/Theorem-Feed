@@ -63,7 +63,7 @@ void main() {
 
   // These tests exercise the AI path, so deep read is on.
   MaterialService svc({List<String> pages = sampleChapterPages, JsonModel? m}) =>
-      MaterialService(db, pdf: FakePdf(pages), model: m ?? model, deepRead: true);
+      MaterialService(db, pdf: FakePdf(pages), model: m ?? model, verify: false, deepRead: true);
   String id(String name) => db.select('SELECT id FROM concepts WHERE canonical_name = ?', [name]).first['id'] as String;
   Map<String, Object?> mc(String materialId, String name) => db.select(
       'SELECT mc.* FROM material_concepts mc JOIN concepts c ON c.id = mc.concept_id '
@@ -100,7 +100,8 @@ void main() {
     final feed = FeedService(db).longform();
     expect(feed.needsUpload, isFalse);
     expect(feed.coverageGaps.map((g) => g.concept), containsAll(names));
-    expect(r.gapConceptIds.first, id('Integration by Parts'));
+    // Most important first: Integration by Parts and Partial Fractions are both labelled (0.9).
+    expect(r.gapConceptIds.take(2), containsAll([id('Integration by Parts'), id('Partial Fractions')]));
   });
 
   test('re-uploading the same file does not reprocess; after archive it reactivates', () async {

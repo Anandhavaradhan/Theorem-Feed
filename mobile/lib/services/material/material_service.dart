@@ -17,6 +17,7 @@ import '../concept_matcher.dart';
 import '../llm.dart';
 import '../text_match.dart';
 import 'concept_extractor.dart';
+import 'concept_verifier.dart';
 import 'pdf_text.dart';
 import 'rules_extractor.dart';
 import 'text_pipeline.dart';
@@ -39,6 +40,8 @@ class UploadResult {
     this.aiConcepts = 0,
     this.aiUsed = false,
     this.aiError,
+    this.candidatesChecked = 0,
+    this.aiVerified = false,
   });
 
   final String materialId;
@@ -58,6 +61,8 @@ class UploadResult {
   final int aiConcepts; // found by the AI deep read
   final bool aiUsed;
   final String? aiError; // first AI failure, if any
+  final int candidatesChecked; // rule candidates the AI verified
+  final bool aiVerified;
 }
 
 class MaterialSummary {
@@ -101,7 +106,8 @@ String _ymd(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 class MaterialService {
-  MaterialService(this._db, {PdfTextSource? pdf, this.model, this.deepRead = false, this.mapThreshold = 88})
+  MaterialService(this._db,
+      {PdfTextSource? pdf, this.model, this.verify = true, this.deepRead = false, this.mapThreshold = 88})
       : _pdf = pdf ?? PdfrxTextSource(),
         _matcher = ConceptMatcher(_db, threshold: mapThreshold);
 
@@ -110,6 +116,10 @@ class MaterialService {
 
   /// The on-device model, used only when [deepRead] is on.
   final JsonModel? model;
+
+  /// Let loose rules propose and the AI verify (default). Without a model, or
+  /// if verification fails, the strict rules decide.
+  final bool verify;
 
   /// Also run the AI over every section (slower; finds unlabelled concepts the
   /// rules miss). Off by default: the rules handle clear textbooks in seconds.
@@ -149,13 +159,46 @@ class MaterialService {
     final paragraphs = paragraphsFromPages(pages);
     onProgress?.call(UploadStage.reading, 1, 1);
 
-    // Fast path: rules over the whole document (milliseconds).
-    final extracted = extractByRules(paragraphs, _dictionary());
-    final ruleCount = mergeExtracted(extracted).length;
+    // Rules over the whole document (milliseconds), then — if the model is
+    // available — loose candidates verified by the on-device AI.
+    final dict = _dictionary();
+    final strict = extractByRules(paragraphs, dict);
+    final ruleCount = mergeExtracted(strict).length;
+    List<ExtractedConcept> extracted = strict;
+    var checked = 0;
+    var verified = false;
+    String? verifyError;
+    final vm = model;
+    if (verify && vm != null) {
+      final loose = mergeExtracted(extractByRules(paragraphs, dict, loose: true))
+        ..sort((a, b) => b.importance.compareTo(a.importance));
+      final candidates = loose.take(64).toList();
+      final vr = await verifyCandidates(
+        vm,
+        candidates,
+        strictNames: {for (final e in mergeExtracted(strict)) e.name},
+        isCancelled: isCancelled,
+        onProgress: (done, total) => onProgress?.call(UploadStage.extracting, done, total),
+      );
+      checked = vr.checked;
+      verifyError = vr.error;
+      verified = true;
+      // Mentioned-only concepts become prerequisites of the section's concepts.
+      extracted = [
+        for (final c in vr.concepts)
+          c.copyWith(prerequisitesMentioned: {
+            ...c.prerequisitesMentioned,
+            for (final m in vr.mentionedOnly)
+              if (m.section != null && m.section == c.section && m.name != c.name) m.name,
+          }.toList()),
+      ];
+      // Never end with nothing because of the AI: fall back to the strict rules.
+      if (extracted.isEmpty && strict.isNotEmpty) extracted = strict;
+    }
 
     // Optional deep read: the AI over each section.
     var errors = 0, aiCount = 0;
-    String? aiError;
+    String? aiError = verifyError;
     final m = model;
     final useAi = deepRead && m != null;
     if (useAi) {
@@ -175,7 +218,7 @@ class MaterialService {
         }
         onProgress?.call(UploadStage.extracting, i + 1, chunks.length);
       }
-    } else {
+    } else if (!verified) {
       onProgress?.call(UploadStage.extracting, 1, 1);
     }
 
@@ -232,6 +275,8 @@ class MaterialService {
       aiConcepts: aiCount,
       aiUsed: useAi,
       aiError: aiError,
+      candidatesChecked: checked,
+      aiVerified: verified,
     );
   }
 

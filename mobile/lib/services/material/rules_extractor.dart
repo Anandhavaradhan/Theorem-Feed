@@ -120,8 +120,11 @@ class _Section {
   final paras = <Paragraph>[];
 }
 
+/// [loose]: propose generously for the on-device AI to verify. Also returns
+/// single-word definitions and every known concept mentioned at least once,
+/// each with the sentence it appears in as evidence.
 List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDictionary dict,
-    {String subject = 'math', String difficulty = 'undergrad'}) {
+    {String subject = 'math', String difficulty = 'undergrad', bool loose = false}) {
   // Group paragraphs by section.
   final sections = <_Section>[_Section(null, Heading())];
   for (final p in paragraphs) {
@@ -213,7 +216,7 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
             term = term.replaceFirst(RegExp(r'^(the|a|an) '), '');
             final known = dict.mostSpecific(term);
             // Single words ("proper") are adjectives, not concepts, unless the graph knows them.
-            if (known == null && term.split(' ').length < 2) continue;
+            if (!loose && known == null && term.split(' ').length < 2) continue;
             final name = known ?? _titleCase(term);
             out.add(ExtractedConcept(
               name: name,
@@ -235,26 +238,34 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
 
   // 4. Known concepts discussed substantially (≥3 mentions in ≥2 paragraphs, with a
   //    defining sentence) count as taught; other mentions stay prerequisites.
+  //    In loose mode every mentioned concept is proposed and the AI decides.
   for (final e in globalMentions.entries) {
-    if (taughtNames.contains(e.key) || e.value < 3 || (mentionParas[e.key] ?? 0) < 2) continue;
-    // Single generic words ("Function", "Vector", "Limit") are everywhere in maths text;
-    // frequency alone doesn't make them the topic. Headings/labels/definitions still can.
-    if (!e.key.trim().contains(' ')) continue;
+    if (taughtNames.contains(e.key)) continue;
     final name = e.key;
     final n = normalizeText(name);
-    final defining = paragraphs
+    final mentions = paragraphs
         .expand((p) => _sentences(p.text).map((s) => (s, p)))
-        .where((x) => normalizeText(x.$1).contains(n) &&
-            RegExp(r'\b(states|is called|is defined|says|gives|means)\b').hasMatch(x.$1))
+        .where((x) => RegExp('\\b${RegExp.escape(n)}').hasMatch(normalizeText(x.$1)))
+        .toList();
+    final defining = mentions
+        .where((x) => RegExp(r'\b(states|is called|is defined|says|gives|means)\b').hasMatch(x.$1))
         .firstOrNull;
-    if (defining == null) continue;
+    if (!loose) {
+      if (e.value < 3 || (mentionParas[e.key] ?? 0) < 2) continue;
+      // Single generic words ("Function", "Vector", "Limit") are everywhere in maths text;
+      // frequency alone doesn't make them the topic. Headings/labels/definitions still can.
+      if (!e.key.trim().contains(' ')) continue;
+      if (defining == null) continue;
+    }
+    final evidence = defining ?? mentions.firstOrNull;
+    if (evidence == null) continue;
     out.add(ExtractedConcept(
       name: name,
       type: dict.typeOf(name) ?? _guessType(name),
       subject: subject,
-      statement: _clip(defining.$1),
-      chapter: defining.$2.heading.chapter,
-      section: defining.$2.heading.section,
+      statement: _clip(evidence.$1),
+      chapter: evidence.$2.heading.chapter,
+      section: evidence.$2.heading.section,
       difficulty: difficulty,
       importance: (0.3 + 0.05 * e.value).clamp(0.3, 0.6).toDouble(),
       fromRule: true,
