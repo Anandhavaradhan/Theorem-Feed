@@ -11,10 +11,10 @@ library;
 import 'package:uuid/uuid.dart';
 
 import '../data/app_database.dart';
-import 'claude_client.dart';
 import 'concept_matcher.dart';
 import 'gates.dart';
 import 'youtube_source.dart';
+import 'llm.dart';
 
 const shortMaxSeconds = 180;
 
@@ -157,7 +157,7 @@ class IngestionService {
       String outcome;
       try {
         outcome = await _evaluate(c, t);
-      } on ClaudeApiError catch (e) {
+      } on ModelApiError catch (e) {
         if (e.isAuth) rethrow; // bad key: stop, the UI asks for a new one
         outcome = _log(c.id, 'error', '$e', t.id);
         report.errors.add('${c.id}: $e');
@@ -252,7 +252,7 @@ class IngestionService {
         transcriptExcerpt: transcript.length > 2000 ? transcript.substring(0, 2000) : transcript,
         durationSec: d.durationSec,
       );
-    } on ClaudeRefusal catch (e) {
+    } on ModelRefusal catch (e) {
       return rejectV('rejected_safety', 'classifier refusal (${e.category})');
     }
     if (!v.educational) return rejectV('rejected_edu', v.reason);

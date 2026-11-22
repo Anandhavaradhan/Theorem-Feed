@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:theoremfeed/services/claude_client.dart';
+import 'package:theoremfeed/services/llm.dart';
 
 http.Response _ok(Map<String, Object?> body) =>
     http.Response(jsonEncode(body), 200, headers: {'content-type': 'application/json'});
@@ -84,12 +85,12 @@ void main() {
     );
     await expectLater(
       client.generateJson(system: 's', content: [TextContent('x')], schema: schema),
-      throwsA(isA<ClaudeApiError>().having((e) => e.isAuth, 'isAuth', isTrue)),
+      throwsA(isA<ModelApiError>().having((e) => e.isAuth, 'isAuth', isTrue)),
     );
     expect(calls, 1);
   });
 
-  test('refusal stop reason raises ClaudeRefusal', () async {
+  test('refusal stop reason raises ModelRefusal', () async {
     final client = ClaudeClient(
       apiKey: 'k',
       httpClient: MockClient((req) async => _ok({
@@ -100,7 +101,7 @@ void main() {
     );
     await expectLater(
       client.generateJson(system: 's', content: [TextContent('x')], schema: schema),
-      throwsA(isA<ClaudeRefusal>().having((e) => e.category, 'category', 'general_harms')),
+      throwsA(isA<ModelRefusal>().having((e) => e.category, 'category', 'general_harms')),
     );
   });
 }

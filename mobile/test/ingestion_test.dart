@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:theoremfeed/data/app_database.dart';
 import 'package:theoremfeed/services/active_concepts.dart';
-import 'package:theoremfeed/services/claude_client.dart';
+import 'package:theoremfeed/services/llm.dart';
 import 'package:theoremfeed/services/feed_service.dart';
 import 'package:theoremfeed/services/gates.dart';
 import 'package:theoremfeed/services/ingestion_service.dart';
@@ -53,7 +53,7 @@ class FakeModel implements JsonModel {
   Object? throwOnCall;
 
   @override
-  Future<Map<String, dynamic>> generateJson({required String system, required List<ClaudeContent> content,
+  Future<Map<String, dynamic>> generateJson({required String system, required List<LlmContent> content,
       required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async {
     calls++;
     if (throwOnCall != null) throw throwOnCall!;
@@ -209,13 +209,13 @@ void main() {
 
   test('bad API key stops the run instead of logging every candidate as an error', () async {
     src.add('Integration by Parts IBP', 'a');
-    model.throwOnCall = ClaudeApiError(401, 'authentication_error', 'invalid x-api-key');
-    expect(svc().ingestMaterialConcept(ibp), throwsA(isA<ClaudeApiError>()));
+    model.throwOnCall = ModelApiError(401, 'authentication_error', 'invalid x-api-key', isAuth: true);
+    expect(svc().ingestMaterialConcept(ibp), throwsA(isA<ModelApiError>()));
   });
 
   test('other API errors are logged and the run continues', () async {
     src.add('Integration by Parts IBP', 'a');
-    model.throwOnCall = ClaudeApiError(500, 'api_error', 'boom');
+    model.throwOnCall = ModelApiError(500, 'api_error', 'boom');
     final r = await svc().ingestMaterialConcept(ibp);
     expect(r.errors, hasLength(1));
     expect(outcome('a'), 'error');

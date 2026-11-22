@@ -5,8 +5,10 @@
 ///
 /// Every call returns schema-validated JSON via structured outputs
 /// (`output_config.format`). Server-side refusal fallbacks are enabled; a
-/// response that still ends in `refusal` raises [ClaudeRefusal], which callers
+/// response that still ends in `refusal` raises [ModelRefusal], which callers
 /// treat conservatively (e.g. the safety gate rejects).
+///
+/// Optional provider: the default is the free Gemini tier (gemini_client.dart).
 library;
 
 import 'dart:async';
@@ -16,61 +18,12 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
+import 'llm.dart';
+
 const claudeModel = 'claude-opus-5-5';
 const _apiUrl = 'https://api.anthropic.com/v1/messages';
 const _apiVersion = '2026-10-21';
 const _fallbackBeta = 'server-side-fallback-2026-07-01';
-
-class ClaudeApiError implements Exception {
-  ClaudeApiError(this.status, this.type, this.message);
-  final int status;
-  final String type;
-  final String message;
-  bool get isAuth => status == 401 || status == 403;
-  @override
-  String toString() => 'ClaudeApiError($status $type: $message)';
-}
-
-/// The model (and its fallback) declined the request.
-class ClaudeRefusal implements Exception {
-  ClaudeRefusal(this.category);
-  final String? category;
-  @override
-  String toString() => 'ClaudeRefusal($category)';
-}
-
-/// A text or image content block for the user turn.
-sealed class ClaudeContent {
-  Map<String, Object?> toJson();
-}
-
-class TextContent extends ClaudeContent {
-  TextContent(this.text);
-  final String text;
-  @override
-  Map<String, Object?> toJson() => {'type': 'text', 'text': text};
-}
-
-class ImageUrlContent extends ClaudeContent {
-  ImageUrlContent(this.url);
-  final String url;
-  @override
-  Map<String, Object?> toJson() => {
-        'type': 'image',
-        'source': {'type': 'url', 'url': url},
-      };
-}
-
-/// Seam for tests and for swapping the transport.
-abstract class JsonModel {
-  Future<Map<String, dynamic>> generateJson({
-    required String system,
-    required List<ClaudeContent> content,
-    required Map<String, Object?> schema,
-    String effort = 'low',
-    int maxTokens = 4096,
-  });
-}
 
 class ClaudeClient implements JsonModel {
   ClaudeClient({
@@ -93,7 +46,7 @@ class ClaudeClient implements JsonModel {
   @override
   Future<Map<String, dynamic>> generateJson({
     required String system,
-    required List<ClaudeContent> content,
+    required List<LlmContent> content,
     required Map<String, Object?> schema,
     String effort = 'low',
     int maxTokens = 4096,
@@ -103,7 +56,7 @@ class ClaudeClient implements JsonModel {
       'max_tokens': maxTokens,
       'system': system,
       'messages': [
-        {'role': 'user', 'content': content.map((c) => c.toJson()).toList()},
+        {'role': 'user', 'content': content.map(_block).toList()},
       ],
       'output_config': {
         'effort': effort,
@@ -115,10 +68,10 @@ class ClaudeClient implements JsonModel {
     final response = await _postWithRetries(body);
     final stop = response['stop_reason'];
     if (stop == 'refusal') {
-      throw ClaudeRefusal((response['stop_details'] as Map?)?['category'] as String?);
+      throw ModelRefusal((response['stop_details'] as Map?)?['category'] as String?);
     }
     if (stop == 'max_tokens') {
-      throw ClaudeApiError(200, 'max_tokens', 'response truncated at max_tokens=$maxTokens');
+      throw ModelApiError(200, 'max_tokens', 'response truncated at max_tokens=$maxTokens');
     }
     final text = [
       for (final block in (response['content'] as List).cast<Map<String, dynamic>>())
@@ -126,6 +79,14 @@ class ClaudeClient implements JsonModel {
     ].join();
     return jsonDecode(text) as Map<String, dynamic>;
   }
+
+  static Map<String, Object?> _block(LlmContent c) => switch (c) {
+        TextContent(:final text) => {'type': 'text', 'text': text},
+        ImageUrlContent(:final url) => {
+            'type': 'image',
+            'source': {'type': 'url', 'url': url},
+          },
+      };
 
   Future<Map<String, dynamic>> _postWithRetries(String body) async {
     for (var attempt = 0;; attempt++) {
@@ -172,7 +133,7 @@ class ClaudeClient implements JsonModel {
         type = err['type'] as String? ?? type;
         message = err['message'] as String? ?? message;
       } catch (_) {}
-      throw ClaudeApiError(res.statusCode, type, message);
+      throw ModelApiError(res.statusCode, type, message, isAuth: res.statusCode == 401 || res.statusCode == 403);
     }
   }
 

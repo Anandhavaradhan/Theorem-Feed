@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:theoremfeed/services/claude_client.dart';
+import 'package:theoremfeed/services/llm.dart';
 import 'package:theoremfeed/services/gates.dart';
 
 class _FakeModel implements JsonModel {
   _FakeModel(this.reply);
-  final Map<String, dynamic> Function(String system, List<ClaudeContent> content) reply;
-  final calls = <List<ClaudeContent>>[];
+  final Map<String, dynamic> Function(String system, List<LlmContent> content) reply;
+  final calls = <List<LlmContent>>[];
   @override
   Future<Map<String, dynamic>> generateJson({
     required String system,
-    required List<ClaudeContent> content,
+    required List<LlmContent> content,
     required Map<String, Object?> schema,
     String effort = 'low',
     int maxTokens = 4096,
@@ -108,7 +108,7 @@ void main() {
     test('thumbnail: safe, unsafe, and refusal', () async {
       expect(await thumbnailSafetyIssue(_FakeModel((s, c) => {'safe': true, 'reason': ''}), 'u'), isNull);
       expect(await thumbnailSafetyIssue(_FakeModel((s, c) => {'safe': false, 'reason': 'gore'}), 'u'), 'gore');
-      expect(await thumbnailSafetyIssue(_FakeModel((s, c) => throw ClaudeRefusal('general_harms')), 'u'),
+      expect(await thumbnailSafetyIssue(_FakeModel((s, c) => throw ModelRefusal('general_harms')), 'u'),
           contains('refusal'));
     });
   });

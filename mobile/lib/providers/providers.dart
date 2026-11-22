@@ -5,6 +5,7 @@ import '../models/feed.dart';
 import '../models/resolved_video.dart';
 import '../services/api_key_store.dart';
 import '../services/claude_client.dart';
+import '../services/llm.dart';
 import '../services/concept_service.dart';
 import '../services/feed_service.dart';
 import '../services/gates.dart';
@@ -101,7 +102,7 @@ class IngestionController extends Notifier<IngestionState> {
         state = IngestionState(status: IngestionStatus.running, label: label, report: r);
       });
       state = IngestionState(status: IngestionStatus.done, report: report);
-    } on ClaudeApiError catch (e) {
+    } on ModelApiError catch (e) {
       state = IngestionState(
         status: e.isAuth ? IngestionStatus.badApiKey : IngestionStatus.failed,
         report: state.report,

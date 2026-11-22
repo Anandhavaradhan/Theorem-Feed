@@ -13,7 +13,7 @@ library;
 
 import 'package:fast_language_detector/fast_language_detector.dart';
 
-import 'claude_client.dart';
+import 'llm.dart';
 
 // --- Gate 3: English ---------------------------------------------------------
 
@@ -220,7 +220,7 @@ Future<String?> thumbnailSafetyIssue(JsonModel model, String thumbnailUrl) async
       maxTokens: 1024,
     );
     return j['safe'] == true ? null : (j['reason'] as String? ?? 'unsafe thumbnail');
-  } on ClaudeRefusal catch (e) {
+  } on ModelRefusal catch (e) {
     return 'moderation refusal (${e.category ?? 'unspecified'})';
   }
 }
