@@ -41,7 +41,7 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final ingesting = ref.watch(ingestionControllerProvider).isRunning;
+    final ingesting = ref.watch(ingestionControllerProvider).isBusy;
     return ListView(padding: const EdgeInsets.symmetric(vertical: 12), children: [
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),

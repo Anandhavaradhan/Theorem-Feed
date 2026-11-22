@@ -14,14 +14,18 @@ class IngestionBanner extends ConsumerWidget {
     final r = s.report;
     final (String text, bool busy) = switch (s.status) {
       IngestionStatus.idle => ('', false),
+      IngestionStatus.preparingModel => (
+          s.modelProgress == null
+              ? t('model.loading')
+              : t('model.downloading', {'percent': (s.modelProgress! * 100).round()}),
+          true
+        ),
       IngestionStatus.running => (
           '${t('ingest.searching', {'concept': s.label})}\n'
               '${t('ingest.progress', {'checked': r?.checked ?? 0, 'accepted': r?.accepted ?? 0})}',
           true
         ),
       IngestionStatus.done => (t('ingest.done', {'accepted': r?.accepted ?? 0, 'checked': r?.checked ?? 0}), false),
-      IngestionStatus.needsApiKey => (t('ingest.needs_key'), false),
-      IngestionStatus.badApiKey => (t('ingest.bad_key'), false),
       IngestionStatus.failed => (t('ingest.failed', {'message': s.message ?? ''}), false),
     };
     if (text.isEmpty) return const SizedBox.shrink();
@@ -34,7 +38,7 @@ class IngestionBanner extends ConsumerWidget {
           if (busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
           if (busy) const SizedBox(width: 12),
           Expanded(child: Text(text)),
-          if (busy)
+          if (busy && s.status == IngestionStatus.running)
             TextButton(
               onPressed: () => ref.read(ingestionControllerProvider.notifier).cancel(),
               child: Text(t('ingest.cancel')),

@@ -50,7 +50,7 @@ class _FeedList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ingesting = ref.watch(ingestionControllerProvider).isRunning;
+    final ingesting = ref.watch(ingestionControllerProvider).isBusy;
     void openConcept(String id) =>
         Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ConceptDetailScreen(conceptId: id)));
     final children = <Widget>[

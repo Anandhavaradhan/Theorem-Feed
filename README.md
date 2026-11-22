@@ -2,13 +2,13 @@
 
 A personal, ad-free, **material-driven** study app for Android. You upload your study material;
 the app shows only videos for concepts in that material, plus a curated pool of math-theorem shorts.
-It has no discovery feed, no ads, no accounts and no telemetry.
+It has no discovery feed, no ads, no accounts, no telemetry, and **no paid services**: the AI runs on the device.
 
 > Personal use only. Never distributed.
 
 ## Architecture: everything on the phone
 
-There is **no server**. The app talks to YouTube directly, and all processing happens on the device.
+There is **no server and no paid API**. The app talks to YouTube directly, and all processing, including the AI, happens on the device.
 
 | Concern | How it works on the device |
 |---|---|
@@ -19,20 +19,21 @@ There is **no server**. The app talks to YouTube directly, and all processing ha
 | Fuzzy concept lookup | FTS5 trigram index (`concepts_trgm`). |
 | Vector search | 384-d float32 BLOBs with exact cosine in Dart. That's fast enough at personal library size. |
 | Language check (Gate 3) | `fast_language_detector` (pure Dart) on title, description and transcript. When there's no transcript, Whisper tiny (`whisper_ggml`, about 75 MB, downloaded once) transcribes the first 30 seconds of audio. |
-| Educational and safety checks (Gates 1, 2) | The phone calls the Claude API (`claude-opus-5-5`, low effort, structured JSON) directly with your own API key, plus a local keyword filter. |
+| Educational and safety checks (Gates 1, 2) | Instant rules first: a trusted-channel list plus a check that the video plainly covers the concept, and a keyword filter. Everything else goes to the on-device model. |
+| On-device AI model | [llamadart](https://pub.dev/packages/llamadart) (llama.cpp) running **Qwen3.5 0.8B, 4-bit** (about 0.5 GB, downloaded once from Hugging Face). Its output is constrained to a JSON schema, so even this small model gives well-formed answers. Free, offline after the download, no limits. |
 | Knowledge graph | `assets/graph/graph_seed_v1.json`: 364 concepts across math, physics and CS, 520 prerequisite edges, and 71 curated theorems. |
-| Concept extraction and relevance judging (Phase C/D) | Also the Claude API, called directly from the phone. |
+| PDF reading and relevance judging (Phase C/D) | The same on-device model. Your PDFs are clean, which keeps the job simple; an on-device embedding model will be added for relevance. |
 
 ## Status: Phase B (ingestion and theorem pool) ✅
 
-- **Three gates, on the device.** Cheap local checks run first, so obvious rejects never cost an API call:
-  safety keywords, then title/description language, then transcript language (or Whisper),
-  then Gate 1 (educational, via Claude), then Gate 2 (thumbnail moderation, via Claude vision).
+- **Three gates, all on the device.** The instant checks run first: safety keywords, then title/description language,
+  then transcript language (or Whisper). Then trusted channels that clearly cover the concept are accepted by rule.
+  Everything else gets one on-device model call that checks it's educational, safe and English.
   English is a hard reject at every stage.
 - **Scoped ingestion, two paths only.**
   - Path A, for material concepts: the "Find videos" buttons on coverage-gap cards and on concept pages.
-  - Path B, for the curated math theorem pool: Settings → *Build theorem pool*. It can be resumed, and it
-    never re-checks (or re-bills) a video it has already judged.
+  - Path B, for the curated math theorem pool: the Shorts tab fills it a couple of theorems at a time as you scroll,
+    or Settings → *Build theorem pool* does it all in one go. Both can be resumed, and a video already judged is never re-checked.
   - Asking for anything else raises `OutOfScopeIngestion`.
 - **Knowledge graph seed.** It's built from readable sources in `tools/` by `python3 tools/build_graph_seed.py`,
   which checks prerequisite references, cycles and alias collisions.
@@ -40,8 +41,8 @@ There is **no server**. The app talks to YouTube directly, and all processing ha
   its concept and reason label, a Save button, and *Go deeper* when your material has a long-form video for the concept.
 - **Concept detail.** The statement (from your material when you have one), LaTeX, the prerequisite chain, videos,
   and *Find some*. That button only appears when the concept is in your material or the theorem pool.
-- **Settings.** Your Claude API key, kept in Android's encrypted storage. Also the pool builder, and a plain list
-  of what data leaves the phone.
+- **Settings.** The on-device model's status, with a download button. Also the pool builder, and a plain list of
+  what data leaves the phone.
 
 ### Phase A (walking skeleton) ✅
 
@@ -57,15 +58,16 @@ screen, and Path A running automatically for new concepts.
 
 ## Using it
 
-1. Install the app (see below) and open **Settings** (the gear icon on Home).
-2. Paste a Claude API key from console.anthropic.com. It stays encrypted on the phone.
-3. Tap **Build theorem pool**. Expect it to take a while; you can stop it and resume later. The Shorts tab fills as theorems are added.
-4. On Home, **Find videos** on a coverage-gap card looks for videos for that concept from your material.
+1. Install the app (see below).
+2. Open the **Shorts** tab and tap **Find theorem shorts**. The first time, this downloads the on-device AI model
+   (about 0.5 GB, so use Wi-Fi). After that, shorts appear within seconds and keep filling as you scroll.
+3. On Home, **Find videos** on a coverage-gap card looks for videos for that concept from your material.
 
-**Cost (a rough estimate, not measured yet).** A candidate that passes the local checks costs two Claude calls:
-the educational check and the thumbnail check. That's roughly $0.02 per candidate on `claude-opus-5-5`.
-A full pool build checks a few hundred candidates, so expect a few dollars, once.
-To trade accuracy for cost, you can change `claudeModel` in `lib/services/claude_client.dart`, for example to `claude-haiku-5-5`.
+Everything is free: there's no API key and no usage limit.
+The only waiting is for YouTube, plus about a second per video the model has to judge (more on older phones).
+
+**Sharing with friends.** Build the APK and send it to them directly. Each phone downloads the model once.
+It runs on the CPU, so any reasonably recent Android phone works; older or low-memory phones will just be slower.
 
 ## Build and install (Android)
 
@@ -94,12 +96,12 @@ The Android build bundles its own SQLite. See `hooks:` in `pubspec.yaml`.
 
 The guardrail tests run on every change:
 - **Ingestion scope and gates:** a fake YouTube and a fake model drive every gate, both paths,
-  out-of-scope refusals, de-duplication, and error and auth handling.
+  trusted-channel rules, out-of-scope refusals, de-duplication, and error handling.
 - **Feed scope (critical):** every long-form card has `primary_concept ∈ user_active_concepts`, and every
   short is from the theorem pool or an active concept. This is a randomized property test over 25 seeds.
 - **No ads:** no `ads|admob|ad_unit|adslot` in the code, dependencies, strings or manifest.
 - **No discovery:** no `discovery|adjacent|explore` in the app code or UI strings.
-- **No middleman:** the app never calls a server of its own. The only hosts named in its code are YouTube's and `api.anthropic.com`.
+- **No middleman, no paid AI:** the app never calls a server of its own or an AI API. The only hosts named in its code are YouTube's.
 - Every `t('key')` used in the app exists in `en.json`.
 
 ## Design decisions
@@ -114,5 +116,9 @@ The guardrail tests run on every change:
 - **Keeping up with YouTube.** YouTube changes often, and stream extraction can break until the
   `youtube_explode_dart` package is updated. With no server, the fix means rebuilding the app with
   the updated package: `flutter pub upgrade youtube_explode_dart && flutter build apk`.
+- **No thumbnail image check.** The on-device model reads text only, so Gate 2 is the keyword filter, trusted channels,
+  and the model's check of the title, description and transcript. A vision model would add over a gigabyte.
+- **Model storage.** llamadart keeps the downloaded model in the app's cache. Android may clear that when storage runs low;
+  if so, the model downloads again the next time it's needed.
 - **History.** The earlier server-based version (FastAPI + Postgres + yt-dlp) is in git history at commit
   `2423f60`.

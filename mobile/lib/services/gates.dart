@@ -1,19 +1,20 @@
 /// The three ingestion gates (§8.3), running on the phone.
 ///
-///   Gate 1  Educational   – Claude classifier (strict).
-///   Gate 2  Safety        – keyword filter + Claude thumbnail moderation.
+///   Gate 1  Educational   – trusted-channel rule, else the on-device model.
+///   Gate 2  Safety        – keyword filter; trusted channels; the on-device
+///                           model's text check for everything else.
 ///   Gate 3  English       – on-device language ID on title/description and
 ///                           transcript; Whisper tiny on the first 30 s of audio
 ///                           when there is no transcript. Hard reject.
 ///
-/// The ingestion service runs the cheap, local checks first (keywords, title
-/// language) so obviously-failing candidates never cost an API call; the accept
-/// set is the same as running the gates in spec order.
+/// Everything runs on the phone. The instant rule checks run first, so most
+/// candidates are decided in milliseconds and the model only sees the rest.
 library;
 
 import 'package:fast_language_detector/fast_language_detector.dart';
 
 import 'llm.dart';
+import 'text_match.dart';
 
 // --- Gate 3: English ---------------------------------------------------------
 
@@ -116,111 +117,126 @@ final _unsafeRe = RegExp('\\b(${_unsafeTerms.map(RegExp.escape).join('|')})\\b',
 /// Returns the first unsafe term found, or null.
 String? unsafeKeyword(String text) => _unsafeRe.firstMatch(text)?.group(0);
 
-// --- Gate 1: educational (LLM) ------------------------------------------------
+// --- Gate 1 / 2 by rule: trusted channels -----------------------------------
 
-const educationalSystemPrompt = '''
-Strict educational gatekeeper. EDUCATIONAL only if the video primarily teaches a concept, proof, technique, or theorem in math, science, or CS.
-Reject: vlogs, entertainment, music, gaming, news, motivation, "study with me", and any video that only mentions an educational topic in passing.
-Also report the language of the title and description as an ISO 639-1 code ("en" for English; Hinglish or other mixed/transliterated text is not "en").
-Use concept names a textbook would use for primary_concepts. When the video primarily teaches the searched concept, include its name exactly as given.''';
+/// Established English-language educational channels. Their uploads pass the
+/// educational and safety gates by rule (they still go through the English
+/// gate and must actually be about the concept). Matched by channel name.
+const trustedChannels = {
+  // math
+  '3blue1brown', 'khan academy', 'numberphile', 'numberphile2', 'mathologer', 'stand-up maths',
+  'professor leonard', 'patrickjmt', 'the organic chemistry tutor', 'blackpenredpen', 'eddie woo',
+  'dr. trefor bazett', 'dr trefor bazett', 'krista king', 'kristakingmath', 'nancypi', 'zach star',
+  'flammable maths', 'mit opencourseware', 'socratica', 'reducible', 'stanford online', 'steve brunton',
+  'statquest with josh starmer', 'michel van biezen', 'mathispower4u', 'professor dave explains',
+  'math with mr. j', 'mathbff',
+  // physics
+  'minutephysics', 'physics girl', 'veritasium', 'crashcourse', 'flipping physics', 'dot physics',
+  'pbs space time', 'sixty symbols', 'physics explained',
+  // cs
+  'computerphile', 'abdul bari', 'william fiset', 'back to back swe', 'neetcode', 'freecodecamp.org',
+  'cs dojo', 'spanning tree', 'fireship',
+};
 
-const educationalSchema = {
+bool isTrustedChannel(String? channel) =>
+    channel != null && trustedChannels.contains(channel.trim().toLowerCase());
+
+/// Whether a video is plainly about [names] (canonical name + aliases): the name
+/// is in the title, or close to it, or it's said repeatedly in the transcript.
+bool coversConcept(List<String> names,
+    {required String title, required String description, required String transcript}) {
+  final t = normalizeText(title);
+  final tr = normalizeText(transcript);
+  for (final n in names) {
+    final nn = normalizeText(n);
+    if (nn.length < 3) continue;
+    final word = RegExp('\\b${RegExp.escape(nn)}\\b');
+    if (word.hasMatch(t)) return true;
+    if (nn.split(' ').length > 1 && tokenSetRatio(nn, t) >= 90) return true;
+    if (word.allMatches(tr).length >= 2) return true;
+  }
+  return false;
+}
+
+// --- Gate 1 + 2 by model: one on-device call ----------------------------------
+
+const videoCheckSystemPrompt = '''
+You check YouTube videos for a study app. Answer with JSON only.
+educational: true only if the video mainly teaches a concept, proof, technique or theorem in math, science or computer science. False for vlogs, entertainment, music, gaming, news, motivation, "study with me", or videos that only mention the topic.
+safe: false if the title, description or transcript has sexual, violent, hateful or otherwise inappropriate content.
+text_language: ISO 639-1 code of the title and description ("en" for English; mixed Hindi-English is "hi").
+is_theorem: true if it states or proves a specific theorem, formula or result.
+primary_concepts: the 1-3 concepts it mainly teaches, using textbook names. If it mainly teaches the searched concept, include that name exactly.''';
+
+const videoCheckSchema = {
   'type': 'object',
   'properties': {
     'educational': {'type': 'boolean'},
-    'reason': {'type': 'string'},
+    'safe': {'type': 'boolean'},
     'subject': {'type': 'string', 'enum': ['math', 'physics', 'cs', 'other']},
     'is_theorem': {'type': 'boolean'},
-    'is_short': {'type': 'boolean'},
     'primary_concepts': {'type': 'array', 'items': {'type': 'string'}},
     'text_language': {'type': 'string'},
+    'reason': {'type': 'string'},
   },
-  'required': ['educational', 'reason', 'subject', 'is_theorem', 'is_short', 'primary_concepts', 'text_language'],
+  'required': ['educational', 'safe', 'subject', 'is_theorem', 'primary_concepts', 'text_language', 'reason'],
   'additionalProperties': false,
 };
 
-class EducationalVerdict {
-  EducationalVerdict({
+class VideoVerdict {
+  VideoVerdict({
     required this.educational,
+    required this.safe,
     required this.reason,
     required this.subject,
     required this.isTheorem,
-    required this.isShort,
     required this.primaryConcepts,
     required this.textLanguage,
   });
 
   final bool educational;
+  final bool safe;
   final String reason;
   final String subject;
   final bool isTheorem;
-  final bool isShort;
   final List<String> primaryConcepts;
   final String textLanguage;
 
-  factory EducationalVerdict.fromJson(Map<String, dynamic> j) => EducationalVerdict(
+  factory VideoVerdict.fromJson(Map<String, dynamic> j) => VideoVerdict(
         educational: j['educational'] as bool,
-        reason: j['reason'] as String,
+        safe: j['safe'] as bool,
+        reason: j['reason'] as String? ?? '',
         subject: j['subject'] as String,
         isTheorem: j['is_theorem'] as bool,
-        isShort: j['is_short'] as bool,
         primaryConcepts: (j['primary_concepts'] as List).cast<String>(),
         textLanguage: (j['text_language'] as String).toLowerCase(),
       );
 }
 
-Future<EducationalVerdict> classifyEducational(
+/// One on-device model call covering the educational and (text-based) safety
+/// checks. Inputs are kept short so a sub-1B model answers in a second or two.
+Future<VideoVerdict> classifyVideo(
   JsonModel model, {
   required String searchedConcept,
   required String title,
   required String description,
   required String transcriptExcerpt,
   required int? durationSec,
+  String? channel,
 }) async {
-  final desc = description.length > 1500 ? description.substring(0, 1500) : description;
+  String clip(String s, int n) => s.length > n ? s.substring(0, n) : s;
   final json = await model.generateJson(
-    system: educationalSystemPrompt,
+    system: videoCheckSystemPrompt,
     content: [
-      TextContent('''
-Searched concept: $searchedConcept
-Duration: ${durationSec ?? 'unknown'} seconds
-
-<title>$title</title>
-<description>$desc</description>
-<transcript_excerpt>$transcriptExcerpt</transcript_excerpt>'''),
+      TextContent('Searched concept: $searchedConcept\n'
+          'Channel: ${channel ?? 'unknown'}\n'
+          'Duration: ${durationSec ?? 'unknown'} seconds\n'
+          'Title: $title\n'
+          'Description: ${clip(description, 500)}\n'
+          'Transcript start: ${clip(transcriptExcerpt, 1200)}'),
     ],
-    schema: educationalSchema,
-    maxTokens: 2048,
+    schema: videoCheckSchema,
+    maxTokens: 256,
   );
-  return EducationalVerdict.fromJson(json);
-}
-
-// --- Gate 2b: thumbnail moderation (LLM vision) -------------------------------
-
-const thumbnailSystemPrompt = '''
-You review video thumbnails for a personal study app. Mark the thumbnail unsafe if it shows sexual or suggestive content, nudity, graphic violence or gore, hate symbols, or other content inappropriate for a study app. Ordinary educational imagery (people talking, equations, diagrams, text) is safe.''';
-
-const thumbnailSchema = {
-  'type': 'object',
-  'properties': {
-    'safe': {'type': 'boolean'},
-    'reason': {'type': 'string'},
-  },
-  'required': ['safe', 'reason'],
-  'additionalProperties': false,
-};
-
-/// Returns null if safe, otherwise the reason. A refusal counts as unsafe.
-Future<String?> thumbnailSafetyIssue(JsonModel model, String thumbnailUrl) async {
-  try {
-    final j = await model.generateJson(
-      system: thumbnailSystemPrompt,
-      content: [ImageUrlContent(thumbnailUrl), TextContent('Is this thumbnail safe?')],
-      schema: thumbnailSchema,
-      maxTokens: 1024,
-    );
-    return j['safe'] == true ? null : (j['reason'] as String? ?? 'unsafe thumbnail');
-  } on ModelRefusal catch (e) {
-    return 'moderation refusal (${e.category ?? 'unspecified'})';
-  }
+  return VideoVerdict.fromJson(json);
 }

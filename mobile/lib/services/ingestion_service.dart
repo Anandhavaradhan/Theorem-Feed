@@ -41,11 +41,12 @@ class IngestReport {
 typedef IngestProgress = void Function(String conceptName, IngestReport report);
 
 class _Target {
-  _Target(this.id, this.name, this.aliases, this.subject, this.path);
+  _Target(this.id, this.name, this.aliases, this.subject, this.type, this.path);
   final String id;
   final String name;
   final List<String> aliases;
   final String subject;
+  final String type;
   final IngestPath path;
 }
 
@@ -89,9 +90,9 @@ class IngestionService {
           ? 'concept is not in your active material'
           : 'concept is not in the curated math theorem pool');
     }
-    final r = _db.select('SELECT canonical_name, aliases, subject FROM concepts WHERE id = ?', [conceptId]).first;
+    final r = _db.select('SELECT canonical_name, aliases, subject, type FROM concepts WHERE id = ?', [conceptId]).first;
     return _Target(conceptId, r['canonical_name'] as String, parseJsonList(r['aliases'] as String?),
-        r['subject'] as String, path);
+        r['subject'] as String, r['type'] as String, path);
   }
 
   // --- public entry points ----------------------------------------------------
@@ -113,9 +114,10 @@ class IngestionService {
     throw OutOfScopeIngestion('concept is neither in your material nor in the theorem pool');
   }
 
-  /// Path B for the whole pool, in curated order. Theorems that already have
+  /// Path B over the pool, in curated order. Theorems that already have
   /// [acceptPerConcept] pool shorts are skipped, so this is safe to re-run.
-  Future<IngestReport> buildTheoremPool({IngestProgress? onProgress, bool Function()? isCancelled}) async {
+  /// [maxTheorems] limits one run (the Shorts tab fills a couple at a time as you scroll).
+  Future<IngestReport> buildTheoremPool({IngestProgress? onProgress, bool Function()? isCancelled, int? maxTheorems}) async {
     final report = IngestReport();
     final theorems = _db.select('''
       SELECT c.id FROM concepts c
@@ -125,7 +127,7 @@ class IngestionService {
                AND v.is_short = 1 AND v.in_theorem_pool = 1) < ?
       ORDER BY coalesce(c.pool_order, 1e9), c.canonical_name
     ''', [acceptPerConcept]);
-    for (final row in theorems) {
+    for (final row in maxTheorems == null ? theorems : theorems.take(maxTheorems)) {
       if (isCancelled?.call() ?? false) break;
       await _ingest(_target(row['id'] as String, IngestPath.theoremPool), report, onProgress);
     }
@@ -158,9 +160,11 @@ class IngestionService {
       try {
         outcome = await _evaluate(c, t);
       } on ModelApiError catch (e) {
-        if (e.isAuth) rethrow; // bad key: stop, the UI asks for a new one
+        if (e.isAuth) rethrow; // can't continue: the UI explains
         outcome = _log(c.id, 'error', '$e', t.id);
         report.errors.add('${c.id}: $e');
+      } on QuotaExhausted {
+        rethrow;
       } catch (e) {
         outcome = _log(c.id, 'error', '$e', t.id);
         report.errors.add('${c.id}: $e');
@@ -240,62 +244,81 @@ class IngestionService {
       if (text == null || !speechIsEnglish(text)) return rejectV('rejected_lang', 'speech not verified as English');
     }
 
-    // Gate 1: educational (LLM).
+    // Gates 1 + 2. Trusted educational channels that plainly cover the concept
+    // are decided by rule (instant); everything else goes to the on-device model.
     final transcript = d.transcript;
-    final EducationalVerdict v;
-    try {
-      v = await classifyEducational(
-        model,
-        searchedConcept: t.name,
-        title: d.title,
-        description: d.description,
-        transcriptExcerpt: transcript.length > 2000 ? transcript.substring(0, 2000) : transcript,
-        durationSec: d.durationSec,
-      );
-    } on ModelRefusal catch (e) {
-      return rejectV('rejected_safety', 'classifier refusal (${e.category})');
+    final names = [t.name, ...t.aliases];
+    final covers = coversConcept(names, title: d.title, description: d.description, transcript: transcript);
+    final channel = d.channel ?? c.channel;
+    List<ConceptRef> mapped;
+    bool isTheorem;
+    String subjectOut;
+    String reason;
+    if (isTrustedChannel(channel) && covers) {
+      mapped = [ConceptRef(t.id, t.name, 100)];
+      isTheorem = t.path == IngestPath.theoremPool || const {'theorem', 'formula'}.contains(t.type);
+      subjectOut = t.subject;
+      reason = 'trusted channel ($channel) covering ${t.name}';
+    } else {
+      final VideoVerdict v;
+      try {
+        v = await classifyVideo(
+          model,
+          searchedConcept: t.name,
+          title: d.title,
+          description: d.description,
+          transcriptExcerpt: transcript,
+          durationSec: d.durationSec,
+          channel: channel,
+        );
+      } on ModelRefusal catch (e) {
+        return rejectV('rejected_safety', 'model refusal (${e.category})');
+      }
+      if (!v.educational) return rejectV('rejected_edu', v.reason);
+      if (!v.safe) return rejectV('rejected_safety', 'model: ${v.reason}');
+      if (v.textLanguage != 'en') return rejectV('rejected_lang', 'model: text language ${v.textLanguage}');
+      mapped = _matcher.matchAll(v.primaryConcepts).take(3).toList();
+      // A small model sometimes paraphrases the searched concept; if the video
+      // plainly covers it by the rule above, count it.
+      if (covers && !mapped.any((m) => m.id == t.id)) mapped = [ConceptRef(t.id, t.name, 90), ...mapped.take(2)];
+      isTheorem = v.isTheorem;
+      subjectOut = v.subject == 'other' ? t.subject : v.subject;
+      reason = v.reason;
     }
-    if (!v.educational) return rejectV('rejected_edu', v.reason);
-    if (v.textLanguage != 'en') return rejectV('rejected_lang', 'classifier: text language ${v.textLanguage}');
-
-    // Gate 2b: thumbnail moderation (LLM vision).
-    final thumbIssue = await thumbnailSafetyIssue(model, d.thumbnailUrl);
-    if (thumbIssue != null) return rejectV('rejected_safety', 'thumbnail: $thumbIssue');
 
     // Concept tagging + scope check.
-    final mapped = _matcher.matchAll(v.primaryConcepts).take(3).toList();
     final isShort = (d.durationSec ?? 1 << 30) <= shortMaxSeconds && d.isVertical;
     switch (t.path) {
       case IngestPath.material:
         // Reject at ingestion if none of its primary concepts is active — keeps the library clean.
         if (!mapped.any((m) => isActiveConcept(m.id))) {
-          return _log(c.id, 'rejected_scope', 'primary concepts ${v.primaryConcepts} not in active material', t.id);
+          return _log(c.id, 'rejected_scope', 'primary concepts ${mapped.map((m) => m.name)} not in active material', t.id);
         }
       case IngestPath.theoremPool:
         if (!mapped.any((m) => m.id == t.id)) {
-          return _log(c.id, 'rejected_scope', 'not primarily about ${t.name}: ${v.primaryConcepts}', t.id);
+          return _log(c.id, 'rejected_scope', 'not primarily about ${t.name}: ${mapped.map((m) => m.name)}', t.id);
         }
-        if (!isShort || !v.isTheorem) {
-          return _log(c.id, 'rejected_format', 'pool needs a theorem short (short=$isShort theorem=${v.isTheorem})', t.id);
+        if (!isShort || !isTheorem) {
+          return _log(c.id, 'rejected_format', 'pool needs a theorem short (short=$isShort theorem=$isTheorem)', t.id);
         }
     }
 
-    // Accept. (Embedding is computed in Phase C, when the on-device model lands.)
+    // Accept. (Embeddings arrive with the on-device embedding model in Phase C/D.)
     final videoId = _uuid.v4();
-    final subject = t.path == IngestPath.theoremPool ? 'math' : (v.subject == 'other' ? t.subject : v.subject);
+    final subject = t.path == IngestPath.theoremPool ? 'math' : subjectOut;
     _db.transaction(() {
       _db.execute(
         'INSERT INTO videos (id, source, source_id, title, description, transcript, duration_sec, thumbnail_url, '
         'is_short, is_theorem, subject, in_theorem_pool, status, created_at) '
         "VALUES (?, 'youtube', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)",
         [videoId, c.id, d.title, d.description, transcript, d.durationSec, d.thumbnailUrl, boolInt(isShort),
-         boolInt(v.isTheorem), subject, boolInt(t.path == IngestPath.theoremPool), nowMs()],
+         boolInt(isTheorem), subject, boolInt(t.path == IngestPath.theoremPool), nowMs()],
       );
       for (final m in mapped) {
         _db.execute('INSERT INTO video_concepts (video_id, concept_id, confidence, is_primary) VALUES (?, ?, ?, 1)',
             [videoId, m.id, (m.score.clamp(0, 100)) / 100]);
       }
-      _log(c.id, 'accepted', v.reason, t.id);
+      _log(c.id, 'accepted', reason, t.id);
     });
     return 'accepted';
   }

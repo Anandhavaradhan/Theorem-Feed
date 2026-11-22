@@ -9,7 +9,8 @@ import 'package:theoremfeed/data/app_database.dart';
 import 'package:theoremfeed/providers/providers.dart';
 import 'package:theoremfeed/screens/concept_detail_screen.dart';
 import 'package:theoremfeed/screens/shorts_screen.dart';
-import 'package:theoremfeed/services/api_key_store.dart';
+import 'package:theoremfeed/services/llm.dart';
+import 'package:theoremfeed/services/youtube_source.dart';
 import 'package:theoremfeed/services/graph_seed.dart';
 
 import 'support/factories.dart';
@@ -23,16 +24,23 @@ void main() {
       'concept.find': 'Find some',
       'concept.out_of_scope': 'Not in scope',
       'concept.prerequisites': 'Prerequisites',
-      'ingest.needs_key': 'Add your Claude API key in Settings first.',
+      'ingest.done': 'Done: {accepted} added from {checked} checked.',
     });
     db = AppDatabase.inMemory();
     loadGraphSeed(db, File(graphSeedAsset).readAsStringSync());
   });
 
-  Widget app(Widget home, {ApiKeyStore? keys}) => ProviderScope(
+  var modelLoads = 0;
+  Widget app(Widget home) => ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
-          apiKeyStoreProvider.overrideWithValue(keys ?? MemoryApiKeyStore()),
+          modelLoaderProvider.overrideWithValue((onProgress) async {
+            modelLoads++;
+            onProgress(1);
+          }),
+          jsonModelProvider.overrideWithValue(_NoModel()),
+          videoSourceProvider.overrideWithValue(_EmptySource()),
+          speechProbeProvider.overrideWithValue(null),
         ],
         child: MaterialApp(home: home),
       );
@@ -54,12 +62,14 @@ void main() {
     expect(find.text('Find some'), findsOneWidget);
   });
 
-  testWidgets('Find some without an API key explains what to do (no network calls)', (tester) async {
+  testWidgets('Find some prepares the on-device model, then runs scoped ingestion', (tester) async {
     await tester.pumpWidget(app(ConceptDetailScreen(conceptId: id('Pythagorean Theorem'))));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Find some'));
     await tester.pumpAndSettle();
-    expect(find.text('Add your Claude API key in Settings first.'), findsOneWidget);
+    expect(modelLoads, 1);
+    expect(db.getSetting('local_model_ready'), '1');
+    expect(find.text('Done: 0 added from 0 checked.'), findsOneWidget);
   });
 
   testWidgets('out-of-scope concept offers no ingestion', (tester) async {
@@ -71,3 +81,20 @@ void main() {
     expect(find.text('Not in scope'), findsOneWidget);
   });
 }
+
+class _NoModel implements JsonModel {
+  @override
+  Future<Map<String, dynamic>> generateJson({required String system, required List<LlmContent> content,
+          required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) =>
+      throw StateError('not called');
+}
+
+class _EmptySource implements VideoSource {
+  @override
+  Future<List<CandidateVideo>> search(String query, {int limit = 8}) async => const [];
+  @override
+  Future<VideoDetails> details(String id) => throw StateError('not called');
+  @override
+  Future<String?> downloadAudioClip(String id, {Duration length = const Duration(seconds: 30)}) async => null;
+}
+

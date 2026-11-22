@@ -3,39 +3,19 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/i18n.dart';
 import '../providers/providers.dart';
+import '../services/local_llm.dart';
 import '../widgets/ingestion_banner.dart';
 
-class SettingsScreen extends ConsumerStatefulWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final _key = TextEditingController();
-
-  @override
-  void dispose() {
-    _key.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveKey() async {
-    final value = _key.text.trim();
-    if (value.isEmpty) return;
-    await ref.read(apiKeyStoreProvider).write(value);
-    _key.clear();
-    ref.invalidate(hasApiKeyProvider);
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('settings.key.saved'))));
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final hasKey = ref.watch(hasApiKeyProvider).value ?? false;
+    final ready = ref.watch(modelReadyProvider);
     final stats = ref.watch(libraryStatsProvider).value;
-    final ingesting = ref.watch(ingestionControllerProvider).isRunning;
+    final busy = ref.watch(ingestionControllerProvider).isBusy;
+    final controller = ref.read(ingestionControllerProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: Text(t('settings.title'))),
@@ -43,33 +23,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const IngestionBanner(),
         Expanded(
           child: ListView(padding: const EdgeInsets.all(16), children: [
-            Text(t('settings.key.title'), style: theme.textTheme.titleMedium),
+            Text(t('settings.model.title'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(t('settings.key.body'), style: theme.textTheme.bodySmall),
+            Text(t('settings.model.body', {'name': defaultLocalModel.name, 'size': defaultLocalModel.approxSizeMb})),
             const SizedBox(height: 8),
-            Text(hasKey ? t('settings.key.present') : t('settings.key.missing')),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _key,
-              obscureText: true,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: InputDecoration(border: const OutlineInputBorder(), hintText: t('settings.key.hint')),
-              onSubmitted: (_) => _saveKey(),
-            ),
-            const SizedBox(height: 8),
-            Row(children: [
-              FilledButton(onPressed: _saveKey, child: Text(t('settings.key.save'))),
-              const SizedBox(width: 8),
-              if (hasKey)
-                TextButton(
-                  onPressed: () async {
-                    await ref.read(apiKeyStoreProvider).clear();
-                    ref.invalidate(hasApiKeyProvider);
-                  },
-                  child: Text(t('settings.key.clear')),
-                ),
-            ]),
+            Text(ready ? t('settings.model.ready') : t('settings.model.missing'), style: theme.textTheme.bodySmall),
+            if (!ready) ...[
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: busy ? null : controller.prepareModel,
+                icon: const Icon(Icons.download),
+                label: Text(t('settings.model.download')),
+              ),
+            ],
             const Divider(height: 40),
             Text(t('settings.pool.title'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
@@ -79,9 +45,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             })),
             const SizedBox(height: 8),
             FilledButton.icon(
-              onPressed: ingesting || !hasKey
-                  ? null
-                  : () => ref.read(ingestionControllerProvider.notifier).buildTheoremPool(),
+              onPressed: busy ? null : controller.buildTheoremPool,
               icon: const Icon(Icons.functions),
               label: Text(t('settings.pool.build')),
             ),

@@ -15,8 +15,10 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yte;
 import 'gates.dart';
 
 class CandidateVideo {
-  CandidateVideo({required this.id, required this.title, required this.description, this.durationSec, this.thumbnailUrl});
+  CandidateVideo(
+      {required this.id, required this.title, required this.description, this.durationSec, this.thumbnailUrl, this.channel});
   final String id;
+  final String? channel;
   final String title;
   final String description;
   final int? durationSec;
@@ -31,7 +33,10 @@ class VideoDetails {
     required this.thumbnailUrl,
     required this.transcriptLines,
     required this.isVertical,
+    this.channel,
   });
+
+  final String? channel;
 
   final String title;
   final String description;
@@ -70,6 +75,7 @@ class YoutubeExplodeSource implements VideoSource {
             description: v.description,
             durationSec: v.duration?.inSeconds,
             thumbnailUrl: v.thumbnails.highResUrl,
+            channel: v.author,
           ),
     ];
   }
@@ -106,6 +112,7 @@ class YoutubeExplodeSource implements VideoSource {
       thumbnailUrl: video.thumbnails.highResUrl,
       transcriptLines: lines,
       isVertical: isVertical,
+      channel: video.author,
     );
   }
 

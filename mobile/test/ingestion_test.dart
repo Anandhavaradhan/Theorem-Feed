@@ -24,10 +24,12 @@ class FakeSource implements VideoSource {
 
   void add(String query, String id,
       {String title = 'Integration by parts explained', int duration = 600, bool vertical = false,
-      List<String> transcript = _en, String description = 'A calculus lesson.'}) {
-    (results[query] ??= []).add(CandidateVideo(id: id, title: title, description: description, durationSec: duration));
+      List<String> transcript = _en, String description = 'A calculus lesson.', String channel = 'Some Channel'}) {
+    (results[query] ??= [])
+        .add(CandidateVideo(id: id, title: title, description: description, durationSec: duration, channel: channel));
     details_[id] = VideoDetails(title: title, description: description, durationSec: duration,
-        thumbnailUrl: 'https://i.ytimg.com/vi/$id/hqdefault.jpg', transcriptLines: transcript, isVertical: vertical);
+        thumbnailUrl: 'https://i.ytimg.com/vi/$id/hqdefault.jpg', transcriptLines: transcript, isVertical: vertical,
+        channel: channel);
   }
 
   @override
@@ -48,7 +50,7 @@ class FakeSource implements VideoSource {
 
 class FakeModel implements JsonModel {
   final edu = <String, Map<String, dynamic>>{}; // keyed by title
-  final unsafeThumbs = <String>{};
+  final unsafeTitles = <String>{};
   int calls = 0;
   Object? throwOnCall;
 
@@ -57,15 +59,12 @@ class FakeModel implements JsonModel {
       required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async {
     calls++;
     if (throwOnCall != null) throw throwOnCall!;
-    if (system == thumbnailSystemPrompt) {
-      final url = (content.first as ImageUrlContent).url;
-      return {'safe': !unsafeThumbs.any(url.contains), 'reason': 'test'};
-    }
+    expect(system, videoCheckSystemPrompt);
     final text = (content.single as TextContent).text;
-    final title = RegExp(r'<title>(.*)</title>').firstMatch(text)!.group(1)!;
+    final title = RegExp(r'^Title: (.*)$', multiLine: true).firstMatch(text)!.group(1)!;
     return edu[title] ??
-        {'educational': true, 'reason': 'teaches it', 'subject': 'math', 'is_theorem': false, 'is_short': false,
-         'primary_concepts': ['Integration by Parts'], 'text_language': 'en'};
+        {'educational': true, 'safe': !unsafeTitles.contains(title), 'reason': 'teaches it', 'subject': 'math',
+         'is_theorem': false, 'primary_concepts': ['Integration by Parts'], 'text_language': 'en'};
   }
 }
 
@@ -156,24 +155,24 @@ void main() {
     expect(status('silent'), 'rejected_lang');
   });
 
-  test('Gate 1, classifier language, Gate 2 thumbnail, and scope', () async {
+  test('model gates: educational, safety, language, and scope', () async {
     const q = 'Integration by Parts IBP';
     src.add(q, 'vlog', title: 'My study vlog');
-    model.edu['My study vlog'] = {'educational': false, 'reason': 'vlog', 'subject': 'other', 'is_theorem': false,
-      'is_short': false, 'primary_concepts': <String>[], 'text_language': 'en'};
+    model.edu['My study vlog'] = {'educational': false, 'safe': true, 'reason': 'vlog', 'subject': 'other',
+      'is_theorem': false, 'primary_concepts': <String>[], 'text_language': 'en'};
     src.add(q, 'hinglish', title: 'Integration by parts kaise karte hain');
-    model.edu['Integration by parts kaise karte hain'] = {'educational': true, 'reason': 'x', 'subject': 'math',
-      'is_theorem': false, 'is_short': false, 'primary_concepts': ['Integration by Parts'], 'text_language': 'hi'};
-    src.add(q, 'thumb', title: 'IBP trick');
-    model.unsafeThumbs.add('/thumb/');
+    model.edu['Integration by parts kaise karte hain'] = {'educational': true, 'safe': true, 'reason': 'x',
+      'subject': 'math', 'is_theorem': false, 'primary_concepts': ['Integration by Parts'], 'text_language': 'hi'};
+    src.add(q, 'unsafe', title: 'IBP trick');
+    model.unsafeTitles.add('IBP trick');
     src.add(q, 'offtopic', title: 'Laplace transforms explained');
-    model.edu['Laplace transforms explained'] = {'educational': true, 'reason': 'x', 'subject': 'math',
-      'is_theorem': false, 'is_short': false, 'primary_concepts': ['Laplace Transform'], 'text_language': 'en'};
+    model.edu['Laplace transforms explained'] = {'educational': true, 'safe': true, 'reason': 'x', 'subject': 'math',
+      'is_theorem': false, 'primary_concepts': ['Laplace Transform'], 'text_language': 'en'};
 
     final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
     expect(status('vlog'), 'rejected_edu');
     expect(status('hinglish'), 'rejected_lang');
-    expect(status('thumb'), 'rejected_safety');
+    expect(status('unsafe'), 'rejected_safety');
     expect(outcome('offtopic'), 'rejected_scope');
     expect(status('offtopic'), '-'); // scope rejects never enter the library
     expect(r.accepted, 0);
@@ -181,7 +180,7 @@ void main() {
 
   test('Path B: pool shorts only — prefilter, vertical theorem short accepted, re-run skips seen', () async {
     const q = 'Pythagorean Theorem #shorts';
-    final pythEdu = {'educational': true, 'reason': 'proof', 'subject': 'math', 'is_theorem': true, 'is_short': true,
+    final pythEdu = {'educational': true, 'safe': true, 'reason': 'proof', 'subject': 'math', 'is_theorem': true,
       'primary_concepts': ['Pythagorean theorem'], 'text_language': 'en'};
     src.add(q, 'long', title: 'Pythagoras full lecture', duration: 1800);
     src.add(q, 'wide', title: 'Pythagoras proof (landscape)', duration: 50, vertical: false);
@@ -207,7 +206,34 @@ void main() {
     expect(model.calls, calls); // nothing re-classified
   });
 
-  test('bad API key stops the run instead of logging every candidate as an error', () async {
+  test('trusted channel covering the concept is accepted by rule, without the model', () async {
+    src.add('Integration by Parts IBP', 'khan', title: 'Integration by parts | Khan Academy', channel: 'Khan Academy');
+    // A trusted channel video that is NOT about the concept still goes to the model.
+    src.add('Integration by Parts IBP', 'khan2', title: 'Limits intro', channel: 'Khan Academy',
+        transcript: const ['today we look at limits of functions as x approaches a value', 'and why they matter']);
+    model.edu['Limits intro'] = {'educational': true, 'safe': true, 'reason': 'limits', 'subject': 'math',
+      'is_theorem': false, 'primary_concepts': ['Limit of a Function'], 'text_language': 'en'};
+    final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
+    expect(status('khan'), 'active');
+    expect(outcome('khan2'), 'rejected_scope');
+    expect(model.calls, 1); // only the off-topic one
+    expect(r.accepted, 1);
+  });
+
+  test('model paraphrasing the concept still counts when the video plainly covers it', () async {
+    src.add('Integration by Parts IBP', 'para', title: 'Integration by parts: 5 examples');
+    model.edu['Integration by parts: 5 examples'] = {'educational': true, 'safe': true, 'reason': 'x',
+      'subject': 'math', 'is_theorem': false, 'primary_concepts': ['integrating products'], 'text_language': 'en'};
+    expect((await svc().ingestMaterialConcept(ibp)).accepted, 1);
+  });
+
+  test('pool build can be limited to a few theorems (Shorts fills as you scroll)', () async {
+    addConcept(db, 'Euler Identity', pool: true, poolOrder: 2);
+    await svc().buildTheoremPool(maxTheorems: 1);
+    expect(src.queries, ['Pythagorean Theorem #shorts']);
+  });
+
+  test('a fatal model error stops the run instead of logging every candidate as an error', () async {
     src.add('Integration by Parts IBP', 'a');
     model.throwOnCall = ModelApiError(401, 'authentication_error', 'invalid x-api-key', isAuth: true);
     expect(svc().ingestMaterialConcept(ibp), throwsA(isA<ModelApiError>()));

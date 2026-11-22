@@ -91,25 +91,36 @@ void main() {
     });
   });
 
-  group('Gate 1 + 2b (LLM)', () {
-    test('educational verdict parsing and request content', () async {
-      final model = _FakeModel((s, c) => {
-            'educational': true, 'reason': 'teaches IBP', 'subject': 'math', 'is_theorem': false,
-            'is_short': false, 'primary_concepts': ['Integration by Parts'], 'text_language': 'EN',
-          });
-      final v = await classifyEducational(model,
-          searchedConcept: 'Integration by Parts', title: 'IBP', description: 'd', transcriptExcerpt: 't', durationSec: 600);
-      expect(v.educational, isTrue);
-      expect(v.textLanguage, 'en');
-      expect(v.primaryConcepts, ['Integration by Parts']);
-      expect((model.calls.single.single as TextContent).text, contains('Searched concept: Integration by Parts'));
+  group('Gates 1 + 2: trusted channels, concept coverage, model check', () {
+    test('trusted channel matching', () {
+      expect(isTrustedChannel('3Blue1Brown'), isTrue);
+      expect(isTrustedChannel(' Khan Academy '), isTrue);
+      expect(isTrustedChannel('Random Uploads 123'), isFalse);
+      expect(isTrustedChannel(null), isFalse);
     });
 
-    test('thumbnail: safe, unsafe, and refusal', () async {
-      expect(await thumbnailSafetyIssue(_FakeModel((s, c) => {'safe': true, 'reason': ''}), 'u'), isNull);
-      expect(await thumbnailSafetyIssue(_FakeModel((s, c) => {'safe': false, 'reason': 'gore'}), 'u'), 'gore');
-      expect(await thumbnailSafetyIssue(_FakeModel((s, c) => throw ModelRefusal('general_harms')), 'u'),
-          contains('refusal'));
+    test('coversConcept: title, close title, or repeated in transcript', () {
+      const names = ['Integration by Parts', 'IBP'];
+      expect(coversConcept(names, title: 'Integration by parts explained', description: '', transcript: ''), isTrue);
+      expect(coversConcept(names, title: 'Parts, integration by: a guide', description: '', transcript: ''), isTrue);
+      expect(coversConcept(names, title: 'Calculus 2 lecture 4', description: '',
+          transcript: 'today integration by parts. more integration by parts later'), isTrue);
+      expect(coversConcept(names, title: 'Limits intro', description: '', transcript: 'limits of functions'), isFalse);
+    });
+
+    test('classifyVideo sends a short prompt and parses the verdict', () async {
+      final model = _FakeModel((s, c) => {
+            'educational': true, 'safe': true, 'reason': 'teaches IBP', 'subject': 'math', 'is_theorem': false,
+            'primary_concepts': ['Integration by Parts'], 'text_language': 'EN',
+          });
+      final v = await classifyVideo(model,
+          searchedConcept: 'Integration by Parts', title: 'IBP', description: 'd' * 5000,
+          transcriptExcerpt: 't' * 5000, durationSec: 600, channel: 'Someone');
+      expect(v.educational && v.safe, isTrue);
+      expect(v.textLanguage, 'en');
+      final text = (model.calls.single.single as TextContent).text;
+      expect(text, contains('Searched concept: Integration by Parts'));
+      expect(text.length, lessThan(2000)); // small-model friendly
     });
   });
 }

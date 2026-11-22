@@ -8,9 +8,10 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '../core/i18n.dart';
 import '../models/feed.dart';
 import '../providers/providers.dart';
+import '../services/local_llm.dart';
+import '../widgets/ingestion_banner.dart';
 import 'concept_detail_screen.dart';
 import 'player_screen.dart';
-import 'settings_screen.dart';
 
 /// Shorts feed (§13.2): full-screen vertical swipe, autoplay, loop.
 /// Candidates: material-concept shorts ∪ curated math theorem pool. Nothing else.
@@ -27,9 +28,19 @@ class ShortsScreen extends ConsumerStatefulWidget {
 class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   int _current = 0;
 
+  /// Keep a few unwatched shorts ahead: once the model is on the device, find
+  /// the next couple of theorems' shorts in the background as you near the end.
+  void _topUp(int itemCount) {
+    if (!widget.active || !ref.read(modelReadyProvider)) return;
+    if (ref.read(ingestionControllerProvider).isBusy) return;
+    if (itemCount - _current <= 3) ref.read(ingestionControllerProvider.notifier).fillShorts();
+  }
+
   @override
   Widget build(BuildContext context) {
     final feed = ref.watch(shortsFeedProvider);
+    final n = feed.value?.items.length;
+    if (n != null) WidgetsBinding.instance.addPostFrameCallback((_) => mounted ? _topUp(n) : null);
     return Scaffold(
       backgroundColor: Colors.black,
       body: feed.when(
@@ -42,7 +53,10 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
                 child: PageView.builder(
                   scrollDirection: Axis.vertical,
                   itemCount: f.items.length,
-                  onPageChanged: (i) => setState(() => _current = i),
+                  onPageChanged: (i) {
+                    setState(() => _current = i);
+                    _topUp(f.items.length);
+                  },
                   itemBuilder: (context, i) => _ShortPage(
                     key: ValueKey(f.items[i].videoId),
                     card: f.items[i],
@@ -55,13 +69,16 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   }
 }
 
-class _EmptyShorts extends StatelessWidget {
+class _EmptyShorts extends ConsumerWidget {
   const _EmptyShorts();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final busy = ref.watch(ingestionControllerProvider).isBusy;
     return SafeArea(
-      child: Padding(
+      child: Column(children: [
+        const IngestionBanner(),
+        Expanded(child: Padding(
         padding: const EdgeInsets.all(32),
         child: Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -70,15 +87,20 @@ class _EmptyShorts extends StatelessWidget {
             Text(t('shorts.empty.title'),
                 textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 20)),
             const SizedBox(height: 8),
-            Text(t('shorts.empty.body'), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+            Text(t('shorts.empty.body', {'size': defaultLocalModel.approxSizeMb}),
+                textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen())),
-              child: Text(t('shorts.empty.cta')),
-            ),
+            if (busy)
+              Text(t('shorts.finding'), style: const TextStyle(color: Colors.white))
+            else
+              FilledButton(
+                onPressed: () => ref.read(ingestionControllerProvider.notifier).fillShorts(),
+                child: Text(t('shorts.empty.cta')),
+              ),
           ]),
         ),
-      ),
+        )),
+      ]),
     );
   }
 }

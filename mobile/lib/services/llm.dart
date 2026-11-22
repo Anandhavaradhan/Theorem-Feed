@@ -1,7 +1,9 @@
 /// Provider-neutral interface for the few LLM calls the app makes
 /// (classification now; PDF extraction and relevance judging later).
 ///
-/// Implementations: [GeminiClient] (free tier, the default) and [ClaudeClient].
+/// Implementation: [LocalLlmModel], a small model running on the device.
+/// The interface keeps the gates and ingestion independent of the runtime
+/// (and lets tests use a fake).
 library;
 
 /// A text or image content block for the single user turn.
@@ -12,8 +14,7 @@ class TextContent extends LlmContent {
   final String text;
 }
 
-/// An image the provider should look at, given by URL. Providers that can't
-/// fetch URLs themselves download the bytes and send them inline.
+/// An image given by URL. The current on-device model is text-only and skips it.
 class ImageUrlContent extends LlmContent {
   ImageUrlContent(this.url);
   final String url;
@@ -38,7 +39,7 @@ class ModelRefusal implements Exception {
   String toString() => 'ModelRefusal($category)';
 }
 
-/// A free tier's daily quota is used up. Long runs stop and resume later.
+/// A usage limit was hit (kept for runtimes that have one). Long runs stop and resume later.
 class QuotaExhausted implements Exception {
   QuotaExhausted(this.message);
   final String message;

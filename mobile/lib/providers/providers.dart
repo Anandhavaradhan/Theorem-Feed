@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/app_database.dart';
 import '../models/feed.dart';
 import '../models/resolved_video.dart';
-import '../services/api_key_store.dart';
-import '../services/claude_client.dart';
 import '../services/llm.dart';
+import '../services/local_llm.dart';
 import '../services/concept_service.dart';
 import '../services/feed_service.dart';
 import '../services/gates.dart';
@@ -44,10 +43,26 @@ final resolveProvider = FutureProvider.autoDispose.family<ResolvedVideo, String>
   retry: (_, _) => null,
 );
 
-// --- Claude API key + ingestion ----------------------------------------------
+// --- On-device AI model + ingestion -------------------------------------------
 
-final apiKeyStoreProvider = Provider<ApiKeyStore>((ref) => SecureApiKeyStore());
-final hasApiKeyProvider = FutureProvider<bool>((ref) async => (await ref.watch(apiKeyStoreProvider).read()) != null);
+final localModelProvider = Provider<LocalLlmModel>((ref) {
+  final m = LocalLlmModel();
+  ref.onDispose(m.dispose);
+  return m;
+});
+
+/// The model the gates use; overridden with a fake in tests.
+final jsonModelProvider = Provider<JsonModel>((ref) => ref.watch(localModelProvider));
+
+/// Downloads (once) and loads the on-device model; overridden in tests.
+final modelLoaderProvider = Provider<Future<void> Function(void Function(double? fraction) onProgress)>(
+  (ref) => (onProgress) => ref.read(localModelProvider).ensureLoaded(onProgress: onProgress),
+);
+
+const _modelReadyKey = 'local_model_ready';
+
+/// Whether the model has been downloaded on this device before.
+final modelReadyProvider = Provider<bool>((ref) => ref.watch(databaseProvider).getSetting(_modelReadyKey) == '1');
 
 final videoSourceProvider = Provider<VideoSource>((ref) {
   final s = YoutubeExplodeSource();
@@ -57,18 +72,16 @@ final videoSourceProvider = Provider<VideoSource>((ref) {
 
 final speechProbeProvider = Provider<SpeechLanguageProbe?>((ref) => WhisperSpeechProbe());
 
-/// Builds a JSON model for a key; overridable in tests.
-final jsonModelFactoryProvider = Provider<JsonModel Function(String apiKey)>((ref) => (key) => ClaudeClient(apiKey: key));
-
-enum IngestionStatus { idle, running, done, needsApiKey, badApiKey, failed }
+enum IngestionStatus { idle, preparingModel, running, done, failed }
 
 class IngestionState {
-  const IngestionState({this.status = IngestionStatus.idle, this.label = '', this.report, this.message});
+  const IngestionState({this.status = IngestionStatus.idle, this.label = '', this.report, this.message, this.modelProgress});
   final IngestionStatus status;
   final String label; // concept currently being searched
   final IngestReport? report;
   final String? message;
-  bool get isRunning => status == IngestionStatus.running;
+  final double? modelProgress; // 0..1 while the model downloads
+  bool get isBusy => status == IngestionStatus.preparingModel || status == IngestionStatus.running;
 }
 
 class IngestionController extends Notifier<IngestionState> {
@@ -77,37 +90,41 @@ class IngestionController extends Notifier<IngestionState> {
   @override
   IngestionState build() => const IngestionState();
 
-  Future<IngestionService?> _service() async {
-    final key = await ref.read(apiKeyStoreProvider).read();
-    if (key == null || key.isEmpty) {
-      state = const IngestionState(status: IngestionStatus.needsApiKey);
-      return null;
+  /// Download + load the model, reporting progress. Returns false on failure.
+  Future<bool> prepareModel() async {
+    state = const IngestionState(status: IngestionStatus.preparingModel);
+    try {
+      await ref.read(modelLoaderProvider)((f) {
+        state = IngestionState(status: IngestionStatus.preparingModel, modelProgress: f);
+      });
+      ref.read(databaseProvider).setSetting(_modelReadyKey, '1');
+      ref.invalidate(modelReadyProvider);
+      state = const IngestionState();
+      return true;
+    } catch (e) {
+      state = IngestionState(status: IngestionStatus.failed, message: '$e');
+      return false;
     }
-    return IngestionService(
-      db: ref.read(databaseProvider),
-      source: ref.read(videoSourceProvider),
-      model: ref.read(jsonModelFactoryProvider)(key),
-      speechProbe: ref.read(speechProbeProvider),
-    );
   }
 
-  Future<void> _run(Future<IngestReport> Function(IngestionService s, IngestProgress p) job) async {
-    if (state.isRunning) return;
-    final svc = await _service();
-    if (svc == null) return;
+  Future<void> _run(Future<IngestReport> Function(IngestionService s, IngestProgress p) job, {bool quiet = false}) async {
+    if (state.isBusy) return;
+    if (!await prepareModel()) return;
     _cancel = false;
+    final svc = IngestionService(
+      db: ref.read(databaseProvider),
+      source: ref.read(videoSourceProvider),
+      model: ref.read(jsonModelProvider),
+      speechProbe: ref.read(speechProbeProvider),
+    );
     state = const IngestionState(status: IngestionStatus.running);
     try {
       final report = await job(svc, (label, r) {
         state = IngestionState(status: IngestionStatus.running, label: label, report: r);
+        // Show new shorts as soon as they're accepted.
+        ref.invalidate(shortsFeedProvider);
       });
-      state = IngestionState(status: IngestionStatus.done, report: report);
-    } on ModelApiError catch (e) {
-      state = IngestionState(
-        status: e.isAuth ? IngestionStatus.badApiKey : IngestionStatus.failed,
-        report: state.report,
-        message: e.message,
-      );
+      state = quiet ? const IngestionState() : IngestionState(status: IngestionStatus.done, report: report);
     } catch (e) {
       state = IngestionState(status: IngestionStatus.failed, report: state.report, message: '$e');
     } finally {
@@ -118,9 +135,13 @@ class IngestionController extends Notifier<IngestionState> {
     }
   }
 
-  /// Path B over the whole curated pool (resumable; already-filled theorems are skipped).
+  /// Path B over the whole curated pool (resumable).
   Future<void> buildTheoremPool() =>
       _run((s, p) => s.buildTheoremPool(onProgress: p, isCancelled: () => _cancel));
+
+  /// Path B for the next couple of theorems: the Shorts tab calls this as you scroll.
+  Future<void> fillShorts({int theorems = 2}) =>
+      _run((s, p) => s.buildTheoremPool(onProgress: p, isCancelled: () => _cancel, maxTheorems: theorems), quiet: true);
 
   /// "Find videos" for one concept: Path A for material concepts, Path B for pool theorems.
   Future<void> findVideos(String conceptId) => _run((s, p) => s.ingestForConcept(conceptId, onProgress: p));

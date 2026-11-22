@@ -47,16 +47,16 @@ void main() {
   });
 
   test('no middleman: the app never talks to a server of its own', () {
-    // Network access happens only via the YouTube extractor (and, from Phase C, the Claude API).
+    // Network access: YouTube, plus the one-time model download (hf:// source).
     final hits = <String>[
       for (final f in _dartFiles('lib'))
-        if (RegExp(r'localhost|10\.0\.2\.2|TF_API_BASE|package:dio').hasMatch(f.readAsStringSync())) f.path,
+        if (RegExp(r'localhost|10\.0\.2\.2|TF_API_BASE|package:dio|package:http/|api\.anthropic|generativelanguage|openai').hasMatch(f.readAsStringSync())) f.path,
     ];
     expect(hits, isEmpty);
   });
 
-  test('the only hosts named in app code are YouTube/Google video hosts and the Claude API', () {
-    const allowed = {'api.anthropic.com', 'www.youtube.com', 'i.ytimg.com', 'img.youtube.com'};
+  test('the only hosts named in app code are YouTube hosts (the AI runs on the device)', () {
+    const allowed = {'www.youtube.com', 'i.ytimg.com', 'img.youtube.com'};
     final hosts = <String>{
       for (final f in _dartFiles('lib'))
         for (final m in RegExp(r'https?://([a-zA-Z0-9.-]+)').allMatches(f.readAsStringSync())) m.group(1)!,
