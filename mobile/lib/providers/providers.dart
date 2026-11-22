@@ -18,6 +18,7 @@ import '../services/feed_service.dart';
 import '../services/gates.dart';
 import '../services/ingestion_service.dart';
 import '../services/resolver.dart';
+import '../services/watch_history.dart';
 import '../services/youtube_source.dart';
 
 /// Opened in main() and injected with an override.
@@ -31,6 +32,8 @@ final streamExtractorProvider = Provider<StreamExtractor>((ref) {
 
 final resolverProvider =
     Provider<Resolver>((ref) => Resolver(ref.watch(databaseProvider), ref.watch(streamExtractorProvider)));
+
+final watchHistoryProvider = Provider<WatchHistoryService>((ref) => WatchHistoryService(ref.watch(databaseProvider)));
 
 final feedServiceProvider = Provider<FeedService>((ref) => FeedService(ref.watch(databaseProvider)));
 final conceptServiceProvider = Provider<ConceptService>((ref) => ConceptService(ref.watch(databaseProvider)));

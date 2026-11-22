@@ -11,6 +11,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show SocketException;
 
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yte;
 
@@ -24,9 +25,12 @@ const _urlExpiryMargin = Duration(minutes: 10);
 
 /// Resolution failed; try again after [retryAfterSec] (§12 failure contract).
 class ResolveFailed implements Exception {
-  ResolveFailed(this.reason, {this.retryAfterSec = resolveRetryAfterSec});
+  ResolveFailed(this.reason, {this.retryAfterSec = resolveRetryAfterSec, this.offline = false});
   final String reason;
   final int retryAfterSec;
+
+  /// No network: videos can't play, but feeds, search and material still work.
+  final bool offline;
   @override
   String toString() => 'ResolveFailed($reason; retry in ${retryAfterSec}s)';
 }
@@ -242,6 +246,9 @@ class Resolver {
   final StreamExtractor _extractor;
   final DateTime Function() _clock;
 
+  /// Drops the cached streams (e.g. YouTube expired a URL mid-playback).
+  void invalidate(String videoId) => _db.execute('DELETE FROM video_resolutions WHERE video_id = ?', [videoId]);
+
   Future<ResolvedVideo> resolve(String videoId) async {
     final now = _clock();
     final cached = _db.select(
@@ -263,8 +270,11 @@ class Resolver {
       throw ResolveFailed('timed out after ${resolveTimeout.inSeconds}s');
     } on ResolveFailed {
       rethrow;
+    } on SocketException catch (e) {
+      throw ResolveFailed('$e', offline: true);
     } catch (e) {
-      throw ResolveFailed('$e');
+      final msg = '$e';
+      throw ResolveFailed(msg, offline: msg.contains('Failed host lookup') || msg.contains('SocketException'));
     }
 
     final resolved = buildResolved(videoId, raw, now: now);

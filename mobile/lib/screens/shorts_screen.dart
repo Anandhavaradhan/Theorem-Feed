@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,10 @@ import '../core/i18n.dart';
 import '../models/feed.dart';
 import '../providers/providers.dart';
 import '../services/local_llm.dart';
+import '../services/preloader.dart';
+import '../services/watch_history.dart';
 import '../widgets/ingestion_banner.dart';
+import '../widgets/thumbnail.dart';
 import 'concept_detail_screen.dart';
 import 'player_screen.dart';
 
@@ -27,6 +31,16 @@ class ShortsScreen extends ConsumerStatefulWidget {
 
 class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   int _current = 0;
+  late final Preloader _preloader = Preloader((id) => ref.read(resolverProvider).resolve(id));
+
+  /// Streams for the next 3 shorts are fetched in the background, and their thumbnails cached.
+  void _preload(List<FeedCard> items) {
+    if (!widget.active) return;
+    _preloader.around([for (final c in items) c.videoId], _current);
+    for (var i = _current + 1; i <= _current + 3 && i < items.length; i++) {
+      Thumbnail.precache(context, items[i].thumbnailUrl);
+    }
+  }
 
   /// Keep a few unwatched shorts ahead: once the model is on the device, find
   /// the next couple of theorems' shorts in the background as you near the end.
@@ -39,8 +53,14 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   @override
   Widget build(BuildContext context) {
     final feed = ref.watch(shortsFeedProvider);
-    final n = feed.value?.items.length;
-    if (n != null) WidgetsBinding.instance.addPostFrameCallback((_) => mounted ? _topUp(n) : null);
+    final items = feed.value?.items;
+    if (items != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _topUp(items.length);
+        _preload(items);
+      });
+    }
     return Scaffold(
       backgroundColor: Colors.black,
       body: feed.when(
@@ -56,6 +76,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
                   onPageChanged: (i) {
                     setState(() => _current = i);
                     _topUp(f.items.length);
+                    _preload(f.items);
                   },
                   itemBuilder: (context, i) => _ShortPage(
                     key: ValueKey(f.items[i].videoId),
@@ -121,11 +142,29 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
   bool _paused = false;
   late bool _saved = ref.read(conceptServiceProvider).isSaved(widget.card.videoId);
   late final FeedCard? _deeper = ref.read(conceptServiceProvider).goDeeper(widget.card.conceptId);
+  late final WatchHistoryService _history = ref.read(watchHistoryProvider);
+  final _subs = <StreamSubscription<Object?>>[];
+  Duration _furthest = Duration.zero;
+  bool _recovered = false;
 
   @override
   void initState() {
     super.initState();
+    _history; // capture while mounted
     if (widget.active) _start();
+  }
+
+  /// Records this viewing (furthest point reached; 90% counts as completed).
+  void _record(Player? p) {
+    for (final sub in _subs) {
+      sub.cancel();
+    }
+    _subs.clear();
+    if (p == null) return;
+    final duration = p.state.duration.inSeconds;
+    _history.recordViewing(widget.card.videoId,
+        watchedSec: _furthest.inSeconds, durationSec: duration > 0 ? duration : widget.card.durationSec);
+    _furthest = Duration.zero;
   }
 
   @override
@@ -151,6 +190,18 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
         _player = player;
         _controller = controller;
       });
+      _subs
+        ..add(player.stream.position.listen((pos) {
+          if (pos > _furthest) _furthest = pos;
+        }))
+        ..add(player.stream.error.listen((_) {
+          // Expired stream URL: fetch fresh ones once and restart.
+          if (_recovered || !mounted || !widget.active) return;
+          _recovered = true;
+          ref.read(resolverProvider).invalidate(widget.card.videoId);
+          _stop();
+          _start();
+        }));
       await player.setPlaylistMode(PlaylistMode.single); // loop
       await player.open(Media(option.videoUrl), play: false);
       if (option.audioUrl != null) await player.setAudioTrack(AudioTrack.uri(option.audioUrl!));
@@ -162,6 +213,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
 
   void _stop() {
     final p = _player;
+    _record(p);
     setState(() {
       _player = null;
       _controller = null;
@@ -171,6 +223,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
 
   @override
   void dispose() {
+    _record(_player);
     _player?.dispose();
     super.dispose();
   }
@@ -190,9 +243,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
       GestureDetector(
         onTap: _togglePause,
         child: controller == null
-            ? (card.thumbnailUrl == null
-                ? const ColoredBox(color: Colors.black)
-                : Image.network(card.thumbnailUrl!, fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox()))
+            ? Thumbnail(card.thumbnailUrl)
             : Video(controller: controller, fit: BoxFit.cover, controls: NoVideoControls),
       ),
       if (_error != null)

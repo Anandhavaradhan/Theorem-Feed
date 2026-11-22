@@ -25,7 +25,30 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 | PDF reading (Phase C) | [pdfrx](https://pub.dev/packages/pdfrx) (Google's PDFium) extracts the text layer on the device. Labelled results ("Theorem 7.1 (Integration by Parts). …") are read by rules; the on-device model reads each section for the rest. |
 | Relevance (Phase D) | Retrieval from concept tags, keyword search (BM25) on your material's statement over video transcripts, and prerequisite videos. Then the same on-device model judges each video (topic, level, depth, prerequisites) and the scores are cached. |
 
-## Status: Phase E (search) ✅
+## Status: all six phases (A–F) built ✅
+
+Every phase of the spec is implemented and covered by 149 automated tests. What still needs a real device:
+
+- **Not yet run on Android.** The sandbox it was built in had no Android SDK, so no APK has been built here.
+  The first `flutter build apk` on your machine is the real test of the native pieces: llama.cpp, PDFium, libmpv and whisper.cpp.
+- **Not yet run against live YouTube or the real AI model.** Network access to both was blocked during development.
+  The logic is tested with fakes. The live checks (stream resolving, the model's judgement quality, and the relevance
+  check's precision@10) need your tablet.
+
+### Phase F (polish) ✅
+
+- **Shorts preload.** The next 3 shorts' streams are fetched in the background (one at a time, each once), and their thumbnails cached.
+- **Thumbnail disk cache.** Feeds and search look complete offline, and scrolling doesn't re-download.
+- **Watch history.** Every viewing is recorded (furthest point; 90% counts as finished; finishing again counts as a rewatch).
+  Long videos resume where you stopped. Search ranks finished videos slightly lower (§11.4). Saving uses the same row.
+- **Resilient playback.** If YouTube expires a stream link mid-video, the player fetches fresh links once and
+  continues from the same point. With no connection it says so plainly; feeds, search and material keep working.
+- **Exam-proximity boost and auto-archive** (from Phase C): concepts from a material with an exam in the next
+  14 days get 1.8× priority, and past-exam materials archive themselves.
+- **Storage.** Settings can clear cached video links and thumbnails. Your material, concepts, saved videos and
+  history are never touched.
+
+### Phase E (search) ✅
 
 Search runs entirely on the device, so it always works offline, with or without a network connection.
 
@@ -127,8 +150,6 @@ Search runs entirely on the device, so it always works offline, with or without 
 - Home feed and native player (quality, speed, captions).
 - 5 seed videos, written on first launch through a labelled sample material.
 
-Next: **Phase F**, polish: exam-proximity and auto-archive are already in, so it's preloading the next
-3 shorts, image caching, watch history, and an offline cache for feeds.
 
 ## Using it
 

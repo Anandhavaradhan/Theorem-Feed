@@ -126,5 +126,10 @@
   "search.count_chapter": "{n} videos · from Chapter {chapter}",
   "search.no_videos": "No videos yet",
   "search.find": "Find videos",
-  "search.prerequisite": "Prerequisite: {name}"
+  "search.prerequisite": "Prerequisite: {name}",
+  "player.offline": "You're offline. Videos need a connection; your feeds, search and material still work.",
+  "settings.storage.title": "Storage",
+  "settings.storage.body": "Cached video links and thumbnails are rebuilt automatically. Clearing them never touches your material, concepts, saved videos or watch history.",
+  "settings.storage.clear": "Clear cached links and thumbnails",
+  "settings.storage.cleared": "Cleared."
 }

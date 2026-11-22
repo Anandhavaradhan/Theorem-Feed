@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/i18n.dart';
 import '../models/feed.dart';
+import 'thumbnail.dart';
 
 /// Long-form recommendation card. The reason label is always visible.
 class VideoCard extends StatelessWidget {
@@ -35,14 +36,7 @@ class VideoCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (card.thumbnailUrl != null)
-                    Image.network(
-                      card.thumbnailUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
-                    )
-                  else
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
+                  Thumbnail(card.thumbnailUrl),
                   if (badge != null) Positioned(left: 8, top: 8, child: badge!),
                   if (minutes != null)
                     Positioned(

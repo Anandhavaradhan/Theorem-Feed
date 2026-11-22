@@ -10,6 +10,7 @@ import '../core/i18n.dart';
 import '../models/resolved_video.dart';
 import '../providers/providers.dart';
 import '../services/resolver.dart';
+import '../services/watch_history.dart';
 
 /// Native, ad-free player. Streams come straight from YouTube to the phone;
 /// for HD, the separate video and audio streams are combined on the device by
@@ -36,6 +37,7 @@ class PlayerScreen extends ConsumerWidget {
         ),
         error: (e, _) => _ResolveError(
           retryAfterSec: e is ResolveFailed ? e.retryAfterSec : resolveRetryAfterSec,
+          offline: e is ResolveFailed && e.offline,
           onRetry: () => ref.invalidate(resolveProvider(videoId)),
         ),
         data: (video) => _Player(video: video, reasonLabel: reasonLabel),
@@ -45,9 +47,10 @@ class PlayerScreen extends ConsumerWidget {
 }
 
 class _ResolveError extends StatefulWidget {
-  const _ResolveError({required this.retryAfterSec, required this.onRetry});
+  const _ResolveError({required this.retryAfterSec, required this.onRetry, this.offline = false});
   final int retryAfterSec;
   final VoidCallback onRetry;
+  final bool offline;
 
   @override
   State<_ResolveError> createState() => _ResolveErrorState();
@@ -80,7 +83,10 @@ class _ResolveErrorState extends State<_ResolveError> {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(t('player.failed')),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(widget.offline ? t('player.offline') : t('player.failed'), textAlign: TextAlign.center),
+        ),
         const SizedBox(height: 4),
         Text(t('player.retry_in', {'sec': _left})),
         const SizedBox(height: 12),
@@ -90,16 +96,16 @@ class _ResolveErrorState extends State<_ResolveError> {
   }
 }
 
-class _Player extends StatefulWidget {
+class _Player extends ConsumerStatefulWidget {
   const _Player({required this.video, required this.reasonLabel});
   final ResolvedVideo video;
   final String reasonLabel;
 
   @override
-  State<_Player> createState() => _PlayerState();
+  ConsumerState<_Player> createState() => _PlayerState();
 }
 
-class _PlayerState extends State<_Player> {
+class _PlayerState extends ConsumerState<_Player> {
   static const _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
   late final Player _player = Player();
@@ -107,6 +113,41 @@ class _PlayerState extends State<_Player> {
   PlaybackOption? _option;
   double _speed = 1.0;
   bool _captions = false;
+  late ResolvedVideo _video = widget.video;
+  Duration _furthest = Duration.zero;
+  bool _recovered = false;
+  final _subs = <StreamSubscription<Object?>>[];
+
+  late final WatchHistoryService _history;
+
+  @override
+  void initState() {
+    super.initState();
+    _history = ref.read(watchHistoryProvider);
+    _subs
+      ..add(_player.stream.position.listen((p) {
+        if (p > _furthest) _furthest = p;
+      }))
+      ..add(_player.stream.error.listen((_) => _recover()));
+  }
+
+  /// YouTube stream URLs expire; if playback fails, fetch fresh ones once and
+  /// continue from the same point.
+  Future<void> _recover() async {
+    if (_recovered || !mounted) return;
+    _recovered = true;
+    final at = _player.state.position;
+    final resolver = ref.read(resolverProvider)..invalidate(_video.videoId);
+    try {
+      final fresh = await resolver.resolve(_video.videoId);
+      if (!mounted) return;
+      _video = fresh;
+      final quality = _option?.quality;
+      await _open(fresh.options.firstWhere((o) => o.quality == quality, orElse: () => fresh.options.first), start: at);
+    } catch (_) {
+      // The player shows its own error state; nothing more to do.
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -115,7 +156,9 @@ class _PlayerState extends State<_Player> {
       final mq = MediaQuery.of(context);
       final shortSidePx = (math.min(mq.size.width, mq.size.height) * mq.devicePixelRatio).round();
       _captions = widget.video.captions.isNotEmpty;
-      _open(widget.video.pickOption(shortSidePx));
+      // Long videos resume where you stopped; finished ones start over.
+      final resume = widget.video.isVertical ? null : ref.read(watchHistoryProvider).resumeAt(widget.video.videoId);
+      _open(widget.video.pickOption(shortSidePx), start: Duration(seconds: resume ?? 0));
     }
   }
 
@@ -146,7 +189,7 @@ class _PlayerState extends State<_Player> {
       builder: (ctx) => SafeArea(
         child: ListView(shrinkWrap: true, children: [
           ListTile(title: Text(t('player.quality'), style: Theme.of(ctx).textTheme.titleMedium)),
-          for (final o in widget.video.options)
+          for (final o in _video.options)
             ListTile(
               title: Text(o.quality),
               trailing: identical(o, _option) ? const Icon(Icons.check) : null,
@@ -183,6 +226,14 @@ class _PlayerState extends State<_Player> {
 
   @override
   void dispose() {
+    for (final sub in _subs) {
+      sub.cancel();
+    }
+    _history.recordViewing(
+          _video.videoId,
+          watchedSec: _furthest.inSeconds,
+          durationSec: _player.state.duration.inSeconds > 0 ? _player.state.duration.inSeconds : _video.durationSec,
+        );
     _player.dispose();
     super.dispose();
   }

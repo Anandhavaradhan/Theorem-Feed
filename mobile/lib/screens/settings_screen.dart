@@ -1,3 +1,4 @@
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -57,6 +58,22 @@ class SettingsScreen extends ConsumerWidget {
             ],
             const Divider(height: 40),
             const _RelevanceCheck(),
+            const Divider(height: 40),
+            Text(t('settings.storage.title'), style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(t('settings.storage.body'), style: theme.textTheme.bodySmall),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () async {
+                ref.read(databaseProvider).execute('DELETE FROM video_resolutions'); // a cache, not user data
+                await DefaultCacheManager().emptyCache();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('settings.storage.cleared'))));
+                }
+              },
+              icon: const Icon(Icons.cleaning_services_outlined),
+              label: Text(t('settings.storage.clear')),
+            ),
             const Divider(height: 40),
             Text(t('settings.privacy.title'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
