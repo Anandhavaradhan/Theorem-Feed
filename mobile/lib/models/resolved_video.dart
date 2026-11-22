@@ -82,8 +82,12 @@ class ResolvedVideo {
 
   /// Best option whose height ≤ the device's native resolution (short side, physical px).
   /// Falls back to the smallest option if every one is larger.
-  PlaybackOption pickOption(int deviceShortSidePx) {
-    final fitting = options.where((o) => o.height <= deviceShortSidePx).toList();
+  /// The quality to start with: the best that fits the screen, but at most
+  /// [startCap]p (720p), as YouTube does, so playback begins quickly; higher
+  /// qualities stay in the quality menu.
+  PlaybackOption pickOption(int deviceShortSidePx, {int startCap = 720}) {
+    final limit = deviceShortSidePx < startCap ? deviceShortSidePx : startCap;
+    final fitting = options.where((o) => o.height <= limit).toList();
     return fitting.isNotEmpty ? fitting.first : options.last;
   }
 }

@@ -66,11 +66,13 @@ void main() {
     expect(buildResolved('v', _sample(expire: soon), now: _now).expiresAt, _now.add(const Duration(minutes: 50)));
   });
 
-  test('pickOption respects device resolution', () {
+  test('pickOption: starts at 720p at most (fast start), lower on small screens', () {
     final r = buildResolved('v', _sample(), now: _now);
-    expect(r.pickOption(1080).quality, '1080p');
+    expect(r.pickOption(1752).quality, '720p'); // a tablet: 720p to start, higher in the menu
+    expect(r.pickOption(1080, startCap: 1080).quality, '1080p');
     expect(r.pickOption(900).quality, '720p');
     expect(r.pickOption(200).quality, '360p');
+    expect(r.options.map((o) => o.quality), contains('1080p'));
     expect(r.isVertical, isFalse);
   });
 
@@ -89,6 +91,16 @@ void main() {
       final b = await r.resolve('v1');
       expect(ex.calls, ['WUvTyaaNkzM']);
       expect(b.toJson(), a.toJson());
+    });
+
+    test('fills in title, duration and thumbnail from the library (only streams are fetched)', () async {
+      db.execute("UPDATE videos SET title = 'Echo explained', duration_sec = 300, thumbnail_url = 'th' WHERE id = 'v1'");
+      final streamsOnly = _sample();
+      final r = Resolver(db, _FakeExtractor(() => RawExtraction(title: '', description: '', duration: null,
+          thumbnail: null, streams: streamsOnly.streams, captions: const [])), clock: () => _now);
+      final v = await r.resolve('v1');
+      expect([v.title, v.durationSec, v.thumbnail], ['Echo explained', 300, 'th']);
+      expect(v.captions, isEmpty); // no captions in time: the video still plays
     });
 
     test('expired cache is refreshed', () async {

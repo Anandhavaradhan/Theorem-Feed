@@ -269,6 +269,10 @@ The guardrail tests run on every change:
   model, so they are checked last and only if the captioned ones didn't fill the concept. Trade-off: a video
   accepted by rule skips the model's extra safety read; it still passes the unsafe-word filter and the
   English checks.
+- **Faster video start.** Opening a video waits only for its streams: they're fetched without YouTube's
+  watch page (falling back to it if refused), the title and thumbnail come from the library, captions get at
+  most 2 s and load after playback starts, and playback starts at 720p at most (higher qualities are in the
+  quality menu). The first 4 videos on Home are looked up in the background, so tapping one plays at once.
 - **Model memory.** The model is unloaded after 90 seconds without use, freeing roughly 0.6–0.9 GB of RAM.
   The next check, upload or relevance run reloads it from the file on the device in a few seconds,
   without downloading it again.

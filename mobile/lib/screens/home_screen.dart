@@ -150,6 +150,9 @@ class _FeedList extends ConsumerWidget {
     // Recommendations only: concepts still without videos are listed in My Material
     // and filled in the background, not shown as cards here.
     final items = feed.items;
+    // The first few videos' streams are looked up in the background: tapping one plays at once.
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(homePreloaderProvider)?.around([for (final c in items) c.videoId], -1));
     final tiles = <Widget>[
       for (final card in items)
         VideoCard(

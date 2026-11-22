@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ import '../services/concept_service.dart';
 import '../services/feed_service.dart';
 import '../services/gates.dart';
 import '../services/ingestion_service.dart';
+import '../services/preloader.dart';
 import '../services/resolver.dart';
 import '../services/watch_history.dart';
 import '../services/youtube_source.dart';
@@ -43,6 +45,13 @@ final longformFeedProvider = FutureProvider<FeedResponse>((ref) async => ref.wat
 /// One shuffle per app session: Shorts is a mix of everything, and it doesn't
 /// reshuffle under you while new shorts are added.
 final _shortsMixSeed = DateTime.now().microsecondsSinceEpoch;
+
+/// Looks up the first Home videos' streams in the background, one at a time,
+/// so tapping one starts playing at once. Off under `flutter test` (no YouTube).
+final homePreloaderProvider = Provider<Preloader?>((ref) {
+  if (Platform.environment['FLUTTER_TEST'] == 'true') return null;
+  return Preloader((id) => ref.read(resolverProvider).resolve(id), ahead: 4);
+});
 
 final shortsFeedProvider = FutureProvider<FeedResponse>(
     (ref) async => ref.watch(feedServiceProvider).shorts(limit: 200, mixSeed: _shortsMixSeed));

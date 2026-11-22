@@ -173,9 +173,10 @@ class _PlayerState extends ConsumerState<_Player> {
       // Video-only stream + separate audio stream, combined on the device.
       await _player.setAudioTrack(AudioTrack.uri(option.audioUrl!, title: 'English', language: 'en'));
     }
-    await _applyCaptions();
     await _player.setRate(_speed);
     await _player.play();
+    // Subtitles load after playback has started, not before.
+    unawaited(_applyCaptions().catchError((Object _) {}));
   }
 
   Future<void> _applyCaptions() async {
