@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
@@ -5,6 +8,8 @@ import '../models/feed.dart';
 import '../models/resolved_video.dart';
 import '../services/llm.dart';
 import '../services/local_llm.dart';
+import '../services/material/material_service.dart';
+import '../services/material/pdf_text.dart';
 import '../services/concept_service.dart';
 import '../services/feed_service.dart';
 import '../services/gates.dart';
@@ -146,7 +151,163 @@ class IngestionController extends Notifier<IngestionState> {
   /// "Find videos" for one concept: Path A for material concepts, Path B for pool theorems.
   Future<void> findVideos(String conceptId) => _run((s, p) => s.ingestForConcept(conceptId, onProgress: p));
 
+  /// Path A for several material concepts in a row (after an upload).
+  Future<void> findVideosFor(List<String> conceptIds) => _run((s, p) async {
+        final total = IngestReport();
+        for (final id in conceptIds) {
+          if (_cancel) break;
+          if (!s.isActiveConcept(id)) continue;
+          final r = await s.ingestMaterialConcept(id, onProgress: (label, r) {
+            p(label, IngestReport()
+              ..checked = total.checked + r.checked
+              ..accepted = total.accepted + r.accepted);
+          });
+          total.checked += r.checked;
+          total.accepted += r.accepted;
+          for (final e in r.rejected.entries) {
+            total.rejected[e.key] = (total.rejected[e.key] ?? 0) + e.value;
+          }
+          total.errors.addAll(r.errors);
+        }
+        return total;
+      });
+
   void cancel() => _cancel = true;
 }
 
 final ingestionControllerProvider = NotifierProvider<IngestionController, IngestionState>(IngestionController.new);
+
+// --- Material (§6) ------------------------------------------------------------
+
+final pdfTextSourceProvider = Provider<PdfTextSource>((ref) => PdfrxTextSource());
+
+final materialServiceProvider = Provider<MaterialService>(
+  (ref) => MaterialService(ref.watch(databaseProvider), pdf: ref.watch(pdfTextSourceProvider)),
+);
+
+final materialsProvider = FutureProvider<List<MaterialSummary>>((ref) async => ref.watch(materialServiceProvider).list());
+final studyingNowProvider = FutureProvider<StudyingNow>((ref) async => ref.watch(materialServiceProvider).studyingNow());
+final materialConceptsProvider = FutureProvider.autoDispose.family<List<MaterialConceptRow>, String>(
+  (ref, id) async => ref.watch(materialServiceProvider).conceptsOf(id),
+);
+
+/// Picks a PDF; overridden in tests.
+final pdfPickerProvider = Provider<Future<String?> Function()>((ref) => () async {
+      final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
+      return files.isEmpty ? null : files.first.path;
+    });
+
+/// How many new concepts get automatic video search right after an upload;
+/// the rest stay as coverage-gap cards with a "Find videos" button.
+const autoIngestAfterUpload = 15;
+
+enum UploadStatus { idle, preparingModel, processing, done, failed }
+
+class UploadState {
+  const UploadState({
+    this.status = UploadStatus.idle,
+    this.stage,
+    this.done = 0,
+    this.total = 0,
+    this.modelProgress,
+    this.result,
+    this.message,
+    this.rulesOnly = false,
+  });
+  final UploadStatus status;
+  final UploadStage? stage;
+  final int done;
+  final int total;
+  final double? modelProgress;
+  final UploadResult? result;
+  final String? message;
+  final bool rulesOnly; // the model couldn't load; labelled theorems/definitions only
+  bool get isBusy => status == UploadStatus.preparingModel || status == UploadStatus.processing;
+}
+
+class MaterialController extends Notifier<UploadState> {
+  bool _cancel = false;
+
+  @override
+  UploadState build() => const UploadState();
+
+  void _refresh() {
+    ref.invalidate(materialsProvider);
+    ref.invalidate(studyingNowProvider);
+    ref.invalidate(materialConceptsProvider);
+    ref.invalidate(longformFeedProvider);
+    ref.invalidate(shortsFeedProvider);
+    ref.invalidate(conceptDetailProvider);
+  }
+
+  Future<void> pickAndUpload() async {
+    if (state.isBusy) return;
+    final path = await ref.read(pdfPickerProvider)();
+    if (path != null) await upload(path);
+  }
+
+  Future<void> upload(String path) async {
+    if (state.isBusy) return;
+    _cancel = false;
+    JsonModel? model;
+    var rulesOnly = false;
+    state = const UploadState(status: UploadStatus.preparingModel);
+    try {
+      await ref.read(modelLoaderProvider)((f) => state = UploadState(status: UploadStatus.preparingModel, modelProgress: f));
+      ref.read(databaseProvider).setSetting('local_model_ready', '1');
+      ref.invalidate(modelReadyProvider);
+      model = ref.read(jsonModelProvider);
+    } catch (_) {
+      rulesOnly = true; // e.g. offline on first use: still read labelled theorems/definitions
+    }
+    try {
+      final svc = MaterialService(ref.read(databaseProvider), pdf: ref.read(pdfTextSourceProvider), model: model);
+      final result = await svc.upload(
+        path,
+        isCancelled: () => _cancel,
+        onProgress: (stage, done, total) => state =
+            UploadState(status: UploadStatus.processing, stage: stage, done: done, total: total, rulesOnly: rulesOnly),
+      );
+      state = UploadState(status: UploadStatus.done, result: result, rulesOnly: rulesOnly);
+      _refresh();
+      // §6.4 step 5: scoped ingestion (Path A) for new concepts with zero videos.
+      if (result.gapConceptIds.isNotEmpty) {
+        unawaited(ref
+            .read(ingestionControllerProvider.notifier)
+            .findVideosFor(result.gapConceptIds.take(autoIngestAfterUpload).toList()));
+      }
+    } on NoTextLayer catch (e) {
+      state = UploadState(status: UploadStatus.failed, message: '$e');
+    } on UploadCancelled {
+      state = const UploadState();
+    } catch (e) {
+      state = UploadState(status: UploadStatus.failed, message: '$e');
+    }
+  }
+
+  void cancel() => _cancel = true;
+  void dismiss() => state = const UploadState();
+
+  void archive(String id) => _apply(() => ref.read(materialServiceProvider).archive(id));
+  void delete(String id) => _apply(() => ref.read(materialServiceProvider).delete(id));
+  void reactivate(String id) => _apply(() => ref.read(materialServiceProvider).reactivate(id));
+  void rename(String id, String title) => _apply(() => ref.read(materialServiceProvider).rename(id, title));
+  void setExamDate(String id, DateTime? date) => _apply(() => ref.read(materialServiceProvider).setExamDate(id, date));
+  void autoArchive() => _apply(() => ref.read(materialServiceProvider).autoArchivePastExams());
+
+  void _apply(void Function() action) {
+    action();
+    _refresh();
+  }
+}
+
+final materialControllerProvider = NotifierProvider<MaterialController, UploadState>(MaterialController.new);
+
+/// Selected bottom-navigation tab (0 Home, 1 Shorts, 2 My Material).
+class SelectedTab extends Notifier<int> {
+  @override
+  int build() => 0;
+  void select(int i) => state = i;
+}
+
+final tabProvider = NotifierProvider<SelectedTab, int>(SelectedTab.new);

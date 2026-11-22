@@ -1,4 +1,4 @@
-/// Phase A walking-skeleton seed: 5 hardcoded videos, written on first launch.
+/// Test fixture (formerly the Phase A dev seed): 5 videos via a labelled sample material.
 ///
 /// To stay honest to the scope rules, the videos are not injected into the
 /// feed directly: a clearly-labelled sample material makes their concepts
@@ -9,8 +9,8 @@ library;
 
 import 'package:uuid/uuid.dart';
 
-import '../data/app_database.dart';
-import 'active_concepts.dart';
+import 'package:theoremfeed/data/app_database.dart';
+import 'package:theoremfeed/services/active_concepts.dart';
 
 const sampleMaterialTitle = 'Phase A sample material (dev seed)';
 const sampleMaterialHash = 'phase-a-seed-v1';

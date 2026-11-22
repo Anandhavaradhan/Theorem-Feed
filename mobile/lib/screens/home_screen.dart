@@ -77,19 +77,20 @@ class _FeedList extends ConsumerWidget {
   }
 }
 
-class _UploadEmptyState extends StatelessWidget {
+class _UploadEmptyState extends ConsumerWidget {
   const _UploadEmptyState();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return _Message(
       icon: Icons.upload_file,
       title: t('home.empty.title'),
       body: t('home.empty.body'),
       action: FilledButton.icon(
-        // Material upload is Phase C.
-        onPressed: () => ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(t('home.empty.cta_soon')))),
+        onPressed: () {
+          ref.read(tabProvider.notifier).select(2);
+          ref.read(materialControllerProvider.notifier).pickAndUpload();
+        },
         icon: const Icon(Icons.upload),
         label: Text(t('home.empty.cta')),
       ),

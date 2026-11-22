@@ -22,9 +22,33 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 | Educational and safety checks (Gates 1, 2) | Instant rules first: a trusted-channel list plus a check that the video plainly covers the concept, and a keyword filter. Everything else goes to the on-device model. |
 | On-device AI model | [llamadart](https://pub.dev/packages/llamadart) (llama.cpp) running **Qwen3.5 0.8B, 4-bit** (about 0.5 GB, downloaded once from Hugging Face). Its output is constrained to a JSON schema, so even this small model gives well-formed answers. Free, offline after the download, no limits. |
 | Knowledge graph | `assets/graph/graph_seed_v1.json`: 364 concepts across math, physics and CS, 520 prerequisite edges, and 71 curated theorems. |
-| PDF reading and relevance judging (Phase C/D) | The same on-device model. Your PDFs are clean, which keeps the job simple; an on-device embedding model will be added for relevance. |
+| PDF reading (Phase C) | [pdfrx](https://pub.dev/packages/pdfrx) (Google's PDFium) extracts the text layer on the device. Labelled results ("Theorem 7.1 (Integration by Parts). …") are read by rules; the on-device model reads each section for the rest. |
+| Relevance judging (Phase D) | The same on-device model, plus an on-device embedding model. |
 
-## Status: Phase B (ingestion and theorem pool) ✅
+## Status: Phase C (material system) ✅
+
+- **Upload a text-native PDF** from the My Material tab, or from Home's empty state. Scanned PDFs are rejected with
+  "This PDF has no text layer" (§6). Uploading the same file again doesn't re-process it; an archived copy is reactivated.
+- **On-device pipeline.** It extracts the text, then removes repeated headers and footers (lines on more than 60% of pages),
+  then cleans it as in §6.1 (ligatures, hyphenated line breaks, page numbers). Chapter and section headings are tracked.
+  The text is split into chunks of whole paragraphs with overlap, so a theorem stays with its proof. Chunks are sized for
+  the small model (≈1,100 tokens rather than the spec's 3,000).
+- **Concept extraction.** Labelled, named blocks are read exactly by rules: the statement stays word-for-word as your
+  material states it. The on-device model runs the §6.3 prompt on each chunk, constrained to a schema, for everything else,
+  filling in LaTeX, prerequisites, difficulty and importance. If the model can't load (say you're offline on first use),
+  the labelled blocks are still saved.
+- **Mapping (§6.4).** Duplicates across chunks are merged, keeping the most important. Each concept is attached to the
+  knowledge graph by fuzzy name/alias match, or created as a new concept. Prerequisites are stored and added to the graph.
+  `user_active_concepts` is then recomputed.
+- **Videos follow automatically.** Path A runs straight after an upload for the 15 most important new concepts that
+  have no videos. The rest show as coverage-gap cards with *Find videos*.
+- **Lifecycle (§6.5).** Archive, delete (soft: the row is kept with status `deleted`), reactivate, rename, and set or clear
+  the exam date. Past-exam materials are archived automatically at app start and daily while the app is open.
+  Archiving immediately reverts the feeds.
+- **My Material screen.** A "Studying now" summary (materials · concepts · days to the nearest exam), status chips,
+  each material's concepts (tap one for its detail), and upload progress per section.
+
+### Phase B (ingestion and theorem pool) ✅
 
 - **Three gates, all on the device.** The instant checks run first: safety keywords, then title/description language,
   then transcript language (or Whisper). Then trusted channels that clearly cover the concept are accepted by rule.
@@ -53,15 +77,17 @@ There is **no server and no paid API**. The app talks to YouTube directly, and a
 - Home feed and native player (quality, speed, captions).
 - 5 seed videos, written on first launch through a labelled sample material.
 
-Next: **Phase C**, the material system: reading PDFs on the device, concept extraction, the My Material
-screen, and Path A running automatically for new concepts.
+Next: **Phase D**, the relevance engine: multi-signal retrieval, on-device judging and caching,
+the precision@10 evaluation with a golden set, and live reason labels.
 
 ## Using it
 
 1. Install the app (see below).
-2. Open the **Shorts** tab and tap **Find theorem shorts**. The first time, this downloads the on-device AI model
-   (about 0.5 GB, so use Wi-Fi). After that, shorts appear within seconds and keep filling as you scroll.
-3. On Home, **Find videos** on a coverage-gap card looks for videos for that concept from your material.
+2. **My Material → Upload PDF**, and pick a chapter or your notes. The first time, this downloads the on-device AI model
+   (about 0.5 GB, so use Wi-Fi). A chapter takes a few minutes to read; then videos for its concepts start appearing
+   on Home.
+3. Open the **Shorts** tab and tap **Find theorem shorts**. Shorts appear within seconds and keep filling as you scroll.
+4. On Home, **Find videos** on a coverage-gap card looks for videos for any concept that's still missing them.
 
 Everything is free: there's no API key and no usage limit.
 The only waiting is for YouTube, plus about a second per video the model has to judge (more on older phones).
@@ -71,7 +97,8 @@ It runs on the CPU, so any reasonably recent Android phone works; older or low-m
 
 ## Build and install (Android)
 
-You need the Flutter SDK (3.50+) and the Android SDK (via Android Studio).
+You need the Flutter SDK (3.50+) and the Android SDK, including the **NDK**, via Android Studio.
+pdfrx compiles a small native library during the build.
 
 ```sh
 cd mobile
@@ -116,6 +143,11 @@ The guardrail tests run on every change:
 - **Keeping up with YouTube.** YouTube changes often, and stream extraction can break until the
   `youtube_explode_dart` package is updated. With no server, the fix means rebuilding the app with
   the updated package: `flutter pub upgrade youtube_explode_dart && flutter build apk`.
+- **Concept merging without embeddings.** §6.4 dedupes and maps concepts with embeddings (cosine 0.9 and 0.85).
+  Until the embedding model arrives in Phase D, this uses fuzzy name and alias matching (token_set_ratio),
+  backed by the 364-concept graph's aliases.
+- **The dev seed is gone.** The five Phase A sample videos are now only a test fixture. A fresh install starts with the
+  upload prompt on Home and the theorem pool on Shorts.
 - **No thumbnail image check.** The on-device model reads text only, so Gate 2 is the keyword filter, trusted channels,
   and the model's check of the title, description and transcript. A vision model would add over a gigabyte.
 - **Model storage.** llamadart keeps the downloaded model in the app's cache. Android may clear that when storage runs low;

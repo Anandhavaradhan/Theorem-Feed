@@ -6,7 +6,7 @@ import 'package:theoremfeed/data/app_database.dart';
 import 'package:theoremfeed/services/concept_matcher.dart';
 import 'package:theoremfeed/services/feed_service.dart';
 import 'package:theoremfeed/services/graph_seed.dart';
-import 'package:theoremfeed/services/seed.dart';
+import 'support/seed_phase_a.dart';
 
 void main() {
   final json = File(graphSeedAsset).readAsStringSync();

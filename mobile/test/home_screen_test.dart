@@ -6,7 +6,7 @@ import 'package:theoremfeed/data/app_database.dart';
 import 'package:theoremfeed/providers/providers.dart';
 import 'package:theoremfeed/screens/home_screen.dart';
 import 'package:theoremfeed/services/feed_service.dart';
-import 'package:theoremfeed/services/seed.dart';
+import 'support/seed_phase_a.dart';
 
 Widget _app(AppDatabase db) => ProviderScope(
       overrides: [databaseProvider.overrideWithValue(db)],
