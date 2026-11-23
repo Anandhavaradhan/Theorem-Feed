@@ -91,7 +91,8 @@ void main() {
     // term a definition mentions, and anything from the question bank.
     for (final junk in ['It bends towards the normal', 'Light needs no medium', 'Exam trap', 'Definition',
       'Distance of an image', 'Lens vocabulary', 'Electromagnetic Wave', 'Lateral inversion', 'Diffraction of Light',
-      'Atmospheric Refraction', 'Mirage', 'Power (Physics)']) {
+      'Atmospheric Refraction', 'Mirage', 'Power (Physics)',
+      'Sun and stars', 'Fireflies', 'Open end', 'Closed end']) { // examples of things; parts of something
       expect(names, isNot(contains(junk)), reason: junk);
     }
     expect(r.conceptCount, greaterThanOrEqualTo(16));

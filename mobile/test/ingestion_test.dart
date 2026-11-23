@@ -54,14 +54,22 @@ class FakeModel implements JsonModel {
   final edu = <String, Map<String, dynamic>>{}; // keyed by title
   final unsafeTitles = <String>{};
   final prompts = <String>[];
+  final titlePrompts = <String>[];
+  final offTopicTitles = <String>{};
   int calls = 0;
   Object? throwOnCall;
 
   @override
   Future<Map<String, dynamic>> generateJson({required String system, required List<LlmContent> content,
       required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async {
-    calls++;
     if (throwOnCall != null) throw throwOnCall!;
+    if (system == titleCheckSystemPrompt) {
+      final text = (content.single as TextContent).text;
+      titlePrompts.add(text);
+      final title = RegExp(r'^Title: (.*)$', multiLine: true).firstMatch(text)!.group(1)!;
+      return {'on_topic': !offTopicTitles.contains(title), 'safe': !unsafeTitles.contains(title), 'english': true};
+    }
+    calls++; // full video checks
     expect(system, videoCheckSystemPrompt);
     final text = (content.single as TextContent).text;
     prompts.add(text);
@@ -300,7 +308,41 @@ void main() {
     expect(status('waves'), 'active'); // by rule
     expect(outcome('quantum'), 'rejected_scope'); // the model, told the notes' chapter, says it's another sense
     final prompt = model.prompts.single;
-    expect(prompt, contains('From the notes: Notes › Superposition and standing waves'));
+    expect(prompt, contains('Chapter: Superposition and standing waves'));
+    // The rule-accepted video's title was still read by the AI, with the chapter.
+    expect(model.titlePrompts.single, contains('Title: Superposition of waves'));
+    expect(model.titlePrompts.single, contains('Chapter: Superposition and standing waves'));
+  });
+
+  test('every accepted video\'s title is read by the AI; a "no" keeps it out', () async {
+    const q = 'Integration by Parts IBP';
+    src.add(q, 'khan', title: 'Integration by parts | Khan Academy', channel: 'Khan Academy');
+    src.add(q, 'trick', title: 'Integration by parts magic trick', channel: 'Khan Academy');
+    model.offTopicTitles.add('Integration by parts magic trick');
+    final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
+    expect(status('khan'), 'active');
+    expect(outcome('trick'), 'rejected_scope');
+    expect(model.titlePrompts, hasLength(2));
+    expect(r.accepted, 1);
+  });
+
+  test('a concept that is the whole PDF\'s topic ("Sound" in Sound notes) always gets the full AI check', () async {
+    final m = addMaterial(db, title: 'Sound_Fortnight4_Notes');
+    final sound = addConcept(db, 'Sound', subject: 'physics');
+    addMaterialConcept(db, m, sound, chapter: '1 What is sound?');
+    for (final n in ['Vibration', 'Medium']) {
+      addMaterialConcept(db, m, addConcept(db, n, subject: 'physics'));
+    }
+    recomputeUserActiveConcepts(db);
+    const q = 'What is sound? physics';
+    src.add(q, 'light', title: 'How to turn sound into light', description: 'sound explained',
+        transcript: const ['sound is a vibration in a medium', 'we turn sound into light with this circuit']);
+    model.edu['How to turn sound into light'] = {
+      'educational': true, 'safe': true, 'on_topic': false, 'is_theorem': false, 'language': 'en'};
+    await svc().ingestMaterialConcept(sound);
+    expect(src.queries.last, q); // searched as the chapter asks it
+    expect(model.calls, 1); // the full check, not the fast rule
+    expect(outcome('light'), 'rejected_scope');
   });
 
   test('re-check removes library videos in another sense of their concept', () async {

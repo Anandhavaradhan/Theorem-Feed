@@ -26,7 +26,11 @@ Contents
 Class X Physics
 1 What is light?
 Shine a torch across a dark room and you see a straight beam where dust catches it. Everything
-we see either gives out light or sends back some of the light that falls on it.
+we see either gives out light or sends back some of the light that falls on it. Examples of sources:
+• Sun and stars — they make their own light.
+• Fireflies — a chemical glow.
+A shadow has a dark central part. The dark part is called the umbra.
+A curved mirror has an open end and a closed end. An open end is the wide side of the mirror.
 Definition
 Light is a form of energy that travels as an electromagnetic wave and lets us see objects.
 1.1 Light needs no medium

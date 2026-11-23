@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:theoremfeed/services/gates.dart';
 import 'package:theoremfeed/data/app_database.dart';
 import 'package:theoremfeed/providers/providers.dart';
 import 'package:theoremfeed/services/active_concepts.dart';
@@ -54,8 +55,11 @@ class _Source implements VideoSource {
 class _NoModel implements JsonModel {
   @override
   Future<Map<String, dynamic>> generateJson({required String system, required List<LlmContent> content,
-          required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async =>
-      throw ModelApiError(0, 'local_model', 'no model in this test');
+          required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async {
+    // The AI reads every accepted video's title; it agrees here.
+    if (system == titleCheckSystemPrompt) return {'on_topic': true, 'safe': true, 'english': true};
+    throw ModelApiError(0, 'local_model', 'no model in this test'); // ranking skips; the rule accepts videos
+  }
 }
 
 void main() {

@@ -233,7 +233,9 @@ The guardrail tests run on every change:
   box titles on their own line ("Plane mirror"), "Term — depends on …" bullets, defining sentences
   ("A lens is …", "… is called dispersion", "… is the critical angle"), vocabulary lists ("Focal length f",
   "Power P"), labelled theorems and definitions, and known graph concepts. Sentence-like headings
-  ("It bends towards the normal") are not used as names; "Refraction and dispersion" becomes two concepts. Question
+  ("It bends towards the normal") are not used as names, nor are parts of something ("Closed end"), ranks
+  ("Lowest frequency"), or items from a list of examples ("Bees and mosquitoes — their wings": a weak find is
+  only proposed if the notes use the term again); "Refraction and dispersion" becomes two concepts. Question
   banks, formula sheets and exam drills are not mined. Concepts the notes say to review or assume stay
   prerequisites. Confident finds are kept without the AI; only doubtful ones (a lone word, a phrase in
   brackets, a passing mention) go to the on-device model, at most 40, in batches of 10, answered with
@@ -269,6 +271,12 @@ The guardrail tests run on every change:
   model, so they are checked last and only if the captioned ones didn't fill the concept. Trade-off: a video
   accepted by rule skips the model's extra safety read; it still passes the unsafe-word filter and the
   English checks.
+- **The AI reads every accepted video's title.** Even a video the rules accept (trusted channel, or title,
+  captions and notes vocabulary all agree) is only added after one very short AI check of its title and
+  channel, told the concept, the PDF and the chapter it comes from; it must mainly explain the concept as a
+  lesson, not an experiment or trick that only involves it. A concept that is the whole PDF's topic ("Sound"
+  in Sound notes) never uses the fast rule; it always gets the full check, and a chapter that asks "What is
+  sound?" is searched as written.
 - **Faster video start.** Opening a video waits only for its streams: they're fetched without YouTube's
   watch page (falling back to it if refused), the title and thumbnail come from the library, captions get at
   most 2 s and load after playback starts, and playback starts at 720p at most (higher qualities are in the

@@ -322,7 +322,7 @@ const videoCheckSystemPrompt = '''
 You check a YouTube video for a study app. Answer with JSON only.
 educational: true only if it mainly teaches math, science or computer science. False for vlogs, entertainment, music, gaming, news, motivation, "study with me".
 safe: false if anything is sexual, violent, hateful or otherwise inappropriate.
-on_topic: true if it mainly teaches the searched concept in the sense used in the student's notes (for notes on sound waves, "superposition" means waves adding up, not quantum superposition).
+on_topic: true if it mainly explains the searched concept as a lesson, in the sense of the given chapter of the student's notes (false for experiments, tricks or other topics that only involve it) (for notes on sound waves, "superposition" means waves adding up, not quantum superposition).
 is_theorem: true if it states or proves a specific theorem, formula or result.
 language: "en" only if the title and description are plain English; "other" for any other language, including Hindi or Tamil written in English letters ("kaise karte hain", "enna solringa").''';
 
@@ -370,7 +370,8 @@ class VideoVerdict {
 Future<VideoVerdict> classifyVideo(
   JsonModel model, {
   required String searchedConcept,
-  String? notesContext,
+  String? chapter,
+  String? notes,
   required String title,
   required String description,
   required String transcriptExcerpt,
@@ -386,7 +387,8 @@ Future<VideoVerdict> classifyVideo(
     system: videoCheckSystemPrompt,
     content: [
       TextContent('Searched concept: $searchedConcept\n'
-          '${notesContext == null ? '' : 'From the notes: $notesContext\n'}'
+          '${chapter == null ? '' : 'Chapter: $chapter\n'}'
+          '${notes == null ? '' : 'Notes: $notes\n'}'
           'Channel: ${channel ?? 'unknown'}\n'
           'Duration: ${durationSec ?? 'unknown'} seconds\n'
           'Title: $title\n'
@@ -397,4 +399,60 @@ Future<VideoVerdict> classifyVideo(
     maxTokens: 48,
   );
   return VideoVerdict.fromJson(json);
+}
+
+// --- The AI always reads the title: a short check for rule-accepted videos -----
+
+const titleCheckSystemPrompt = '''
+You check a YouTube video's title for a student's study app. Answer with JSON only.
+on_topic: true only if a video with this title mainly explains the searched concept as a lesson, in the sense of the given chapter of the student's notes (for a chapter on sound waves, "superposition" means waves adding up, not quantum superposition). False for experiments, tricks, products, music or other topics that only involve it ("how to turn sound into light").
+safe: false if the title is sexual, violent, hateful or otherwise inappropriate.
+english: true only if the title is plain English (Hindi or Tamil written in English letters is not English).''';
+
+const titleCheckSchema = {
+  'type': 'object',
+  'properties': {
+    'on_topic': {'type': 'boolean'},
+    'safe': {'type': 'boolean'},
+    'english': {'type': 'boolean'},
+  },
+  'required': ['on_topic', 'safe', 'english'],
+  'additionalProperties': false,
+};
+
+class TitleVerdict {
+  TitleVerdict({required this.onTopic, required this.safe, required this.english});
+  final bool onTopic;
+  final bool safe;
+  final bool english;
+}
+
+/// One very short on-device call (a few dozen tokens in, about 15 out): even a
+/// video the rules accept is only added if the AI agrees its title fits the
+/// concept in the chapter's sense.
+Future<TitleVerdict> checkTitle(
+  JsonModel model, {
+  required String searchedConcept,
+  String? chapter,
+  String? notes,
+  required String title,
+  String? channel,
+}) async {
+  final json = await model.generateJson(
+    system: titleCheckSystemPrompt,
+    content: [
+      TextContent('Searched concept: $searchedConcept\n'
+          '${chapter == null ? '' : 'Chapter: $chapter\n'}'
+          '${notes == null ? '' : 'Notes: $notes\n'}'
+          'Channel: ${channel ?? 'unknown'}\n'
+          'Title: $title'),
+    ],
+    schema: titleCheckSchema,
+    maxTokens: 32,
+  );
+  return TitleVerdict(
+    onTopic: json['on_topic'] as bool,
+    safe: json['safe'] as bool,
+    english: json['english'] as bool,
+  );
 }

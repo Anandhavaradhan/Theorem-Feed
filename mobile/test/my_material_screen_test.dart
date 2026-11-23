@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:theoremfeed/services/gates.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:theoremfeed/core/i18n.dart';
 import 'package:theoremfeed/data/app_database.dart';
@@ -25,7 +26,9 @@ class _NoConcepts implements JsonModel {
   @override
   Future<Map<String, dynamic>> generateJson({required String system, required List<LlmContent> content,
           required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async =>
-      {'concepts': <Object>[]};
+      system == titleCheckSystemPrompt
+          ? {'on_topic': true, 'safe': true, 'english': true}
+          : {'concepts': <Object>[], 'taught': <Object>[], 'mentioned': <Object>[]};
 }
 
 class _Source implements VideoSource {

@@ -52,7 +52,12 @@ typedef IngestProgress = void Function(String conceptName, IngestReport report);
 
 class _Target {
   _Target(this.id, this.name, this.aliases, this.subject, this.type, this.path,
-      {this.contextWords = const [], this.notesLabel});
+      {this.contextWords = const [],
+      this.notesLabel,
+      this.chapter,
+      this.notesTitle,
+      this.broad = false,
+      this.questionHeading});
   final String id;
   final String name;
   final List<String> aliases;
@@ -66,6 +71,20 @@ class _Target {
 
   /// "Sound notes › Superposition and standing waves", for the AI check.
   final String? notesLabel;
+
+  /// The chapter (and section) the concept is in, e.g. "Superposition and
+  /// standing waves › Superposition"; the AI is always told it.
+  final String? chapter;
+
+  /// The PDF's title.
+  final String? notesTitle;
+
+  /// The concept is the topic of the whole PDF ("Sound" in "Sound notes"):
+  /// too broad for the fast rule, so the AI always checks the full video.
+  final bool broad;
+
+  /// The chapter asks "What is sound?": searched as written.
+  final String? questionHeading;
 }
 
 const _contextStopwords = {
@@ -124,6 +143,10 @@ class IngestionService {
     final name = r['canonical_name'] as String;
     var words = <String>[];
     String? label;
+    String? chapterLabel = path == IngestPath.theoremPool ? 'Curated math theorems' : null;
+    String? pdf;
+    String? question;
+    var broad = false;
     if (path == IngestPath.material) {
       final where = _db.select('''
         SELECT m.title, mc.chapter, mc.section FROM material_concepts mc JOIN materials m ON m.id = mc.material_id
@@ -141,11 +164,23 @@ class IngestionService {
         words = words.take(2).toList();
         label = [where['title'] as String, if (chapter.isNotEmpty) chapter, if (section.isNotEmpty && section != chapter) section]
             .join(' › ');
+        pdf = where['title'] as String;
+        final q = RegExp(r'^what (is|are) .+', caseSensitive: false).firstMatch(chapter.trim());
+        if (q != null && normalizeText(chapter).contains(normalizeText(name))) question = chapter.trim();
+        final pdfWords = normalizeText(pdf.replaceAll(RegExp(r'[_\-.]'), ' ')).split(' ').toSet();
+        broad = normalizeText(name).split(' ').every(pdfWords.contains);
+        final parts = [if (chapter.isNotEmpty) chapter, if (section.isNotEmpty && section != chapter) section];
+        if (parts.isNotEmpty) chapterLabel = parts.join(' › ');
       }
     }
     return _Target(conceptId, name, parseJsonList(r['aliases'] as String?), r['subject'] as String, r['type'] as String,
         path,
-        contextWords: words, notesLabel: label);
+        contextWords: words,
+        notesLabel: label,
+        chapter: chapterLabel,
+        notesTitle: pdf,
+        broad: broad,
+        questionHeading: question);
   }
 
   // --- public entry points ----------------------------------------------------
@@ -250,9 +285,9 @@ class IngestionService {
   /// songs, brands and games, so its subject is added ("Echo physics").
   String _query(_Target t, {String variant = ''}) {
     final alias = t.aliases.where((a) => !t.name.toLowerCase().contains(a.toLowerCase())).firstOrNull;
-    var base = alias == null ? t.name : '${t.name} $alias';
+    var base = t.questionHeading ?? (alias == null ? t.name : '${t.name} $alias');
     // "Superposition standing waves": the chapter keeps the search in your notes' sense.
-    if (t.contextWords.isNotEmpty) base = '$base ${t.contextWords.join(' ')}';
+    if (t.contextWords.isNotEmpty && t.questionHeading == null) base = '$base ${t.contextWords.join(' ')}';
     final subject = _subjectWord[t.subject];
     if (t.path == IngestPath.material &&
         subject != null &&
@@ -573,7 +608,8 @@ class IngestionService {
       mapped = [ConceptRef(t.id, t.name, 100)];
       isTheorem = ruleTheorem;
       reason = 'trusted channel ($channel) covering ${t.name}';
-    } else if (strongEvidence(names,
+    } else if (!t.broad &&
+        strongEvidence(names,
         title: d.title,
         description: d.description,
         transcript: transcript,
@@ -583,13 +619,33 @@ class IngestionService {
       isTheorem = ruleTheorem;
       reason = 'title and captions teach ${t.name}';
     } else {
+      mapped = const [];
+      isTheorem = false;
+      reason = '';
+    }
+    if (mapped.isNotEmpty) {
+      // Accepted by rule: the AI still reads the title, with the chapter.
+      if (_stopped) throw const _Stopped();
+      final TitleVerdict tv;
+      try {
+        tv = await checkTitle(model,
+            searchedConcept: t.name, chapter: t.chapter, notes: t.notesTitle, title: d.title, channel: channel);
+      } on ModelRefusal catch (e) {
+        return rejectV('rejected_safety', 'model refusal (${e.category})');
+      }
+      if (!tv.safe) return rejectV('rejected_safety', 'model: unsafe title');
+      if (!tv.english) return rejectV('rejected_lang', 'model: title not English');
+      if (!tv.onTopic) return _log(c.id, 'rejected_scope', 'model: title not about ${t.name} in ${t.chapter ?? 'your notes'}', t.id);
+      reason = '$reason; title checked by AI';
+    } else {
       if (_stopped) throw const _Stopped();
       final VideoVerdict v;
       try {
         v = await classifyVideo(
           model,
           searchedConcept: t.name,
-          notesContext: t.notesLabel,
+          chapter: t.chapter,
+          notes: t.notesTitle,
           title: d.title,
           description: d.description,
           transcriptExcerpt: transcript,

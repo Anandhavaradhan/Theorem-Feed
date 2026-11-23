@@ -299,9 +299,19 @@ final _notNameRe = RegExp(
     r'\b(problems?|questions?|examples?|exercises?|numericals?|tricks?|vocabulary|glossary|summary|revision|'
     r'drill|recap|vs|versus|rules for)\b');
 
+/// A part or a position of something rather than a concept: "Closed end",
+/// "Open end", "Lowest frequency", "First point".
+const _partNouns = {'end', 'ends', 'side', 'sides', 'part', 'parts', 'point', 'points', 'edge', 'edges', 'half',
+  'top', 'bottom', 'case', 'cases', 'way', 'ways', 'step', 'steps', 'type', 'types', 'kind', 'kinds'};
+const _rankWords = {'lowest', 'highest', 'first', 'second', 'third', 'last', 'next', 'previous', 'least', 'most',
+  'smallest', 'largest', 'biggest', 'maximum', 'minimum', 'same', 'other', 'whole', 'entire'};
+
 bool _usableTerm(String term) {
   final t = term.trim().toLowerCase();
   if (t.length < 3 || _notConcepts.contains(t) || _badOpeners.contains(t.split(' ').first)) return false;
+  final words = t.split(' ');
+  // Two words only: "Closed end", "Lowest frequency" — not "Integration by Parts".
+  if (words.length == 2 && (_partNouns.contains(words.last) || _rankWords.contains(words.first))) return false;
   if (_notNameRe.hasMatch(t)) return false;
   return t.split(' ').length <= 7 && !RegExp(r'\d').hasMatch(t);
 }
@@ -341,6 +351,23 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
 
   bool hasSubsections(_Section chapter) => sections.any((s) =>
       s != chapter && s.heading.section != null && s.heading.chapter == chapter.heading.chapter);
+
+  // All teaching text, for "does the notes use this term again?".
+  final teachingText = [
+    for (final sec in sections)
+      if (!sec.practice)
+        for (final p in sec.paras) p,
+  ];
+  bool recurs(String term, Paragraph except) {
+    final re = RegExp('\\b${RegExp.escape(normalizeText(term))}s?\\b');
+    var n = 0;
+    for (final p in teachingText) {
+      if (identical(p, except)) continue;
+      n += re.allMatches(normalizeText(p.text)).length;
+      if (n >= 1) return true;
+    }
+    return false;
+  }
 
   final out = <ExtractedConcept>[];
   final taughtNames = <String>{};
@@ -468,7 +495,13 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
         if (!term.contains(',') && term.split(' ').length <= 4 && !_isBoxLabel(term) &&
             !RegExp(r'^(and|or|but|so|then|if)\b', caseSensitive: false).hasMatch(term)) {
           final sure = RegExp(r'^(depends on|is |are |means|refers to|measures)', caseSensitive: false).hasMatch(rest);
-          add(_cap(term), '$term — ${_sentences(rest).first}', p, sec, importance: 0.75, sure: sure);
+          // A weak one is only proposed if the notes use the term again elsewhere: real
+          // concepts recur ("Elasticity", "Nodes"); items in a list of examples ("Bees and
+          // mosquitoes — their wings", "Human voice — the vocal cords") don't.
+          final pairOfThings = RegExp(r' (and|or) ', caseSensitive: false).hasMatch(term);
+          if (sure || (!pairOfThings && (dict.knows(term) || recurs(term, p)))) {
+            add(_cap(term), '$term — ${_sentences(rest).first}', p, sec, importance: 0.75, sure: sure);
+          }
         }
       }
 
