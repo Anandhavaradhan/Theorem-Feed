@@ -23,7 +23,7 @@ class SlowSource implements VideoSource {
   final needVertical = <bool>[];
 
   @override
-  Future<List<CandidateVideo>> search(String query, {int limit = 8}) async => [
+  Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false}) async => [
         for (var i = 0; i < n; i++)
           CandidateVideo(id: 'v$i', title: 'Integration by parts example $i', description: 'calculus', durationSec: duration),
       ];
@@ -78,19 +78,20 @@ void main() {
     expect(sw.elapsedMilliseconds, lessThan(1000));
   });
 
-  test('only 1–3 minute candidates need the orientation lookup (up to 60 s is a short anyway)', () async {
+  test('candidates up to 3 minutes look up their orientation (long ones don\'t)', () async {
     final src = SlowSource(2, duration: 120);
     await IngestionService(db: db, source: src, model: SlowModel()).ingestMaterialConcept(ibp);
     expect(src.needVertical, everyElement(isTrue));
   });
 
-  test('a short: up to 60 s, or tagged #shorts, or vertical up to 3 minutes', () {
-    expect(looksLikeShort(45, 'Echo in 45 seconds', vertical: false), isTrue);
+  test('a short: vertical or tagged #shorts, up to 3 minutes; a short landscape clip is not one', () {
+    expect(looksLikeShort(45, 'Echo in 45 seconds', vertical: false), isFalse); // would be cut off full-screen
+    expect(looksLikeShort(45, 'Echo in 45 seconds', vertical: true), isTrue);
     expect(looksLikeShort(150, 'Echo explained #shorts', vertical: false), isTrue);
     expect(looksLikeShort(150, 'Echo explained', vertical: true), isTrue);
-    expect(looksLikeShort(150, 'Echo explained', vertical: false), isFalse);
     expect(looksLikeShort(600, 'Echo #shorts', vertical: true), isFalse);
-    expect(needsOrientation(45, 'x'), isFalse);
-    expect(needsOrientation(150, 'x'), isTrue);
+    expect(needsOrientation(45, 'x'), isTrue);
+    expect(needsOrientation(45, 'x #shorts'), isFalse);
+    expect(needsOrientation(600, 'x'), isFalse);
   });
 }

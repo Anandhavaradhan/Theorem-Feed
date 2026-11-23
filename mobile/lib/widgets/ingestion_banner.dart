@@ -23,7 +23,7 @@ class IngestionBanner extends ConsumerWidget {
       IngestionStatus.running when s.ranking => (t('ingest.ranking', {'concept': s.label}), true),
       IngestionStatus.running => (
           '${s.round > 0 ? t('ingest.round', {'round': s.round, 'concept': s.label}) : t('ingest.searching', {'concept': s.label})}\n'
-              '${s.round > 0 ? t('ingest.progress_shorts', {'checked': r?.checked ?? 0, 'long': (r?.accepted ?? 0) - (r?.acceptedShorts ?? 0), 'shorts': r?.acceptedShorts ?? 0}) : t('ingest.progress', {'checked': r?.checked ?? 0, 'accepted': r?.accepted ?? 0})}',
+              '${s.round > 0 ? t('ingest.progress_shorts', {'checked': r?.checked ?? 0, 'ai': r?.aiRead ?? 0, 'long': (r?.accepted ?? 0) - (r?.acceptedShorts ?? 0), 'shorts': r?.acceptedShorts ?? 0}) : t('ingest.progress', {'checked': r?.checked ?? 0, 'ai': r?.aiRead ?? 0, 'accepted': r?.accepted ?? 0})}',
           true
         ),
       IngestionStatus.stopped => (

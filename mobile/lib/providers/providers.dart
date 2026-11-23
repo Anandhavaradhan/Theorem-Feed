@@ -196,12 +196,14 @@ class IngestionController extends Notifier<IngestionState> {
           final r = await s.fillConcept(todo[i], round: round, onProgress: (label, r) {
             p(label, IngestReport()
               ..checked = total.checked + r.checked
+              ..aiRead = total.aiRead + r.aiRead
               ..accepted = total.accepted + r.accepted
               ..acceptedShorts = total.acceptedShorts + r.acceptedShorts);
             state = IngestionState(status: IngestionStatus.running, label: label, report: state.report, round: round);
           });
           total
             ..checked += r.checked
+            ..aiRead += r.aiRead
             ..accepted += r.accepted
             ..acceptedShorts += r.acceptedShorts
             ..fresh += r.fresh;

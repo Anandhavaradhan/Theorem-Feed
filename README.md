@@ -295,9 +295,11 @@ The guardrail tests run on every change:
   sound?" is searched as written.
 - **Faster finding, shorts found reliably.** Round 1 gives every concept 1 long video and 1 short (so the
   feed fills across all concepts quickly), then 3, 6, … up to 20 of each. The AI reads all titles of a search
-  in one call before any video details are downloaded; off-topic titles cost nothing more. Up to 60 s or
-  tagged #shorts is a short; only 1–3 minute videos need the orientation lookup, which can no longer fail a
-  video. Home shows a Shorts row among the recommendations (for the chosen chapter or PDF).
+  in one call before any video details are downloaded; off-topic titles cost nothing more. A short is vertical
+  or tagged #shorts, up to 3 minutes (a short landscape clip is not: full-screen it would be cut off); shorts
+  searches and the theorem pool use YouTube's under-4-minutes filter, and an on-topic pool short no longer
+  also needs the AI to call it a "theorem". The banner shows how many videos were looked at (most decided by
+  rules in an instant), how many the AI read, and how many were added. Home shows a Shorts row among the recommendations (for the chosen chapter or PDF).
 - **Videos load reliably.** If a video doesn't start within 12 s or fails, the player tries one lower quality,
   then the single-file 360p stream, then all of it again with streams fetched the slower, thorough way; only
   then does it show an error with Retry. Shorts use the same steps.

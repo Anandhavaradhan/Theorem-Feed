@@ -116,7 +116,7 @@ class _NoModel implements JsonModel {
 
 class _EmptySource implements VideoSource {
   @override
-  Future<List<CandidateVideo>> search(String query, {int limit = 8}) async => const [];
+  Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false}) async => const [];
   @override
   Future<VideoDetails> details(String id, {bool needVertical = true}) => throw StateError('not called');
   @override

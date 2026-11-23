@@ -21,6 +21,7 @@ class FakeSource implements VideoSource {
   final details_ = <String, VideoDetails>{};
   final detailCalls = <String>[];
   final queries = <String>[];
+  final shortOnlyQueries = <String>[];
 
   void add(String query, String id,
       {String title = 'Integration by parts explained', int duration = 600, bool vertical = false,
@@ -35,8 +36,9 @@ class FakeSource implements VideoSource {
   }
 
   @override
-  Future<List<CandidateVideo>> search(String query, {int limit = 8}) async {
+  Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false}) async {
     queries.add(query);
+    if (shortOnly) shortOnlyQueries.add(query);
     return (results[query] ?? []).take(limit).toList();
   }
 
@@ -451,6 +453,23 @@ void main() {
     src.detailCalls.clear();
     await svc().recheckLanguages(checked: checked);
     expect(src.detailCalls, isEmpty); // once per video
+  });
+
+  test('theorem pool: searched with the under-4-minutes filter; an on-topic short is enough', () async {
+    const q = 'Pythagorean Theorem #shorts';
+    src.add(q, 'vshort', title: 'Pythagoras in 40 seconds', duration: 40, vertical: true);
+    model.edu['Pythagoras in 40 seconds'] = {
+      'educational': true, 'safe': true, 'on_topic': true, 'is_theorem': false, 'language': 'en'}; // the AI says no "theorem"
+    src.add(q, 'flat', title: 'Pythagoras clip', duration: 40, vertical: false); // landscape: not a short
+    model.edu['Pythagoras clip'] = {
+      'educational': true, 'safe': true, 'on_topic': true, 'is_theorem': true, 'language': 'en'};
+    final r = await svc().buildTheoremPool();
+    expect(src.shortOnlyQueries, [q]);
+    expect(status('vshort'), 'active');
+    expect(outcome('flat'), 'rejected_format');
+    expect(r.accepted, 1);
+    expect(r.checked, 2);
+    expect(r.aiRead, greaterThanOrEqualTo(2)); // titles read in the batch
   });
 }
 

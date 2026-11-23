@@ -199,6 +199,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
   final _subs = <StreamSubscription<Object?>>[];
   Duration _furthest = Duration.zero;
   ReliablePlayback? _playback;
+  bool _vertical = true;
 
   @override
   void initState() {
@@ -237,6 +238,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
       if (!mounted || !widget.active) return;
       final mq = MediaQuery.of(context);
       final option = resolved.pickOption((math.min(mq.size.width, mq.size.height) * mq.devicePixelRatio).round());
+      _vertical = resolved.isVertical;
       final player = Player();
       final controller = VideoController(player);
       final playback = ReliablePlayback(
@@ -297,7 +299,8 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
         onTap: _togglePause,
         child: controller == null
             ? Thumbnail(card.thumbnailUrl)
-            : Video(controller: controller, fit: BoxFit.cover, controls: NoVideoControls),
+            // Vertical shorts fill the screen; anything else is shown whole, never cut off.
+            : Video(controller: controller, fit: _vertical ? BoxFit.cover : BoxFit.contain, controls: NoVideoControls),
       ),
       if (_error != null)
         Center(

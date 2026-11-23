@@ -19,7 +19,7 @@ import 'support/sample_chapter.dart';
 class _Source implements VideoSource {
   final queries = <String>[];
   @override
-  Future<List<CandidateVideo>> search(String query, {int limit = 8}) async {
+  Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false}) async {
     queries.add(query);
     final name = query.split(' ').first;
     return [

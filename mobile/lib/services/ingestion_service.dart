@@ -19,15 +19,16 @@ import 'llm.dart';
 
 const shortMaxSeconds = 180;
 
-/// A short: up to 60 s, or tagged #shorts, or vertical and up to 3 minutes.
+/// A short: up to 3 minutes and vertical, or tagged #shorts. (A short landscape
+/// clip isn't one: shown full-screen it would be cut off at the sides.)
 bool looksLikeShort(int? durationSec, String text, {required bool vertical}) {
   if (durationSec == null || durationSec > shortMaxSeconds) return false;
-  return durationSec <= 60 || text.toLowerCase().contains('#short') || vertical;
+  return vertical || text.toLowerCase().contains('#short');
 }
 
-/// Whether the (slower) orientation lookup is needed to tell.
+/// Whether the orientation lookup (fast, can't fail the video) is needed to tell.
 bool needsOrientation(int? durationSec, String text) =>
-    durationSec == null || (durationSec > 60 && durationSec <= shortMaxSeconds && !text.toLowerCase().contains('#short'));
+    durationSec == null || (durationSec <= shortMaxSeconds && !text.toLowerCase().contains('#short'));
 
 /// Thrown when asked to ingest for a concept outside the two allowed paths.
 class OutOfScopeIngestion implements Exception {
@@ -45,7 +46,11 @@ class _Stopped implements Exception {
 }
 
 class IngestReport {
+  /// Videos looked at (most are decided by rules in an instant).
   int checked = 0;
+
+  /// Of those, how many the on-device AI read (titles in a batch, or a full check).
+  int aiRead = 0;
   int accepted = 0;
   int acceptedShorts = 0;
 
@@ -114,6 +119,9 @@ class IngestionService {
     this.prefetchAhead = 3,
     this.isCancelled,
   }) : _speech = speechProbe;
+
+  /// Full AI checks so far (for the "read by AI" count).
+  int _fullChecks = 0;
 
   /// Stop: checked before each video, each download wait and each AI call.
   final bool Function()? isCancelled;
@@ -345,8 +353,9 @@ class IngestionService {
 
   final _searches = <String, Future<List<CandidateVideo>>>{};
 
-  Future<List<CandidateVideo>> _search(String query) => _searches.putIfAbsent(query, () {
-        final f = source.search(query, limit: candidatesPerConcept);
+  Future<List<CandidateVideo>> _search(String query, {bool shortOnly = false}) =>
+      _searches.putIfAbsent('$query|$shortOnly', () {
+        final f = source.search(query, limit: candidatesPerConcept, shortOnly: shortOnly);
         f.then((_) {}, onError: (_) {}); // surfaced when awaited
         return f;
       });
@@ -355,7 +364,8 @@ class IngestionService {
   /// is ready when the current concept finishes.
   void warmUp(String conceptId) {
     if (!canIngest(conceptId)) return;
-    _search(_query(_target(conceptId, isActiveConcept(conceptId) ? IngestPath.material : IngestPath.theoremPool)));
+    final path = isActiveConcept(conceptId) ? IngestPath.material : IngestPath.theoremPool;
+    _search(_query(_target(conceptId, path)), shortOnly: path == IngestPath.theoremPool);
   }
 
   Set<String>? _vocab;
@@ -394,15 +404,17 @@ class IngestionService {
         ? _query(t, variant: variant.isEmpty ? '#shorts' : variant)
         : _query(t, variant: variant);
     final wanted = need ?? acceptPerConcept;
+    // Shorts searches (and the theorem pool) only ask YouTube for videos under 4 minutes.
+    final shortOnly = wantShort == true || t.path == IngestPath.theoremPool;
     List<CandidateVideo> candidates;
     try {
-      candidates = await _search(query);
+      candidates = await _search(query, shortOnly: shortOnly);
     } catch (e) {
-      _searches.remove(query);
+      _searches.remove('$query|$shortOnly');
       report.errors.add('search "${t.name}": $e');
       return report;
     }
-    _searches.remove(query); // a later run searches afresh
+    _searches.remove('$query|$shortOnly'); // a later run searches afresh
     final context = t.path == IngestPath.material ? _materialNames(t.id) : const <String>[];
     var acceptedHere = 0;
     // Prefetch: while one candidate is being judged, the next few candidates'
@@ -433,6 +445,7 @@ class IngestionService {
         for (var i = 0; i < toCheck.length; i++) {
           titleVerdicts[toCheck[i].id] = v[i];
         }
+        report.aiRead += toCheck.length;
       } on ModelApiError catch (e) {
         if (e.isAuth) rethrow;
         // No batch verdict: each rule-accepted video gets its own title check instead.
@@ -448,6 +461,7 @@ class IngestionService {
 
     Future<void> check(CandidateVideo c, {required bool allowSpeech}) async {
       String outcome;
+      final fullBefore = _fullChecks;
       try {
         outcome = await _evaluate(c, t, detailsFor,
             context: context, allowSpeech: allowSpeech, titleVerdict: titleVerdicts[c.id]);
@@ -463,6 +477,8 @@ class IngestionService {
         outcome = _log(c.id, 'error', '$e', t.id);
         report.errors.add('${c.id}: $e');
       }
+      // Read by AI in full (beyond the title batch); counted whatever the outcome.
+      if (titleVerdicts[c.id] == null) report.aiRead += _fullChecks - fullBefore;
       if (outcome == _deferred) {
         noCaptions.add(c);
         return;
@@ -726,6 +742,7 @@ class IngestionService {
       if (_stopped) throw const _Stopped();
       final VideoVerdict v;
       try {
+        _fullChecks++;
         v = await classifyVideo(
           model,
           searchedConcept: t.name,
@@ -766,9 +783,11 @@ class IngestionService {
         if (!mapped.any((m) => m.id == t.id)) {
           return _log(c.id, 'rejected_scope', 'not mainly about ${t.name}', t.id);
         }
-        if (!isShort || !isTheorem) {
-          return _log(c.id, 'rejected_format', 'pool needs a theorem short (short=$isShort theorem=$isTheorem)', t.id);
+        // Pool topics are theorems by design: on topic and a short is enough.
+        if (!isShort) {
+          return _log(c.id, 'rejected_format', 'pool needs a short (vertical or #shorts, up to 3 min)', t.id);
         }
+        isTheorem = true;
     }
 
     // Accept. (Embeddings arrive with the on-device embedding model in Phase C/D.)

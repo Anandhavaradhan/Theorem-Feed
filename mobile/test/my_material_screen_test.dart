@@ -36,7 +36,7 @@ class _NoConcepts implements JsonModel {
 class _Source implements VideoSource {
   final queries = <String>[];
   @override
-  Future<List<CandidateVideo>> search(String query, {int limit = 8}) async {
+  Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false}) async {
     queries.add(query);
     return const [];
   }

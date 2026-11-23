@@ -59,7 +59,8 @@ class VideoDetails {
 }
 
 abstract class VideoSource {
-  Future<List<CandidateVideo>> search(String query, {int limit = 8});
+  /// [shortOnly]: YouTube's "under 4 minutes" filter, for shorts searches.
+  Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false});
   /// Metadata, transcript and orientation. [needVertical] = false skips the
   /// stream-list request (only shorts need to know whether they're vertical).
   Future<VideoDetails> details(String youtubeId, {bool needVertical = true});
@@ -73,8 +74,8 @@ class YoutubeExplodeSource implements VideoSource {
   final yte.YoutubeExplode _yt;
 
   @override
-  Future<List<CandidateVideo>> search(String query, {int limit = 8}) async {
-    final results = await _yt.search.search(query);
+  Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false}) async {
+    final results = await _yt.search.search(query, filter: shortOnly ? yte.DurationFilters.short : yte.TypeFilters.video);
     return [
       for (final v in results.take(limit))
         if (!v.isLive)
