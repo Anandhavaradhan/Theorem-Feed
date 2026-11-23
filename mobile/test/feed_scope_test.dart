@@ -170,4 +170,17 @@ void main() {
     }
     expect(mixAcrossConcepts(rows, Random(7)).map((r) => r.videoId), mixed.map((r) => r.videoId));
   });
+
+  test('Khan Academy and The Organic Chemistry Tutor come first among a concept\'s videos', () {
+    FeedRow row(String id, String? channel, {double? score}) => FeedRow(videoId: id, title: '', thumbnailUrl: null,
+        durationSec: 600, isShort: false, conceptId: 'c', conceptName: 'c', priority: 1, finalScore: score,
+        fromMaterial: true, channel: channel);
+    final sorted = [row('a', 'Some Channel'), row('b', 'Khan Academy'), row('c', 'The Organic Chemistry Tutor')]
+      ..sort((x, y) => x.compareTo(y));
+    expect(sorted.map((r) => r.videoId).take(2).toSet(), {'b', 'c'});
+    // Judged videos: a small head start, not a free pass.
+    final judged = [row('weak', 'Khan Academy', score: 3), row('strong', 'Some Channel', score: 8)]
+      ..sort((x, y) => x.compareTo(y));
+    expect(judged.first.videoId, 'strong');
+  });
 }

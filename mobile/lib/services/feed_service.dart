@@ -12,6 +12,7 @@ import 'dart:math';
 
 import '../data/app_database.dart';
 import '../models/feed.dart';
+import 'gates.dart' show isPreferredChannel;
 import 'relevance/relevance_service.dart' show offTopicFit;
 
 const longformPerConceptCap = 3;
@@ -50,12 +51,18 @@ class FeedRow {
   final String? why; // the judge's short reason, when judged
 
   /// relevance_scores.final desc; cold start falls back to concept priority (§10.4).
+  /// Khan Academy, The Organic Chemistry Tutor: shown first among equals.
+  bool get preferred => isPreferredChannel(channel);
+
   int compareTo(FeedRow o) {
     final a = (finalScore != null ? 1 : 0).compareTo(o.finalScore != null ? 1 : 0);
     if (a != 0) return -a;
-    final b = (finalScore ?? 0).compareTo(o.finalScore ?? 0);
+    // A preferred channel gets a small head start in the judged score.
+    final b = ((finalScore ?? 0) + (preferred ? 0.5 : 0)).compareTo((o.finalScore ?? 0) + (o.preferred ? 0.5 : 0));
     if (b != 0) return -b;
-    return -priority.compareTo(o.priority);
+    final p = -priority.compareTo(o.priority);
+    if (p != 0) return p;
+    return (o.preferred ? 1 : 0) - (preferred ? 1 : 0);
   }
 
   FeedCard toCard() => FeedCard(

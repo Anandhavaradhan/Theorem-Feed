@@ -271,6 +271,9 @@ The guardrail tests run on every change:
   model, so they are checked last and only if the captioned ones didn't fill the concept. Trade-off: a video
   accepted by rule skips the model's extra safety read; it still passes the unsafe-word filter and the
   English checks.
+- **Khan Academy and The Organic Chemistry Tutor first.** In each concept's first round the app searches
+  those two channels by name (up to 2 videos each) before the general search, and their videos come first
+  among a concept's videos on Home (a small head start once videos are judged). They still pass every check.
 - **The AI reads every accepted video's title.** Even a video the rules accept (trusted channel, or title,
   captions and notes vocabulary all agree) is only added after one very short AI check of its title and
   channel, told the concept, the PDF and the chapter it comes from; it must mainly explain the concept as a

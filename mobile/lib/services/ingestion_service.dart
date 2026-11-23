@@ -233,7 +233,18 @@ class IngestionService {
     final report = into ?? IngestReport();
     final target = (perRound * round).clamp(perRound, maxPerKind);
     var c = videoCounts(conceptId);
-    if (c.long < target) {
+    // First round: look for the preferred channels by name (Khan Academy, The
+    // Organic Chemistry Tutor), up to 2 videos each; the general search fills the rest.
+    if (round == 1) {
+      for (final words in preferredChannels.values) {
+        c = videoCounts(conceptId);
+        if (c.long >= target || _stopped) break;
+        final need = target - c.long < 2 ? target - c.long : 2;
+        await _ingest(t, report, onProgress, variant: words, wantShort: false, need: need);
+      }
+      c = videoCounts(conceptId);
+    }
+    if (c.long < target && !_stopped) {
       await _ingest(t, report, onProgress,
           variant: longVariants[(round - 1) % longVariants.length], wantShort: false, need: target - c.long);
     }

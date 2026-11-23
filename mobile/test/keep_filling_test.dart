@@ -80,11 +80,12 @@ void main() {
     final s = IngestionService(db: db, source: src, model: _NoModel());
     await s.fillConcept(ids.first, round: 1);
     expect(s.videoCounts(ids.first), (long: 3, short: 3));
-    expect(src.queries, ['Alpha math', 'Alpha math #shorts']);
+    // Round 1 looks for the preferred channels by name first (2 + 1 here), then shorts.
+    expect(src.queries, ['Alpha math khan academy', 'Alpha math organic chemistry tutor', 'Alpha math #shorts']);
 
     await s.fillConcept(ids.first, round: 2);
     expect(s.videoCounts(ids.first), (long: 6, short: 6));
-    expect(src.queries.sublist(2), ['Alpha math explained', 'Alpha math explained #shorts']);
+    expect(src.queries.sublist(3), ['Alpha math explained', 'Alpha math explained #shorts']);
   });
 
   ProviderContainer container(_Source src) => ProviderContainer(overrides: [

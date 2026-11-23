@@ -198,6 +198,13 @@ const trustedChannels = {
   'cs dojo', 'spanning tree', 'fireship',
 };
 
+/// Channels you asked to always look for: searched by name for every concept,
+/// and shown first among a concept's videos.
+const preferredChannels = {'khan academy': 'khan academy', 'the organic chemistry tutor': 'organic chemistry tutor'};
+
+bool isPreferredChannel(String? channel) =>
+    channel != null && preferredChannels.containsKey(channel.trim().toLowerCase());
+
 bool isTrustedChannel(String? channel) =>
     channel != null && trustedChannels.contains(channel.trim().toLowerCase());
 
