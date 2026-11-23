@@ -105,7 +105,7 @@ List<ExtractedConcept> extractLabelled(Chunk chunk, {String subject = 'math', St
 // --- 2. On-device model (§6.3) -------------------------------------------------
 
 const extractionSystemPrompt = '''
-You extract study concepts from a math, physics or computer science textbook chunk. Answer with JSON only.
+You extract study concepts from a math, science (physics, chemistry, biology) or computer science textbook chunk. Answer with JSON only.
 Include every concept, theorem, definition and formula the chunk EXPLICITLY defines, states, proves or teaches. Skip concepts that are only referenced ("as we saw in Chapter 3"), assumed, or mentioned in passing.
 name: the canonical English academic term.
 statement: one specific sentence saying what it IS in this text's framing (for a theorem, the statement; for a technique, what it does; for a definition, the definition). "Integration by Parts" alone is not enough; write "∫ u dv = uv − ∫ v du, a technique for integrating products of functions".

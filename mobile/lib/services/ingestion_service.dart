@@ -146,10 +146,11 @@ class IngestionService {
     String? chapterLabel = path == IngestPath.theoremPool ? 'Curated math theorems' : null;
     String? pdf;
     String? question;
+    String? topic;
     var broad = false;
     if (path == IngestPath.material) {
       final where = _db.select('''
-        SELECT m.title, mc.chapter, mc.section FROM material_concepts mc JOIN materials m ON m.id = mc.material_id
+        SELECT m.title, m.topic, mc.chapter, mc.section FROM material_concepts mc JOIN materials m ON m.id = mc.material_id
         WHERE mc.concept_id = ? AND m.status = 'active' ORDER BY mc.importance DESC LIMIT 1''', [conceptId]).firstOrNull;
       if (where != null) {
         String strip(String? h) => (h ?? '').replaceFirst(RegExp(r'^\s*(chapter\s+)?\d+(\.\d+)*\.?\s*', caseSensitive: false), '');
@@ -165,6 +166,7 @@ class IngestionService {
         label = [where['title'] as String, if (chapter.isNotEmpty) chapter, if (section.isNotEmpty && section != chapter) section]
             .join(' › ');
         pdf = where['title'] as String;
+        topic = where['topic'] as String?;
         final q = RegExp(r'^what (is|are) .+', caseSensitive: false).firstMatch(chapter.trim());
         if (q != null && normalizeText(chapter).contains(normalizeText(name))) question = chapter.trim();
         final pdfWords = normalizeText(pdf.replaceAll(RegExp(r'[_\-.]'), ' ')).split(' ').toSet();
@@ -173,7 +175,9 @@ class IngestionService {
         if (parts.isNotEmpty) chapterLabel = parts.join(' › ');
       }
     }
-    return _Target(conceptId, name, parseJsonList(r['aliases'] as String?), r['subject'] as String, r['type'] as String,
+    // The PDF's own topic (chemistry has no graph subject of its own) decides the search word.
+    return _Target(conceptId, name, parseJsonList(r['aliases'] as String?), topic ?? r['subject'] as String,
+        r['type'] as String,
         path,
         contextWords: words,
         notesLabel: label,
@@ -290,7 +294,9 @@ class IngestionService {
 
   // --- pipeline ---------------------------------------------------------------
 
-  static const _subjectWord = {'physics': 'physics', 'math': 'math', 'cs': 'computer science'};
+  static const _subjectWord = {
+    'physics': 'physics', 'math': 'math', 'cs': 'computer science', 'chemistry': 'chemistry', 'biology': 'biology',
+  };
 
   /// The YouTube query. A short name ("Echo", "Phase", "Pitch") also matches
   /// songs, brands and games, so its subject is added ("Echo physics").

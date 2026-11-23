@@ -165,6 +165,16 @@ bool isTitleLine(String line, {required int fullLength}) {
   return RegExp(r'[a-z]{2}').hasMatch(l);
 }
 
+/// A line of formula rather than prose ("P1 V1 = P2 V2", "7.9", "NA = 6.022 × 1023"):
+/// a heading may follow it directly (formula sheets have no sentences to end).
+bool _formulaLine(String line) {
+  final l = line.trim();
+  if (l.isEmpty) return false;
+  if (l.contains('=') || l.contains('∝') || l.contains('→')) return true;
+  final letters = RegExp(r'[A-Za-z]').allMatches(l).length;
+  return letters < l.length * 0.5;
+}
+
 /// A table-of-contents page: a "Contents" line or several dot-leader lines.
 bool _isContentsPage(String page) {
   final lines = page.split('\n').map((l) => l.trim()).toList();
@@ -216,8 +226,12 @@ List<(String, bool)> _paragraphsOfPage(String page, {int? fullLength}) {
     final next = nextLine(i);
     final title = !heading &&
         isTitleLine(line, fullLength: full) &&
-        (buf.isEmpty || RegExp(r'[.:?!]$').hasMatch(prev)) &&
-        (next.isEmpty || RegExp(r'^[A-Z0-9•▪◦\-–*(λμωνρϕφθ]').hasMatch(next));
+        (buf.isEmpty ||
+            RegExp(r'[.:?!]$').hasMatch(prev) ||
+            _formulaLine(prev) ||
+            // A short heading with formulas under it (formula sheets rarely end lines with a full stop).
+            (_formulaLine(next) && line.split(' ').length <= 5 && !RegExp(r'\d|:$').hasMatch(line))) &&
+        (next.isEmpty || RegExp(r'^[A-Z0-9•▪◦\-–*(λμωνρϕφθ]').hasMatch(next) || _formulaLine(next));
     if (title) {
       flush();
       buf.write(line);

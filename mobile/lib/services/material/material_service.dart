@@ -237,8 +237,8 @@ class MaterialService {
     var count = 0;
     _db.transaction(() {
       _db.execute(
-        "INSERT INTO materials (id, title, file_hash, page_count, status, created_at) VALUES (?, ?, ?, ?, 'active', ?)",
-        [materialId, name, hash, pages.length, t.millisecondsSinceEpoch],
+        "INSERT INTO materials (id, title, file_hash, page_count, status, created_at, topic) VALUES (?, ?, ?, ?, 'active', ?, ?)",
+        [materialId, name, hash, pages.length, t.millisecondsSinceEpoch, detectTopic(paragraphs.map((p) => p.text).join('\n'))],
       );
       final byConcept = <String, (ExtractedConcept, Set<String>)>{};
       final merged = mergeExtracted(extracted);

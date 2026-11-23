@@ -227,3 +227,9 @@ const List<String> migrationV3 = [
 const List<String> migrationV4 = [
   'ALTER TABLE videos ADD COLUMN channel TEXT',
 ];
+
+/// v5: each PDF's topic (chemistry, physics, biology, math, cs), detected from
+/// its words; searches use it ("Molality chemistry").
+const List<String> migrationV5 = [
+  'ALTER TABLE materials ADD COLUMN topic TEXT',
+];

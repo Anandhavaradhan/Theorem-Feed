@@ -271,6 +271,14 @@ The guardrail tests run on every change:
   model, so they are checked last and only if the captioned ones didn't fill the concept. Trade-off: a video
   accepted by rule skips the model's extra safety read; it still passes the unsafe-word filter and the
   English checks.
+- **Formula sheets and summaries, not just notes.** A short heading over formulas ("Mole concept",
+  "Gases", "Atomic structure") is a concept and, on a sheet without numbered chapters, the chapter of the
+  formulas under it. Named formula lines are concepts ("Molality m = …", "Mole fraction xA = …",
+  "Dilution: M1V1 = M2V2"), and a scientist's name labels its law ("Boyle P1V1 = P2V2" → Boyle's law,
+  "de Broglie: λ = h/mv" → de Broglie wavelength; about 60 names). List headings split ("Acids, bases,
+  pH"); labels, constants boxes, table cells, worked-example steps and symbols are not concepts. Each PDF's
+  topic (chemistry, physics, biology, math, computer science) is detected from its words and used in its
+  searches ("Molarity chemistry"); the AI is told chemistry and biology count.
 - **Keeps working in the background.** While it finds videos or reads a PDF, an Android foreground service
   (a notification with the progress and a Stop button) keeps the app alive with the screen off or another
   app open; the first time, Android asks to allow notifications and to let the app run in the background.

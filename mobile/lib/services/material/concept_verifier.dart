@@ -23,7 +23,7 @@ const verifyBatchSize = 10;
 
 const verifySystemPrompt = '''
 You check candidate study concepts found in a student's notes. Answer with JSON only.
-"taught": the numbers of candidates that are real math, physics or computer-science concepts, laws, quantities, definitions, formulas or techniques that the evidence explains or defines.
+"taught": the numbers of candidates that are real math, science (physics, chemistry, biology) or computer-science concepts, laws, quantities, definitions, formulas or techniques that the evidence explains or defines.
 "mentioned": the numbers of real concepts that are only mentioned or assumed known.
 Leave out generic words ("speed", "answer", "method"), labels ("Exam trap", "Uses"), adjectives, fragments, and examples of things rather than ideas: animals and insects ("bees", "bats"), people and body parts ("human voice"), musical instruments, devices and everyday objects ("stethoscope", "torch").''';
 

@@ -116,7 +116,8 @@ const _boxLabels = [
   'so', 'hence', 'therefore', 'thus', 'also', 'check', 'result', 'results', 'method', 'procedure', 'aim', 'uses',
   'use', 'common mistake', 'common mistakes', 'did you know', 'try this', 'exercise', 'problem', 'question',
   'questions', 'hint', 'shortcut', 'trick', 'fact', 'facts', 'recap', 'review', 'vocabulary', 'glossary',
-  'the wave vocabulary', 'in short', 'in brief', 'direction', 'proof', 'remark', 'given', 'find', 'solve', 'step',
+  'the wave vocabulary', 'in short', 'in brief', 'constants', 'common molar masses', 'key balanced equations',
+  'key equations', 'key formulae', 'key formulas', 'formulae', 'formulas', 'shape', 'example', 'bp+lp', 'direction', 'proof', 'remark', 'given', 'find', 'solve', 'step',
   'case', 'derivation', 'illustration', 'applications', 'advantages', 'disadvantages', 'limitations', 'units',
 ];
 
@@ -258,11 +259,12 @@ const _badOpeners = {
   'this', 'it', 'that', 'there', 'each', 'every', 'so', 'here', 'which', 'what', 'one', 'all', 'both', 'such', 'its',
   'his', 'her', 'their', 'our', 'your', 'we', 'you', 'they', 'he', 'she', 'when', 'if', 'then', 'at', 'on', 'in',
   'with', 'by', 'for', 'from', 'as', 'no', 'not', 'how', 'why', 'where', 'increases', 'decreases', 'recognising',
-  'recognizing', 'using', 'finding',
+  'recognizing', 'using', 'finding', 'common', 'key', 'important', 'useful', 'some', 'few', 'more',
 };
 
 /// Generic words that are not concepts on their own.
 const _notConcepts = {
+  'series', 'constants', 'data', 'values', 'average', 'sum', 'total', 'shape', 'exceptions', 'trends', 'speed',
   'answer', 'result', 'reason', 'idea',
   'point', 'trick', 'rule of thumb', 'key', 'difference', 'same', 'first', 'second', 'last', 'other', 'next', 'thing',
   'way', 'best', 'only', 'aim', 'goal', 'question', 'problem', 'solution', 'example', 'figure', 'table', 'graph',
@@ -310,10 +312,131 @@ bool _usableTerm(String term) {
   final t = term.trim().toLowerCase();
   if (t.length < 3 || _notConcepts.contains(t) || _badOpeners.contains(t.split(' ').first)) return false;
   final words = t.split(' ');
+  // Not a name: ends in a small word ("Distance node to"), a lone participle
+  // ("Unpaired", "Reflected"), or a phrase with a verb in it ("Sound coming up").
+  if (const {'to', 'of', 'the', 'a', 'an', 'from', 'in', 'at', 'by', 'for', 'with', 'and', 'or', 'up', 'between', 'than',
+        'into', 'per', 'over', 'under', 'about'}.contains(words.last) &&
+      words.length > 1) {
+    return false;
+  }
+  if (words.length == 1 && RegExp(r'^[a-z]{4,}ed$').hasMatch(t)) return false;
+  if (words.skip(1).any((w) => w.length > 5 && w.endsWith('ing'))) return false;
   // Two words only: "Closed end", "Lowest frequency" — not "Integration by Parts".
   if (words.length == 2 && (_partNouns.contains(words.last) || _rankWords.contains(words.first))) return false;
   if (_notNameRe.hasMatch(t)) return false;
   return t.split(' ').length <= 7 && !RegExp(r'\d').hasMatch(t);
+}
+
+// --- formula sheets and summaries ----------------------------------------------
+
+/// Scientists whose name labels a law, equation or model in school science,
+/// mapped to the concept's usual name. "Boyle P1 V1 = P2 V2" → Boyle's law.
+const eponyms = {
+  'boyle': "Boyle's law", 'charles': "Charles's law", 'gay-lussac': "Gay-Lussac's law", 'avogadro': "Avogadro's law",
+  'graham': "Graham's law", 'dalton': "Dalton's law", 'henry': "Henry's law", 'raoult': "Raoult's law",
+  'hess': "Hess's law", 'le chatelier': "Le Chatelier's principle", 'faraday': "Faraday's laws", 'ohm': "Ohm's law",
+  'kirchhoff': "Kirchhoff's laws", 'coulomb': "Coulomb's law", 'hooke': "Hooke's law", 'newton': "Newton's laws",
+  'kepler': "Kepler's laws", 'pascal': "Pascal's law", 'archimedes': "Archimedes' principle",
+  'bernoulli': "Bernoulli's principle", 'snell': "Snell's law", 'bohr': 'Bohr model', 'de broglie': 'de Broglie wavelength',
+  'heisenberg': 'Heisenberg uncertainty principle', 'schrodinger': 'Schrödinger equation',
+  'schrödinger': 'Schrödinger equation', 'planck': "Planck's equation", 'einstein': 'Mass-energy equivalence',
+  'rutherford': 'Rutherford model', 'thomson': 'Thomson model', 'mendeleev': "Mendeleev's periodic table",
+  'moseley': "Moseley's law", 'hund': "Hund's rule", 'pauli': 'Pauli exclusion principle', 'aufbau': 'Aufbau principle',
+  'arrhenius': 'Arrhenius equation', 'nernst': 'Nernst equation', 'beer-lambert': 'Beer-Lambert law',
+  'doppler': 'Doppler effect', 'huygens': "Huygens' principle", 'young': "Young's modulus", 'fleming': "Fleming's rules",
+  'lenz': "Lenz's law", 'ampere': "Ampère's law", 'gauss': "Gauss's law", 'joule': "Joule's law", 'stefan': 'Stefan-Boltzmann law',
+  'wien': "Wien's law", 'mendel': "Mendel's laws", 'hardy-weinberg': 'Hardy-Weinberg principle', 'pythagoras': 'Pythagorean theorem',
+  'euler': "Euler's formula", 'fermat': "Fermat's theorem", 'heron': "Heron's formula", 'brahmagupta': "Brahmagupta's formula",
+  'rydberg': 'Rydberg formula', 'balmer': 'Balmer series', 'lyman': 'Lyman series', 'paschen': 'Paschen series',
+};
+
+/// Single words that label a formula line without being a concept.
+const _formulaLabelWords = {
+  'unknown', 'length', 'closed', 'open', 'fall', 'taking', 'subtract', 'add', 'multiply', 'divide', 'put', 'take',
+  'let', 'solve', 'shortcut', 'reflected', 'transmitted', 'mass', 'time', 'distance', 'area', 'volume',
+  'speed', 'direction', 'total', 'sum', 'average', 'mixing', 'radius', 'example', 'examples', 'answer', 'shape',
+  'check', 'given', 'find', 'so', 'hence', 'where', 'here', 'then', 'note', 'uses', 'use', 'result', 'exceptions',
+  'exception', 'series', 'constants', 'trick', 'tip', 'remember', 'also', 'thus', 'therefore', 'units', 'unit',
+  'common', 'key', 'other', 'lines', 'electrons gained', 'step', 'case',
+};
+
+/// "Molality m =", "Mole fraction xA =", "Vapour density =", "Empirical formula:",
+/// "Boyle P1 V1 =", "Dilution: M1 V1 = M2 V2" — anywhere in a paragraph (formula
+/// sheets come out of PDFs as long runs of short lines).
+final _formulaLineRe = RegExp(
+  r"(?:^|(?<=[\s.;,]))((?:de |le |van |von )?[A-Z][A-Za-zë'’\-]+(?: [a-z][A-Za-z'’\-]*){0,2})"
+  r"(?:\s*\([^)]{1,20}\))?((?:\s*[/A-Za-zα-ωΔµχ%][A-Za-z0-9/]{0,4}){0,4})\s*([:=])",
+);
+
+/// Rough subject of a document from its words; chemistry and biology have no
+/// graph of their own, so this decides the search word and the AI's context.
+String detectTopic(String text) {
+  const words = {
+    'chemistry': [
+      'mol', 'mole', 'moles', 'molar', 'molarity', 'molality', 'oxidation', 'acid', 'acids', 'base', 'bases', 'ph',
+      'compound', 'compounds', 'reaction', 'reactions', 'organic', 'orbital', 'orbitals', 'isomer', 'isomers',
+      'alkane', 'alkene', 'salt', 'concentration', 'valency', 'electrolysis', 'atom', 'atoms', 'ion', 'ions',
+      'periodic', 'element', 'elements', 'bond', 'bonds', 'solution', 'solute', 'solvent',
+    ],
+    'physics': [
+      'force', 'velocity', 'acceleration', 'wave', 'waves', 'sound', 'light', 'energy', 'current', 'voltage',
+      'motion', 'momentum', 'frequency', 'wavelength', 'lens', 'mirror', 'refraction', 'gravity', 'pressure',
+      'resistance', 'magnetic', 'charge', 'work', 'power',
+    ],
+    'biology': [
+      'cell', 'cells', 'organism', 'organisms', 'tissue', 'tissues', 'gene', 'genes', 'dna', 'photosynthesis',
+      'enzyme', 'enzymes', 'species', 'plant', 'plants', 'animal', 'animals', 'blood', 'heart', 'digestion', 'protein',
+    ],
+    'math': [
+      'theorem', 'integral', 'function', 'functions', 'derivative', 'matrix', 'proof', 'polynomial', 'triangle',
+      'angle', 'circle', 'equation', 'equations', 'probability', 'series', 'limit', 'vector', 'algebra',
+    ],
+    'cs': ['algorithm', 'algorithms', 'array', 'complexity', 'program', 'programming', 'recursion', 'sorting', 'tree'],
+  };
+  final counts = <String, int>{};
+  for (final w in normalizeText(text).split(' ')) {
+    for (final e in words.entries) {
+      if (e.value.contains(w)) counts[e.key] = (counts[e.key] ?? 0) + 1;
+    }
+  }
+  if (counts.isEmpty) return 'math';
+  return (counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+}
+
+/// Share of characters that aren't letters or spaces: formulas score high.
+double _symbolShare(String s) {
+  if (s.isEmpty) return 0;
+  final other = s.runes.where((r) {
+    final c = String.fromCharCode(r);
+    return !RegExp(r'[A-Za-z\s]').hasMatch(c);
+  }).length;
+  return other / s.length;
+}
+
+/// Formulas, chemical formulas ("C4 H10", "Cn H2n+2") or short notes.
+bool _formulaish(String s) {
+  if (s.contains('=') || s.contains('∝') || s.contains('→') || _symbolShare(s) > 0.25) return true;
+  final tokens = s.split(RegExp(r'\s+'));
+  if (tokens.length <= 3) return true;
+  return tokens.where((t) => RegExp(r'[A-Za-z].*\d|\d.*[A-Za-z]').hasMatch(t)).length * 4 >= tokens.length;
+}
+
+/// "Organic" heading on a chemistry sheet → "Organic chemistry".
+String _branchName(String name, String topic) =>
+    topic == 'chemistry' && const {'organic', 'inorganic', 'physical', 'analytical', 'nuclear'}.contains(name.toLowerCase())
+        ? '$name chemistry'
+        : name;
+
+/// "Molality", "Mole fraction", "Boyle" + an equation → the concept's name,
+/// or null if the label isn't one.
+String? formulaConceptName(String rawTerm) {
+  var term = rawTerm.trim().replaceAll(RegExp(r'\s+'), ' ');
+  final eponym = eponyms[term.toLowerCase()];
+  if (eponym != null) return eponym;
+  final lower = term.toLowerCase();
+  if (_formulaLabelWords.contains(lower) || _formulaLabelWords.contains(lower.split(' ').first)) return null;
+  term = term.replaceFirst(RegExp(r'^Avg\b'), 'Average');
+  return conceptNameFromTitle(term);
 }
 
 class _Section {
@@ -333,7 +456,15 @@ String _stripNumber(String heading) => heading
 /// to verify, plus every known concept mentioned, with its sentence as evidence.
 List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDictionary dict,
     {String? subject, String difficulty = 'undergrad', bool loose = false}) {
-  final subj = subject ?? dict.dominantSubject(paragraphs.map((p) => p.text).join('\n')) ?? 'math';
+  final allText = paragraphs.map((p) => p.text).join('\n');
+  final topic = detectTopic(allText);
+  // The graph knows math, physics and computer science; chemistry and biology
+  // concepts are stored as physics (the nearest), and the PDF keeps its own topic.
+  final subj = subject ?? (const {'math', 'physics', 'cs'}.contains(topic) ? topic : null) ??
+      dict.dominantSubject(allText) ?? 'physics';
+  // On a sheet without numbered chapters, the last topic heading is the chapter.
+  String? topicChapter;
+  late final bool numbered;
 
   // Group paragraphs by heading (chapter or section).
   final sections = <_Section>[_Section(null, Heading())];
@@ -369,6 +500,7 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
     return false;
   }
 
+  numbered = sections.any((s) => s.title != null);
   final out = <ExtractedConcept>[];
   final taughtNames = <String>{};
   final teaching = [for (final s in sections) if (!s.practice) s];
@@ -387,8 +519,9 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
       type: type ?? dict.typeOf(n) ?? _guessType(n),
       subject: subj,
       statement: _clip(statement),
-      chapter: (at?.heading ?? sec.heading).chapter,
-      section: (at?.heading ?? sec.heading).section ?? (at?.heading ?? sec.heading).chapter,
+      chapter: (at?.heading ?? sec.heading).chapter ?? (numbered ? null : topicChapter),
+      section: (at?.heading ?? sec.heading).section ?? (at?.heading ?? sec.heading).chapter ??
+          (numbered ? null : topicChapter),
       difficulty: difficulty,
       importance: sure ? importance : importance.clamp(0.0, 0.5).toDouble(),
       prerequisitesMentioned: prereqs,
@@ -403,6 +536,15 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
   /// a longer name stay whole ("Reflection of light and sound").
   void addTitled(String name, String statement, Paragraph? at, _Section sec,
       {required double importance, bool sure = true, List<String> prereqs = const []}) {
+    // "Acids, bases, pH": a list heading, one concept each.
+    final listItems = name.split(RegExp(r'\s*,\s*(?:and\s+)?|\s+and\s+(?=[^,]*$)'));
+    if (name.contains(',') && listItems.length >= 2 && listItems.length <= 5 &&
+        listItems.every((x) => x.trim().length >= 2 && x.trim().split(' ').length <= 3)) {
+      for (final item in listItems) {
+        add(_cap(item.trim()), statement, at, sec, importance: importance, sure: sure, prereqs: prereqs);
+      }
+      return;
+    }
     final parts = name.split(RegExp(r' and ', caseSensitive: false));
     final splittable = parts.length == 2 &&
         !RegExp(r'\b(of|in|on|between|for|from|to|with|by)\b', caseSensitive: false).hasMatch(name) &&
@@ -457,10 +599,33 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
       // 3. Box titles: a title line followed by its explanation.
       if (p.isTitle) {
         if (_isBoxLabel(p.text)) continue;
+        // What follows, up to the next title line.
+        final block = [for (final q in sec.paras.skip(i + 1).takeWhile((q) => !q.isTitle)) q];
         final next = sec.paras.skip(i + 1).where((q) => q.text.trim().length > 3).firstOrNull;
+        // 3a. A heading over formulas or short notes (formula sheets, summaries):
+        //     "Mole concept", "Gases", "Acids, bases, pH", "Atomic structure".
+        // The last of a run of 3+ short labels is a table or diagram cell, not a heading
+        // ("Hydrogen / Helium / Air / Oxygen" over a column of numbers).
+        final inLabelRun = i >= 2 && sec.paras[i - 1].isTitle && sec.paras[i - 2].isTitle;
+        if (!inLabelRun && block.isNotEmpty && (next == null || next.isTitle || next.text.split(' ').length < 6 || _formulaish(next.text)) &&
+            block.where((q) => _formulaish(q.text)).length * 2 >= block.length) {
+          final raw = p.text.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
+          var name = raw.contains(',') ? raw : conceptNameFromTitle(raw);
+          if (name != null) name = _branchName(name, topic);
+          final eponym = eponyms[raw.toLowerCase().replaceAll(RegExp(r'[:.]$'), '')];
+          if (eponym != null) name = eponym;
+          if (name != null && !_formulaLabelWords.contains(name.toLowerCase())) {
+            if (!numbered && eponym == null) topicChapter = name;
+            final statement = _clip(block.take(4).map((q) => q.text).join(' · '), 240);
+            final sure = eponym != null || name.contains(' ') || name.contains(',') || block.length >= 2 || dict.knows(name);
+            addTitled(name, statement, p, sec, importance: 0.82, sure: sure);
+          }
+          continue;
+        }
         if (next == null || next.isTitle || next.text.split(' ').length < 6) continue;
-        final name = conceptNameFromTitle(p.text);
+        var name = conceptNameFromTitle(p.text);
         if (name == null) continue;
+        name = _branchName(name, topic);
         final head = normalizeText(name).split(' ').first;
         final explained = normalizeText(next.text).contains(head);
         final sure = name.contains(' ') || dict.knows(name) || explained;
@@ -484,6 +649,40 @@ List<ExtractedConcept> extractByRules(List<Paragraph> paragraphs, ConceptDiction
           add(name, _sentences(rest).take(2).join(' '), p, sec,
               importance: kind == 'lemma' ? 0.5 : 0.9, type: _labelType[kind]);
         }
+      }
+
+      // 3b. Named formula lines: "Molality m = …", "Boyle P1 V1 = …", "Dilution: M1 V1 = M2 V2".
+      //     Not inside worked examples ("Subtract: 170 = 0.5v" is a step, not a concept).
+      final inExample = RegExp(r'\b(Answer|Worked example|Example|Solution|Hint)\b').hasMatch(p.text);
+      for (final fm in inExample ? const <RegExpMatch>[] : _formulaLineRe.allMatches(p.text)) {
+        // Symbols written after the name aren't part of it: "Mole fraction xA" → "Mole fraction".
+        final words = fm.group(1)!.split(' ');
+        while (words.length > 1 && RegExp(r'^[a-z]{1,2}[A-Z0-9]|^[a-z]$').hasMatch(words.last)) {
+          words.removeLast();
+        }
+        final raw = words.join(' ');
+        // A symbol, not a name: "EF mass moles", "VST P".
+        if (words.length > 1 && RegExp(r'^[A-Z]{1,3}$').hasMatch(words.first) && !eponyms.containsKey(raw.toLowerCase())) {
+          continue;
+        }
+        final name = formulaConceptName(raw);
+        if (name == null) continue;
+        final after = p.text.substring(fm.end, (fm.end + 40).clamp(0, p.text.length));
+        final isEq = fm.group(3) == '=' || after.contains('=');
+        final eponym = eponyms.containsKey(raw.toLowerCase());
+        // "Name:" followed by prose ("Exceptions: Cr …") isn't a formula.
+        if (!isEq && !eponym) continue;
+        final single = !name.contains(' ');
+        final quantityWord = RegExp(r'(ity|ion|ance|ence|ure|ness|ment|ism)$').hasMatch(name.toLowerCase());
+        final known = dict.knows(name);
+        // In notes with chapters, a lone word before "=" is usually a step or a symbol
+        // ("Length = …", "Lopen = 2 Lclosed"); on a formula sheet the AI decides.
+        if (numbered && single && !eponym && !quantityWord && !known) continue;
+        final statement = p.text.substring(fm.start, (fm.end + 60).clamp(0, p.text.length)).trim();
+        add(name, statement, p, sec,
+            importance: 0.78,
+            type: name.contains(RegExp(r'law|principle|rule')) ? 'theorem' : 'formula',
+            sure: isEq && (eponym || !single || quantityWord || known));
       }
 
       // 4. Lead-in terms: "Brightness — depends on …", "1. Elasticity — when …".
