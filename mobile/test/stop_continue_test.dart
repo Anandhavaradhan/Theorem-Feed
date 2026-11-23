@@ -17,6 +17,11 @@ import 'support/sample_chapter.dart';
 
 /// Two lesson videos per concept; each detail fetch takes 20 ms.
 class _Source implements VideoSource {
+  _Source({this.hangFirstDetails = false});
+
+  /// The first details request never answers (a stuck connection).
+  final bool hangFirstDetails;
+  var _hung = false;
   final queries = <String>[];
   @override
   Future<List<CandidateVideo>> search(String query, {int limit = 8, bool shortOnly = false}) async {
@@ -30,6 +35,10 @@ class _Source implements VideoSource {
 
   @override
   Future<VideoDetails> details(String id, {bool needVertical = true}) async {
+    if (hangFirstDetails && !_hung) {
+      _hung = true;
+      await Completer<void>().future; // never completes
+    }
     await Future<void>.delayed(const Duration(milliseconds: 20));
     final name = id.split('-').first;
     return VideoDetails(
@@ -211,5 +220,23 @@ void main() {
     expect(c.read(ingestionControllerProvider).status, IngestionStatus.stopped);
     await run;
     expect(keeper.events.last, 'stop');
+  });
+
+  test('Continue works even when the stopped run is stuck on a request that never answers', () async {
+    final source = _Source(hangFirstDetails: true);
+    final c = _container(db, source: source);
+    addTearDown(c.dispose);
+    final ctrl = c.read(ingestionControllerProvider.notifier);
+    unawaited(ctrl.findVideosFor(ids)); // gets stuck on its first video
+    await _until(() => source.queries.isNotEmpty);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    ctrl.cancel();
+    expect(c.read(ingestionControllerProvider).status, IngestionStatus.stopped);
+
+    final sw = Stopwatch()..start();
+    await ctrl.resume(); // must not wait for the stuck run
+    expect(sw.elapsed, lessThan(const Duration(seconds: 10)));
+    expect(c.read(ingestionControllerProvider).status, IngestionStatus.done);
+    expect(videos(), greaterThanOrEqualTo(5)); // everything but the one stuck video
   });
 }

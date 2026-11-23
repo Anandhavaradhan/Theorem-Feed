@@ -398,8 +398,10 @@ class IngestionController extends Notifier<IngestionState> {
   Future<void> resume() async {
     final r = _resume;
     if (r == null || state.isBusy) return;
+    // The stopped run halts by itself at its next step (a newer run stops it);
+    // a hung YouTube request must not hold Continue up, so wait 2 s at most.
     state = const IngestionState(status: IngestionStatus.preparingModel);
-    await _current;
+    await (_current ?? Future<void>.value()).timeout(const Duration(seconds: 2), onTimeout: () {});
     state = const IngestionState();
     await r();
   }
@@ -584,7 +586,7 @@ class MaterialController extends Notifier<UploadState> {
     final path = _lastPath;
     if (path == null || state.isBusy) return;
     state = const UploadState(status: UploadStatus.preparingModel);
-    await _current;
+    await (_current ?? Future<void>.value()).timeout(const Duration(seconds: 2), onTimeout: () {});
     state = const UploadState();
     await upload(path);
   }
