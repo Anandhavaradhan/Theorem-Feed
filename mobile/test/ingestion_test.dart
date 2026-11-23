@@ -63,6 +63,16 @@ class FakeModel implements JsonModel {
   Future<Map<String, dynamic>> generateJson({required String system, required List<LlmContent> content,
       required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async {
     if (throwOnCall != null) throw throwOnCall!;
+    if (system == titleBatchSystemPrompt) {
+      final text = (content.single as TextContent).text;
+      titlePrompts.add(text);
+      final keep = <String>[], unsafe = <String>[];
+      for (final m in RegExp(r'^(\d+)\. (.*?)(?: — .*)?$', multiLine: true).allMatches(text)) {
+        if (!offTopicTitles.contains(m.group(2))) keep.add(m.group(1)!);
+        if (unsafeTitles.contains(m.group(2))) unsafe.add(m.group(1)!);
+      }
+      return {'keep': keep, 'unsafe': unsafe, 'not_english': <String>[]};
+    }
     if (system == titleCheckSystemPrompt) {
       final text = (content.single as TextContent).text;
       titlePrompts.add(text);
@@ -191,7 +201,7 @@ void main() {
     const q = 'Pythagorean Theorem #shorts';
     final pythEdu = {'educational': true, 'safe': true, 'on_topic': true, 'is_theorem': true, 'language': 'en'};
     src.add(q, 'long', title: 'Pythagoras full lecture', duration: 1800);
-    src.add(q, 'wide', title: 'Pythagoras proof (landscape)', duration: 50, vertical: false);
+    src.add(q, 'wide', title: 'Pythagoras proof (landscape)', duration: 120, vertical: false);
     model.edu['Pythagoras proof (landscape)'] = pythEdu;
     src.add(q, 'short', title: 'Pythagoras in 45 seconds', duration: 45, vertical: true);
     model.edu['Pythagoras in 45 seconds'] = pythEdu;
@@ -309,8 +319,8 @@ void main() {
     expect(outcome('quantum'), 'rejected_scope'); // the model, told the notes' chapter, says it's another sense
     final prompt = model.prompts.single;
     expect(prompt, contains('Chapter: Superposition and standing waves'));
-    // The rule-accepted video's title was still read by the AI, with the chapter.
-    expect(model.titlePrompts.single, contains('Title: Superposition of waves'));
+    // All titles of the search were read by the AI in one call, with the chapter, before any download.
+    expect(model.titlePrompts.single, contains('1. Superposition of waves'));
     expect(model.titlePrompts.single, contains('Chapter: Superposition and standing waves'));
   });
 
@@ -322,7 +332,8 @@ void main() {
     final r = await IngestionService(db: db, source: src, model: model, acceptPerConcept: 5).ingestMaterialConcept(ibp);
     expect(status('khan'), 'active');
     expect(outcome('trick'), 'rejected_scope');
-    expect(model.titlePrompts, hasLength(2));
+    expect(model.titlePrompts, hasLength(1)); // both titles in one call
+    expect(src.detailCalls, isNot(contains('trick'))); // dropped before downloading anything
     expect(r.accepted, 1);
   });
 

@@ -85,7 +85,9 @@ class RawExtraction {
 }
 
 abstract class StreamExtractor {
-  Future<RawExtraction> extract(String youtubeId);
+  /// [thorough]: the slower, most reliable way (YouTube's watch page first),
+  /// used when streams from the fast way didn't play.
+  Future<RawExtraction> extract(String youtubeId, {bool thorough = false});
 }
 
 /// Talks to YouTube directly from the phone.
@@ -94,12 +96,12 @@ class YoutubeExplodeExtractor implements StreamExtractor {
   final yte.YoutubeExplode _yt;
 
   @override
-  Future<RawExtraction> extract(String youtubeId) async {
+  Future<RawExtraction> extract(String youtubeId, {bool thorough = false}) async {
     // Only the streams are waited for: title, description and thumbnail are
     // already in the library, and captions get 2 s at most (the video can start
     // without them).
     final results = await Future.wait([
-      _manifest(youtubeId),
+      thorough ? _yt.videos.streams.getManifest(youtubeId) : _manifest(youtubeId),
       _yt.videos.closedCaptions
           .getManifest(youtubeId, formats: const [yte.ClosedCaptionFormat.vtt])
           .then<Object?>((m) => m)
@@ -263,8 +265,11 @@ class Resolver {
   /// Drops the cached streams (e.g. YouTube expired a URL mid-playback).
   void invalidate(String videoId) => _db.execute('DELETE FROM video_resolutions WHERE video_id = ?', [videoId]);
 
-  Future<ResolvedVideo> resolve(String videoId) async {
+  /// [thorough]: skip the cache and use the slower, most reliable lookup
+  /// (after streams from the fast way failed to play).
+  Future<ResolvedVideo> resolve(String videoId, {bool thorough = false}) async {
     final now = _clock();
+    if (thorough) invalidate(videoId);
     final cached = _db.select(
       'SELECT payload FROM video_resolutions WHERE video_id = ? AND expires_at > ?',
       [videoId, now.millisecondsSinceEpoch],
@@ -281,7 +286,7 @@ class Resolver {
 
     final RawExtraction raw;
     try {
-      raw = await _extractor.extract(rows.first['source_id'] as String).timeout(resolveTimeout);
+      raw = await _extractor.extract(rows.first['source_id'] as String, thorough: thorough).timeout(resolveTimeout);
     } on TimeoutException {
       throw ResolveFailed('timed out after ${resolveTimeout.inSeconds}s');
     } on ResolveFailed {

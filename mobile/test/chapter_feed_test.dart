@@ -69,6 +69,32 @@ void main() {
     expect(all.indexOf("Snell's Law"), lessThan(fourthEcho));
   });
 
+  testWidgets('Home recommendations include a Shorts row, limited to the chosen chapter', (tester) async {
+    Strings.debugSet({'home.all': 'All', 'search.shorts': 'Shorts'});
+    final lib = _library();
+    for (final (n, c) in [('Pitch quick', 'Pitch'), ('Echo quick', 'Echo')]) {
+      final v = addVideo(lib.db, n, short: true, subject: 'physics');
+      lib.db.execute('UPDATE videos SET title = ? WHERE id = ?', [n, v]);
+      tag(lib.db, v, lib.c[c]!);
+    }
+    tester.view.physicalSize = const Size(2400, 4000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(lib.db)],
+      child: const MaterialApp(home: HomeScreen()),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Shorts'), findsOneWidget);
+    expect(find.text('Pitch quick'), findsOneWidget);
+    expect(find.text('Echo quick'), findsOneWidget);
+
+    await tester.tap(find.text('Characteristics of sound'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pitch quick'), findsOneWidget);
+    expect(find.text('Echo quick'), findsNothing); // another chapter
+  });
+
   test('labels: numbers dropped, bare numbers named', () {
     expect(chapterLabel('5 Speed of sound'), 'Speed of sound');
     expect(chapterLabel('Chapter 7 Techniques of Integration'), 'Techniques of Integration');

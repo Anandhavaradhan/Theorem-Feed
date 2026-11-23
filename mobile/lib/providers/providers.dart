@@ -41,7 +41,7 @@ final resolverProvider =
 
 final watchHistoryProvider = Provider<WatchHistoryService>((ref) => WatchHistoryService(ref.watch(databaseProvider)));
 
-final feedServiceProvider = Provider<FeedService>((ref) => FeedService(ref.watch(databaseProvider)));
+final feedServiceProvider = Provider<FeedService>((ref) => FeedService(ref.watch(databaseProvider), shortsSeed: _shortsMixSeed));
 final conceptServiceProvider = Provider<ConceptService>((ref) => ConceptService(ref.watch(databaseProvider)));
 
 final longformFeedProvider = FutureProvider<FeedResponse>((ref) async => ref.watch(feedServiceProvider).longform());
@@ -184,7 +184,7 @@ class IngestionController extends Notifier<IngestionState> {
       final total = IngestReport();
       state = IngestionState(status: IngestionStatus.running, round: round);
       for (; round <= IngestionService.maxRounds; round++) {
-        final target = (IngestionService.perRound * round).clamp(1, IngestionService.maxPerKind);
+        final target = IngestionService.targetFor(round);
         final todo = remaining ?? s.conceptsBelow(target);
         remaining = null;
         final freshBefore = total.fresh;
@@ -225,8 +225,7 @@ class IngestionController extends Notifier<IngestionState> {
           if (stopped()) break;
           if (!s.isActiveConcept(id)) continue;
           final c = s.videoCounts(id);
-          final round = ((c.long < c.short ? c.long : c.short) ~/ IngestionService.perRound + 1)
-              .clamp(1, IngestionService.maxRounds);
+          final round = IngestionService.roundAfter(c.long < c.short ? c.long : c.short);
           final r = await s.fillConcept(id, round: round, onProgress: (label, r) {
             p(label, IngestReport()
               ..checked = total.checked + r.checked

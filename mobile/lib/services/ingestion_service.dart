@@ -19,6 +19,16 @@ import 'llm.dart';
 
 const shortMaxSeconds = 180;
 
+/// A short: up to 60 s, or tagged #shorts, or vertical and up to 3 minutes.
+bool looksLikeShort(int? durationSec, String text, {required bool vertical}) {
+  if (durationSec == null || durationSec > shortMaxSeconds) return false;
+  return durationSec <= 60 || text.toLowerCase().contains('#short') || vertical;
+}
+
+/// Whether the (slower) orientation lookup is needed to tell.
+bool needsOrientation(int? durationSec, String text) =>
+    durationSec == null || (durationSec > 60 && durationSec <= shortMaxSeconds && !text.toLowerCase().contains('#short'));
+
 /// Thrown when asked to ingest for a concept outside the two allowed paths.
 class OutOfScopeIngestion implements Exception {
   OutOfScopeIngestion(this.message);
@@ -202,8 +212,21 @@ class IngestionService {
   /// Each round raises the target by this much for both kinds.
   static const perRound = 3;
 
+  /// Long videos and shorts each concept should have after [round]: round 1
+  /// gives every concept 1 of each (so the feed fills quickly across all of
+  /// them), then 3, 6, 9 … up to [maxPerKind].
+  static int targetFor(int round) => round <= 1 ? 1 : (perRound * (round - 1)).clamp(1, maxPerKind);
+
+  /// The round that would add more for a concept that has [count] of a kind.
+  static int roundAfter(int count) {
+    for (var r = 1; r <= maxRounds; r++) {
+      if (targetFor(r) > count) return r;
+    }
+    return maxRounds;
+  }
+
   /// Rounds after which every concept has had its chance at [maxPerKind].
-  static int get maxRounds => (maxPerKind / perRound).ceil();
+  static int get maxRounds => 1 + (maxPerKind / perRound).ceil();
 
   /// Each round words the search differently, so YouTube returns new videos.
   static const longVariants = ['', 'explained', 'examples', 'problems solved', 'lecture', 'animation', 'tutorial'];
@@ -235,12 +258,15 @@ class IngestionService {
       {required int round, IngestProgress? onProgress, IngestReport? into}) async {
     final t = _target(conceptId, IngestPath.material);
     final report = into ?? IngestReport();
-    final target = (perRound * round).clamp(perRound, maxPerKind);
+    final target = targetFor(round);
     var c = videoCounts(conceptId);
-    // First round: look for the preferred channels by name (Khan Academy, The
+    // First rounds: look for the preferred channels by name (Khan Academy, The
     // Organic Chemistry Tutor), up to 2 videos each; the general search fills the rest.
-    if (round == 1) {
-      for (final words in preferredChannels.values) {
+    if (round <= 2) {
+      // Round 1 starts with one channel, round 2 with the other.
+      final channels = preferredChannels.values.toList();
+      final ordered = [...channels.skip((round - 1) % channels.length), ...channels.take((round - 1) % channels.length)];
+      for (final words in ordered) {
         c = videoCounts(conceptId);
         if (c.long >= target || _stopped) break;
         final need = target - c.long < 2 ? target - c.long : 2;
@@ -383,7 +409,8 @@ class IngestionService {
     // details (metadata, transcript, orientation) download in parallel.
     final details = <String, Future<VideoDetails>>{};
     Future<VideoDetails> detailsFor(CandidateVideo c) => details[c.id] ??= () {
-          final f = source.details(c.id, needVertical: c.durationSec == null || c.durationSec! <= shortMaxSeconds);
+          // Orientation is only looked up when length and tags don't already say "short".
+          final f = source.details(c.id, needVertical: needsOrientation(c.durationSec, '${c.title} ${c.description}'));
           f.then((_) {}, onError: (_) {}); // errors surface when awaited, not as unhandled
           return f;
         }();
@@ -392,6 +419,29 @@ class IngestionService {
         if (!_alreadySeen(c.id) && !(wantShort == true && (c.durationSec ?? 0) > shortMaxSeconds)) c,
     ];
     report.fresh += todo.length;
+    // All titles of this search in one AI call; off-topic ones are dropped before
+    // any details are downloaded.
+    final titleVerdicts = <String, TitleVerdict>{};
+    final toCheck = [for (final c in todo) if (_passesCheapChecks(c, t)) c];
+    if (toCheck.isNotEmpty && !_stopped) {
+      try {
+        final v = await checkTitles(model,
+            searchedConcept: t.name,
+            chapter: t.chapter,
+            notes: t.notesTitle,
+            titles: [for (final c in toCheck) (c.title, c.channel)]);
+        for (var i = 0; i < toCheck.length; i++) {
+          titleVerdicts[toCheck[i].id] = v[i];
+        }
+      } on ModelApiError catch (e) {
+        if (e.isAuth) rethrow;
+        // No batch verdict: each rule-accepted video gets its own title check instead.
+      } on ModelRefusal {
+        // Same.
+      } on FormatException {
+        // Same.
+      }
+    }
     // Videos without captions need the speech model, the slowest check by far;
     // they wait until the captioned ones have had their turn.
     final noCaptions = <CandidateVideo>[];
@@ -399,7 +449,8 @@ class IngestionService {
     Future<void> check(CandidateVideo c, {required bool allowSpeech}) async {
       String outcome;
       try {
-        outcome = await _evaluate(c, t, detailsFor, context: context, allowSpeech: allowSpeech);
+        outcome = await _evaluate(c, t, detailsFor,
+            context: context, allowSpeech: allowSpeech, titleVerdict: titleVerdicts[c.id]);
       } on _Stopped {
         rethrow;
       } on ModelApiError catch (e) {
@@ -432,7 +483,7 @@ class IngestionService {
       for (var i = 0; i < todo.length; i++) {
         if (acceptedHere >= wanted || _stopped) break;
         for (final next in todo.skip(i).take(prefetchAhead + 1)) {
-          if (_passesCheapChecks(next, t)) detailsFor(next);
+          if (_passesCheapChecks(next, t) && (titleVerdicts[next.id]?.onTopic ?? true)) detailsFor(next);
         }
         await check(todo[i], allowSpeech: false);
       }
@@ -555,7 +606,7 @@ class IngestionService {
       metadataIsEnglish(c.title, c.description);
 
   Future<String> _evaluate(CandidateVideo c, _Target t, Future<VideoDetails> Function(CandidateVideo) detailsFor,
-      {List<String> context = const [], bool allowSpeech = true}) async {
+      {List<String> context = const [], bool allowSpeech = true, TitleVerdict? titleVerdict}) async {
     // Format pre-filter (Path B wants shorts; no point classifying long videos).
     if (t.path == IngestPath.theoremPool && (c.durationSec == null || c.durationSec! > shortMaxSeconds)) {
       return _log(c.id, 'rejected_format', 'not short-form (${c.durationSec}s)', t.id);
@@ -570,6 +621,21 @@ class IngestionService {
     if (!metadataIsEnglish(c.title, c.description)) {
       return _rejectVideo(c.id, 'rejected_lang', 'title/description not English', t,
           title: c.title, description: c.description, durationSec: c.durationSec, thumbnail: c.thumbnailUrl);
+    }
+
+    // The AI already read this title with the others from the search.
+    if (titleVerdict != null) {
+      if (!titleVerdict.safe) {
+        return _rejectVideo(c.id, 'rejected_safety', 'model: unsafe title', t,
+            title: c.title, description: c.description, durationSec: c.durationSec, thumbnail: c.thumbnailUrl);
+      }
+      if (!titleVerdict.english) {
+        return _rejectVideo(c.id, 'rejected_lang', 'model: title not English', t,
+            title: c.title, description: c.description, durationSec: c.durationSec, thumbnail: c.thumbnailUrl);
+      }
+      if (!titleVerdict.onTopic) {
+        return _log(c.id, 'rejected_scope', 'model: title not about ${t.name} in ${t.chapter ?? 'your notes'}', t.id);
+      }
     }
 
     final d = await detailsFor(c);
@@ -640,8 +706,10 @@ class IngestionService {
       isTheorem = false;
       reason = '';
     }
-    if (mapped.isNotEmpty) {
-      // Accepted by rule: the AI still reads the title, with the chapter.
+    if (mapped.isNotEmpty && titleVerdict != null) {
+      reason = '$reason; title checked by AI';
+    } else if (mapped.isNotEmpty) {
+      // Accepted by rule and no batch verdict: the AI still reads the title, with the chapter.
       if (_stopped) throw const _Stopped();
       final TitleVerdict tv;
       try {
@@ -687,7 +755,7 @@ class IngestionService {
     final subjectOut = t.subject;
 
     // Concept tagging + scope check.
-    final isShort = (d.durationSec ?? 1 << 30) <= shortMaxSeconds && d.isVertical;
+    final isShort = looksLikeShort(d.durationSec, '${d.title} ${d.description}', vertical: d.isVertical);
     switch (t.path) {
       case IngestPath.material:
         // Reject at ingestion if none of its primary concepts is active — keeps the library clean.

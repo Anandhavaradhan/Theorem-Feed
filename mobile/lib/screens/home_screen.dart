@@ -6,6 +6,7 @@ import '../core/theme.dart';
 import '../models/feed.dart';
 import '../providers/providers.dart';
 import '../widgets/ingestion_banner.dart';
+import '../widgets/shorts_shelf.dart';
 import '../widgets/video_card.dart';
 import 'concept_detail_screen.dart';
 import 'player_screen.dart';
@@ -179,14 +180,18 @@ class _FeedList extends ConsumerWidget {
             ]),
           ),
       ];
+      // A Shorts row among the recommendations, after the first two rows, as on YouTube.
+      final shelfAt = rows.length < 2 ? rows.length : 2;
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const _Chips(),
           const _ScopeActions(),
           const SizedBox(height: 4),
-          ...rows,
-          if (tiles.isEmpty)
+          ...rows.take(shelfAt),
+          if (feed.shorts.isNotEmpty) ShortsShelf(shorts: feed.shorts),
+          ...rows.skip(shelfAt),
+          if (tiles.isEmpty && feed.shorts.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(32, 64, 32, 32),
               child: Text(ingesting ? t('home.filling') : t('home.no_videos_yet'),

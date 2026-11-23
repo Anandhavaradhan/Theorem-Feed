@@ -13,7 +13,7 @@ class _Ex implements StreamExtractor {
   Object? error;
   int calls = 0;
   @override
-  Future<RawExtraction> extract(String youtubeId) async {
+  Future<RawExtraction> extract(String youtubeId, {bool thorough = false}) async {
     calls++;
     if (error != null) throw error!;
     return RawExtraction(title: 't', description: '', duration: const Duration(seconds: 60), thumbnail: null, streams: [

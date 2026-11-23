@@ -82,6 +82,16 @@ class ResolvedVideo {
 
   /// Best option whose height ≤ the device's native resolution (short side, physical px).
   /// Falls back to the smallest option if every one is larger.
+  /// What to try, in order, if [first] doesn't play: lower qualities, then the
+  /// single-file (muxed) streams, which are the most likely to play anywhere.
+  List<PlaybackOption> fallbacksAfter(PlaybackOption first) {
+    final lower = [for (final o in options) if (!o.isMuxed && o.height < first.height && !identical(o, first)) o]
+      ..sort((a, b) => b.height.compareTo(a.height));
+    final muxed = [for (final o in options) if (o.isMuxed && !identical(o, first)) o]
+      ..sort((a, b) => b.height.compareTo(a.height));
+    return [first, ...lower.take(1), ...muxed];
+  }
+
   /// The quality to start with: the best that fits the screen, but at most
   /// [startCap]p (720p), as YouTube does, so playback begins quickly; higher
   /// qualities stay in the quality menu.

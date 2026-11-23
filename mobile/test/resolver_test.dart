@@ -36,7 +36,7 @@ class _FakeExtractor implements StreamExtractor {
   RawExtraction Function() result;
   final calls = <String>[];
   @override
-  Future<RawExtraction> extract(String youtubeId) async {
+  Future<RawExtraction> extract(String youtubeId, {bool thorough = false}) async {
     calls.add(youtubeId);
     return result();
   }
@@ -74,6 +74,15 @@ void main() {
     expect(r.pickOption(200).quality, '360p');
     expect(r.options.map((o) => o.quality), contains('1080p'));
     expect(r.isVertical, isFalse);
+  });
+
+  test('fallback order if a quality won\'t play: one lower, then the single-file stream', () {
+    final r = buildResolved('v', _sample(), now: _now);
+    final first = r.pickOption(1752); // 720p
+    expect(r.fallbacksAfter(first).map((o) => o.quality), ['720p', '360p']);
+    expect(r.fallbacksAfter(first).last.isMuxed, isTrue);
+    final hd = r.options.firstWhere((o) => o.quality == '1080p');
+    expect(r.fallbacksAfter(hd).map((o) => o.quality), ['1080p', '720p', '360p']);
   });
 
   group('Resolver', () {

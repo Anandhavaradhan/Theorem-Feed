@@ -463,3 +463,59 @@ Future<TitleVerdict> checkTitle(
     english: json['english'] as bool,
   );
 }
+
+/// All of a search's titles in one short call (instead of one call per video):
+/// the AI keeps lessons on the concept in the chapter's sense, before any
+/// video details are downloaded.
+const titleBatchSystemPrompt = '''
+You check YouTube video titles for a student's study app. Answer with JSON only.
+"keep": the numbers of titles that are lessons mainly explaining the searched concept, in the sense of the given chapter of the student's notes (for a chapter on sound waves, "superposition" means waves adding up, not quantum superposition). Leave out experiments, tricks, products, music and other topics that only involve it.
+"unsafe": the numbers of titles that are sexual, violent, hateful or otherwise inappropriate.
+"not_english": the numbers of titles that are not plain English (Hindi or Tamil written in English letters is not English).''';
+
+Map<String, Object?> titleBatchSchema(int n) {
+  final nums = {'type': 'string', 'enum': [for (var i = 1; i <= n; i++) '$i']};
+  return {
+    'type': 'object',
+    'properties': {
+      'keep': {'type': 'array', 'items': nums, 'maxItems': n},
+      'unsafe': {'type': 'array', 'items': nums, 'maxItems': n},
+      'not_english': {'type': 'array', 'items': nums, 'maxItems': n},
+    },
+    'required': ['keep', 'unsafe', 'not_english'],
+    'additionalProperties': false,
+  };
+}
+
+/// One verdict per title, in order.
+Future<List<TitleVerdict>> checkTitles(
+  JsonModel model, {
+  required String searchedConcept,
+  String? chapter,
+  String? notes,
+  required List<(String title, String? channel)> titles,
+}) async {
+  final prompt = StringBuffer('Searched concept: $searchedConcept\n');
+  if (chapter != null) prompt.writeln('Chapter: $chapter');
+  if (notes != null) prompt.writeln('Notes: $notes');
+  for (var i = 0; i < titles.length; i++) {
+    final (title, channel) = titles[i];
+    prompt.writeln('${i + 1}. $title${channel == null ? '' : ' — $channel'}');
+  }
+  final json = await model.generateJson(
+    system: titleBatchSystemPrompt,
+    content: [TextContent(prompt.toString())],
+    schema: titleBatchSchema(titles.length),
+    maxTokens: 8 * titles.length + 40,
+  );
+  Set<int> nums(Object? list) => {
+        for (final x in (list as List? ?? const []))
+          if (int.tryParse('$x') case final int i when i >= 1 && i <= titles.length) i,
+      };
+  if (json['keep'] is! List) throw const FormatException('expected a "keep" list');
+  final keep = nums(json['keep']), unsafe = nums(json['unsafe']), notEn = nums(json['not_english']);
+  return [
+    for (var i = 1; i <= titles.length; i++)
+      TitleVerdict(onTopic: keep.contains(i), safe: !unsafe.contains(i), english: !notEn.contains(i)),
+  ];
+}

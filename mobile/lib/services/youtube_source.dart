@@ -110,11 +110,19 @@ class YoutubeExplodeSource implements VideoSource {
     );
   }
 
+  /// Orientation from the stream list, the fast way; unknown (false) if YouTube
+  /// doesn't answer quickly. Never fails the whole lookup.
   Future<bool> _isVertical(String youtubeId) async {
-    final manifest = await _yt.videos.streams.getManifest(youtubeId);
-    final withVideo = [...manifest.videoOnly, ...manifest.muxed]
-      ..sort((a, b) => b.videoResolution.height.compareTo(a.videoResolution.height));
-    return withVideo.isNotEmpty && withVideo.first.videoResolution.height > withVideo.first.videoResolution.width;
+    try {
+      final manifest = await _yt.videos.streams
+          .getManifest(youtubeId, requireWatchPage: false)
+          .timeout(const Duration(seconds: 6));
+      final withVideo = [...manifest.videoOnly, ...manifest.muxed]
+        ..sort((a, b) => b.videoResolution.height.compareTo(a.videoResolution.height));
+      return withVideo.isNotEmpty && withVideo.first.videoResolution.height > withVideo.first.videoResolution.width;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Caption lines (a manual English track if one exists, else the

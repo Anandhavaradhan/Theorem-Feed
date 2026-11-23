@@ -78,9 +78,19 @@ void main() {
     expect(sw.elapsedMilliseconds, lessThan(1000));
   });
 
-  test('short candidates still check orientation', () async {
-    final src = SlowSource(2, duration: 50);
+  test('only 1–3 minute candidates need the orientation lookup (up to 60 s is a short anyway)', () async {
+    final src = SlowSource(2, duration: 120);
     await IngestionService(db: db, source: src, model: SlowModel()).ingestMaterialConcept(ibp);
     expect(src.needVertical, everyElement(isTrue));
+  });
+
+  test('a short: up to 60 s, or tagged #shorts, or vertical up to 3 minutes', () {
+    expect(looksLikeShort(45, 'Echo in 45 seconds', vertical: false), isTrue);
+    expect(looksLikeShort(150, 'Echo explained #shorts', vertical: false), isTrue);
+    expect(looksLikeShort(150, 'Echo explained', vertical: true), isTrue);
+    expect(looksLikeShort(150, 'Echo explained', vertical: false), isFalse);
+    expect(looksLikeShort(600, 'Echo #shorts', vertical: true), isFalse);
+    expect(needsOrientation(45, 'x'), isFalse);
+    expect(needsOrientation(150, 'x'), isTrue);
   });
 }

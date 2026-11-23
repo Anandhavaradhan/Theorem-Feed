@@ -11,6 +11,7 @@ import '../core/theme.dart';
 import '../models/feed.dart';
 import '../models/resolved_video.dart';
 import '../providers/providers.dart';
+import '../services/reliable_playback.dart';
 import '../services/resolver.dart';
 import '../services/watch_history.dart';
 import '../widgets/video_card.dart';
@@ -119,64 +120,53 @@ class _PlayerState extends ConsumerState<_Player> {
   bool _captions = false;
   late ResolvedVideo _video = widget.video;
   Duration _furthest = Duration.zero;
-  bool _recovered = false;
   final _subs = <StreamSubscription<Object?>>[];
 
   late final WatchHistoryService _history;
+
+  late final ReliablePlayback _playback = ReliablePlayback(
+    player: _player,
+    refetch: () => ref.read(resolverProvider).resolve(_video.videoId, thorough: true).then((v) => _video = v),
+    onOption: (o) {
+      if (mounted) setState(() => _option = o);
+    },
+    onStarted: () => unawaited(_applyCaptions().catchError((Object _) {})), // subtitles after the video starts
+    onFailed: () {
+      if (mounted) setState(() => _failed = true);
+    },
+  );
+  bool _failed = false;
 
   @override
   void initState() {
     super.initState();
     _history = ref.read(watchHistoryProvider);
-    _subs
-      ..add(_player.stream.position.listen((p) {
-        if (p > _furthest) _furthest = p;
-      }))
-      ..add(_player.stream.error.listen((_) => _recover()));
-  }
-
-  /// YouTube stream URLs expire; if playback fails, fetch fresh ones once and
-  /// continue from the same point.
-  Future<void> _recover() async {
-    if (_recovered || !mounted) return;
-    _recovered = true;
-    final at = _player.state.position;
-    final resolver = ref.read(resolverProvider)..invalidate(_video.videoId);
-    try {
-      final fresh = await resolver.resolve(_video.videoId);
-      if (!mounted) return;
-      _video = fresh;
-      final quality = _option?.quality;
-      await _open(fresh.options.firstWhere((o) => o.quality == quality, orElse: () => fresh.options.first), start: at);
-    } catch (_) {
-      // The player shows its own error state; nothing more to do.
-    }
+    _subs.add(_player.stream.position.listen((p) {
+      if (p > _furthest) _furthest = p;
+    }));
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_option == null) {
-      final mq = MediaQuery.of(context);
-      final shortSidePx = (math.min(mq.size.width, mq.size.height) * mq.devicePixelRatio).round();
-      _captions = widget.video.captions.isNotEmpty;
-      // Long videos resume where you stopped; finished ones start over.
-      final resume = widget.video.isVertical ? null : ref.read(watchHistoryProvider).resumeAt(widget.video.videoId);
-      _open(widget.video.pickOption(shortSidePx), start: Duration(seconds: resume ?? 0));
-    }
+    if (_option == null && !_failed) _begin();
   }
 
-  Future<void> _open(PlaybackOption option, {Duration start = Duration.zero}) async {
-    setState(() => _option = option);
-    await _player.open(Media(option.videoUrl, start: start), play: false);
-    if (!option.isMuxed) {
-      // Video-only stream + separate audio stream, combined on the device.
-      await _player.setAudioTrack(AudioTrack.uri(option.audioUrl!, title: 'English', language: 'en'));
-    }
-    await _player.setRate(_speed);
-    await _player.play();
-    // Subtitles load after playback has started, not before.
-    unawaited(_applyCaptions().catchError((Object _) {}));
+  void _begin() {
+    final mq = MediaQuery.of(context);
+    final shortSidePx = (math.min(mq.size.width, mq.size.height) * mq.devicePixelRatio).round();
+    _captions = widget.video.captions.isNotEmpty;
+    // Long videos resume where you stopped; finished ones start over.
+    final resume = widget.video.isVertical ? null : ref.read(watchHistoryProvider).resumeAt(widget.video.videoId);
+    _playback.rate = _speed;
+    unawaited(_playback.start(_video, _video.pickOption(shortSidePx), at: Duration(seconds: resume ?? 0)));
+  }
+
+  /// After everything failed: try again from the start (fresh streams).
+  void _retry() {
+    setState(() => _failed = false);
+    ref.read(resolverProvider).invalidate(_video.videoId);
+    _begin();
   }
 
   Future<void> _applyCaptions() async {
@@ -204,7 +194,7 @@ class _PlayerState extends ConsumerState<_Player> {
       ),
     );
     if (picked != null && !identical(picked, _option)) {
-      await _open(picked, start: _player.state.position);
+      await _playback.switchTo(picked);
     }
   }
 
@@ -225,6 +215,7 @@ class _PlayerState extends ConsumerState<_Player> {
     );
     if (picked != null) {
       setState(() => _speed = picked);
+      _playback.rate = picked;
       await _player.setRate(picked);
     }
   }
@@ -239,6 +230,7 @@ class _PlayerState extends ConsumerState<_Player> {
           watchedSec: _furthest.inSeconds,
           durationSec: _player.state.duration.inSeconds > 0 ? _player.state.duration.inSeconds : _video.durationSec,
         );
+    _playback.dispose();
     _player.dispose();
     super.dispose();
   }
@@ -275,7 +267,18 @@ class _PlayerState extends ConsumerState<_Player> {
       children: [
         AspectRatio(
           aspectRatio: _video.isVertical ? 9 / 16 : 16 / 9,
-          child: Video(controller: _controller),
+          child: _failed
+              ? ColoredBox(
+                  color: Colors.black,
+                  child: Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(t('player.failed'), style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
+                      const SizedBox(height: 12),
+                      FilledButton(onPressed: _retry, child: Text(t('player.retry'))),
+                    ]),
+                  ),
+                )
+              : Video(controller: _controller),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),

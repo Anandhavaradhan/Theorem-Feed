@@ -81,8 +81,11 @@ class FeedRow {
 }
 
 class FeedService {
-  FeedService(this._db);
+  FeedService(this._db, {this.shortsSeed = 7});
   final AppDatabase _db;
+
+  /// Fixed per app session, so the Shorts row doesn't reshuffle under you.
+  final int shortsSeed;
 
   bool hasActiveMaterial() => _db.select('SELECT 1 FROM user_active_concepts LIMIT 1').isNotEmpty;
 
@@ -166,8 +169,12 @@ class FeedService {
     if (!hasActiveMaterial()) return FeedResponse(items: const [], needsUpload: true);
     final best = bestPerVideo(_materialRows(isShort: false, onlyConcepts: onlyConcepts));
     final rows = onlyConcepts == null ? capPerConcept(best, longformPerConceptCap, limit) : best;
+    // Recommendations include shorts too: your concepts' shorts, mixed across concepts.
+    final shortRows = mixAcrossConcepts(bestPerVideo(_materialRows(isShort: true, onlyConcepts: onlyConcepts)),
+        Random(shortsSeed));
     return FeedResponse(
       items: rows.take(onlyConcepts == null ? limit : 500).map((r) => r.toCard()).toList(),
+      shorts: shortRows.take(15).map((r) => r.toCard()).toList(),
       coverageGaps: [
         for (final g in coverageGaps())
           if (onlyConcepts == null || onlyConcepts.contains(g.conceptId)) g,

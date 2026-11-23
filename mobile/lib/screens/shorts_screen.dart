@@ -12,6 +12,7 @@ import '../models/feed.dart';
 import '../providers/providers.dart';
 import '../services/local_llm.dart';
 import '../services/preloader.dart';
+import '../services/reliable_playback.dart';
 import '../services/watch_history.dart';
 import '../widgets/ingestion_banner.dart';
 import '../widgets/thumbnail.dart';
@@ -197,7 +198,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
   late final WatchHistoryService _history = ref.read(watchHistoryProvider);
   final _subs = <StreamSubscription<Object?>>[];
   Duration _furthest = Duration.zero;
-  bool _recovered = false;
+  ReliablePlayback? _playback;
 
   @override
   void initState() {
@@ -238,26 +239,23 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
       final option = resolved.pickOption((math.min(mq.size.width, mq.size.height) * mq.devicePixelRatio).round());
       final player = Player();
       final controller = VideoController(player);
+      final playback = ReliablePlayback(
+        player: player,
+        refetch: () => ref.read(resolverProvider).resolve(widget.card.videoId, thorough: true),
+        onFailed: () {
+          if (mounted) setState(() => _error = t('player.failed'));
+        },
+      );
       setState(() {
         _player = player;
         _controller = controller;
+        _playback = playback;
       });
-      _subs
-        ..add(player.stream.position.listen((pos) {
-          if (pos > _furthest) _furthest = pos;
-        }))
-        ..add(player.stream.error.listen((_) {
-          // Expired stream URL: fetch fresh ones once and restart.
-          if (_recovered || !mounted || !widget.active) return;
-          _recovered = true;
-          ref.read(resolverProvider).invalidate(widget.card.videoId);
-          _stop();
-          _start();
-        }));
+      _subs.add(player.stream.position.listen((pos) {
+        if (pos > _furthest) _furthest = pos;
+      }));
       await player.setPlaylistMode(PlaylistMode.single); // loop
-      await player.open(Media(option.videoUrl), play: false);
-      if (option.audioUrl != null) await player.setAudioTrack(AudioTrack.uri(option.audioUrl!));
-      await player.play();
+      await playback.start(resolved, option);
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     }
@@ -265,6 +263,8 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
 
   void _stop() {
     final p = _player;
+    _playback?.dispose();
+    _playback = null;
     _record(p);
     setState(() {
       _player = null;
@@ -275,6 +275,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
 
   @override
   void dispose() {
+    _playback?.dispose();
     _record(_player);
     _player?.dispose();
     super.dispose();

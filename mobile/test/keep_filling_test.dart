@@ -58,6 +58,9 @@ class _NoModel implements JsonModel {
           required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async {
     // The AI reads every accepted video's title; it agrees here.
     if (system == titleCheckSystemPrompt) return {'on_topic': true, 'safe': true, 'english': true};
+    if (system == titleBatchSystemPrompt) {
+      return {'keep': [for (var i = 1; i <= 10; i++) '$i'], 'unsafe': <String>[], 'not_english': <String>[]};
+    }
     throw ModelApiError(0, 'local_model', 'no model in this test'); // ranking skips; the rule accepts videos
   }
 }
@@ -78,14 +81,18 @@ void main() {
   test('a round tops up long videos and shorts separately, with new wording each round', () async {
     final src = _Source();
     final s = IngestionService(db: db, source: src, model: _NoModel());
+    // Round 1: one of each for every concept first (the feed fills quickly), a preferred channel first.
     await s.fillConcept(ids.first, round: 1);
-    expect(s.videoCounts(ids.first), (long: 3, short: 3));
-    // Round 1 looks for the preferred channels by name first (2 + 1 here), then shorts.
-    expect(src.queries, ['Alpha math khan academy', 'Alpha math organic chemistry tutor', 'Alpha math #shorts']);
+    expect(s.videoCounts(ids.first), (long: 1, short: 1));
+    expect(src.queries, ['Alpha math khan academy', 'Alpha math #shorts']);
 
+    // Round 2: up to 3 of each; the other preferred channel first, new wording for shorts.
     await s.fillConcept(ids.first, round: 2);
+    expect(s.videoCounts(ids.first), (long: 3, short: 3));
+    expect(src.queries.sublist(2), ['Alpha math organic chemistry tutor', 'Alpha math explained #shorts']);
+
+    await s.fillConcept(ids.first, round: 3);
     expect(s.videoCounts(ids.first), (long: 6, short: 6));
-    expect(src.queries.sublist(3), ['Alpha math explained', 'Alpha math explained #shorts']);
   });
 
   ProviderContainer container(_Source src) => ProviderContainer(overrides: [

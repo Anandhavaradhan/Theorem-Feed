@@ -53,6 +53,9 @@ class _NoModel implements JsonModel {
           required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async {
     // The AI reads every accepted video's title; it agrees here.
     if (system == titleCheckSystemPrompt) return {'on_topic': true, 'safe': true, 'english': true};
+    if (system == titleBatchSystemPrompt) {
+      return {'keep': [for (var i = 1; i <= 10; i++) '$i'], 'unsafe': <String>[], 'not_english': <String>[]};
+    }
     throw ModelApiError(0, 'local_model', 'no model in this test'); // ranking skips; the rule accepts videos
   }
 }

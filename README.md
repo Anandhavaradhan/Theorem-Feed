@@ -293,6 +293,14 @@ The guardrail tests run on every change:
   lesson, not an experiment or trick that only involves it. A concept that is the whole PDF's topic ("Sound"
   in Sound notes) never uses the fast rule; it always gets the full check, and a chapter that asks "What is
   sound?" is searched as written.
+- **Faster finding, shorts found reliably.** Round 1 gives every concept 1 long video and 1 short (so the
+  feed fills across all concepts quickly), then 3, 6, … up to 20 of each. The AI reads all titles of a search
+  in one call before any video details are downloaded; off-topic titles cost nothing more. Up to 60 s or
+  tagged #shorts is a short; only 1–3 minute videos need the orientation lookup, which can no longer fail a
+  video. Home shows a Shorts row among the recommendations (for the chosen chapter or PDF).
+- **Videos load reliably.** If a video doesn't start within 12 s or fails, the player tries one lower quality,
+  then the single-file 360p stream, then all of it again with streams fetched the slower, thorough way; only
+  then does it show an error with Retry. Shorts use the same steps.
 - **Faster video start.** Opening a video waits only for its streams: they're fetched without YouTube's
   watch page (falling back to it if refused), the title and thumbnail come from the library, captions get at
   most 2 s and load after playback starts, and playback starts at 720p at most (higher qualities are in the

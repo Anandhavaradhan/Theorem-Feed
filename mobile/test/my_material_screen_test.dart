@@ -26,7 +26,9 @@ class _NoConcepts implements JsonModel {
   @override
   Future<Map<String, dynamic>> generateJson({required String system, required List<LlmContent> content,
           required Map<String, Object?> schema, String effort = 'low', int maxTokens = 4096}) async =>
-      system == titleCheckSystemPrompt
+      system == titleBatchSystemPrompt
+          ? {'keep': [for (var i = 1; i <= 10; i++) '$i'], 'unsafe': <String>[], 'not_english': <String>[]}
+          : system == titleCheckSystemPrompt
           ? {'on_topic': true, 'safe': true, 'english': true}
           : {'concepts': <Object>[], 'taught': <Object>[], 'mentioned': <Object>[]};
 }

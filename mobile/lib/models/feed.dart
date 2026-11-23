@@ -43,9 +43,12 @@ class CoverageGap {
 }
 
 class FeedResponse {
-  FeedResponse({required this.items, this.coverageGaps = const [], this.needsUpload = false});
+  FeedResponse({required this.items, this.coverageGaps = const [], this.needsUpload = false, this.shorts = const []});
 
   final List<FeedCard> items;
+
+  /// Shorts for the same scope, shown as a row among the recommendations.
+  final List<FeedCard> shorts;
   final List<CoverageGap> coverageGaps;
 
   /// True when there is no active material (§1, §10.4): show the upload CTA.
