@@ -271,6 +271,11 @@ The guardrail tests run on every change:
   model, so they are checked last and only if the captioned ones didn't fill the concept. Trade-off: a video
   accepted by rule skips the model's extra safety read; it still passes the unsafe-word filter and the
   English checks.
+- **Keeps working in the background.** While it finds videos or reads a PDF, an Android foreground service
+  (a notification with the progress and a Stop button) keeps the app alive with the screen off or another
+  app open; the first time, Android asks to allow notifications and to let the app run in the background.
+  Swiping the app away from recent apps stops it; the next start continues where it stopped. Android 15
+  limits this kind of background work to about 6 hours a day (reset whenever you open the app).
 - **Khan Academy and The Organic Chemistry Tutor first.** In each concept's first round the app searches
   those two channels by name (up to 2 videos each) before the general search, and their videos come first
   among a concept's videos on Home (a small head start once videos are judged). They still pass every check.

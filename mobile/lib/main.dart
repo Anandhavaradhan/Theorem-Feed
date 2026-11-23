@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:pdfrx/pdfrx.dart';
 
@@ -12,6 +13,7 @@ import 'services/graph_seed.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterForegroundTask.initCommunicationPort(); // the background notification's Stop button
   MediaKit.ensureInitialized();
   await pdfrxFlutterInitialize(); // PDF text extraction uses the engine API directly
   await Strings.load();

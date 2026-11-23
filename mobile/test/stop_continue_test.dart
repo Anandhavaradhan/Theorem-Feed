@@ -7,6 +7,7 @@ import 'package:theoremfeed/services/gates.dart';
 import 'package:theoremfeed/data/app_database.dart';
 import 'package:theoremfeed/providers/providers.dart';
 import 'package:theoremfeed/services/active_concepts.dart';
+import 'package:theoremfeed/services/background_work.dart';
 import 'package:theoremfeed/services/llm.dart';
 import 'package:theoremfeed/services/material/pdf_text.dart';
 import 'package:theoremfeed/services/youtube_source.dart';
@@ -66,8 +67,25 @@ class _SlowPdf implements PdfTextSource {
   }
 }
 
-ProviderContainer _container(AppDatabase db, {_Source? source, PdfTextSource? pdf}) =>
+/// Records what the background notification would show.
+class _Keeper implements BackgroundKeeper {
+  final events = <String>[];
+  void Function()? stopButton;
+  @override
+  Future<void> start({required String title, required String text, required void Function() onStop}) async {
+    events.add('start: $title');
+    stopButton = onStop;
+  }
+
+  @override
+  Future<void> update(String text) async => events.add('update: $text');
+  @override
+  Future<void> stop() async => events.add('stop');
+}
+
+ProviderContainer _container(AppDatabase db, {_Source? source, PdfTextSource? pdf, BackgroundKeeper? keeper}) =>
     ProviderContainer(overrides: [
+      if (keeper != null) backgroundKeeperProvider.overrideWithValue(keeper),
       databaseProvider.overrideWithValue(db),
       modelLoaderProvider.overrideWithValue((onProgress) async => onProgress(1)),
       jsonModelProvider.overrideWithValue(_NoModel()),
@@ -172,5 +190,23 @@ void main() {
     await ctrl.resume();
     expect(c.read(materialControllerProvider).status, UploadStatus.done);
     expect(db.select('SELECT count(*) AS n FROM materials').first['n'], (before as int) + 1);
+    // The upload starts finding videos; stop it before the test ends.
+    final ingest = c.read(ingestionControllerProvider.notifier)..cancel();
+    await ingest.idle;
+  });
+
+  test('runs in the background: a notification shows progress, and its Stop button stops the work', () async {
+    final keeper = _Keeper();
+    final c = _container(db, keeper: keeper);
+    addTearDown(c.dispose);
+    final ctrl = c.read(ingestionControllerProvider.notifier);
+    final run = ctrl.findVideosFor(ids);
+    await _until(() => (c.read(ingestionControllerProvider).report?.checked ?? 0) >= 1);
+    expect(keeper.events.first, startsWith('start: '));
+    expect(keeper.events.where((e) => e.startsWith('update: ')), isNotEmpty);
+    keeper.stopButton!(); // Stop in the notification
+    expect(c.read(ingestionControllerProvider).status, IngestionStatus.stopped);
+    await run;
+    expect(keeper.events.last, 'stop');
   });
 }

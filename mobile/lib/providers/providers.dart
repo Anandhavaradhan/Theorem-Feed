@@ -4,7 +4,9 @@ import 'dart:io' show Platform;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
+import '../core/i18n.dart';
 import '../data/app_database.dart';
 import '../models/feed.dart';
 import '../models/resolved_video.dart';
@@ -20,6 +22,7 @@ import '../services/feed_service.dart';
 import '../services/gates.dart';
 import '../services/ingestion_service.dart';
 import '../services/preloader.dart';
+import '../services/background_work.dart';
 import '../services/resolver.dart';
 import '../services/watch_history.dart';
 import '../services/youtube_source.dart';
@@ -42,6 +45,13 @@ final feedServiceProvider = Provider<FeedService>((ref) => FeedService(ref.watch
 final conceptServiceProvider = Provider<ConceptService>((ref) => ConceptService(ref.watch(databaseProvider)));
 
 final longformFeedProvider = FutureProvider<FeedResponse>((ref) async => ref.watch(feedServiceProvider).longform());
+/// Keeps finding videos / reading a PDF going in the background (Android
+/// foreground service with a notification). Off under `flutter test`.
+final backgroundKeeperProvider = Provider<BackgroundKeeper>((ref) {
+  if (Platform.environment['FLUTTER_TEST'] == 'true' || !Platform.isAndroid) return NoBackgroundKeeper();
+  return ForegroundServiceKeeper();
+});
+
 /// One shuffle per app session: Shorts is a mix of everything, and it doesn't
 /// reshuffle under you while new shorts are added.
 final _shortsMixSeed = DateTime.now().microsecondsSinceEpoch;
@@ -240,6 +250,9 @@ class IngestionController extends Notifier<IngestionState> {
 
   bool get canContinue => _resume != null;
 
+  /// Completes when the current (or last) run has wound down.
+  Future<void> get idle => _current ?? Future<void>.value();
+
   /// Download + load the model, reporting progress. Returns false on failure.
   Future<bool> prepareModel() async {
     state = const IngestionState(status: IngestionStatus.preparingModel);
@@ -276,9 +289,20 @@ class IngestionController extends Notifier<IngestionState> {
         isCancelled: stopped,
       );
       state = const IngestionState(status: IngestionStatus.running);
+      if (!quiet) {
+        unawaited(ref.read(backgroundKeeperProvider).start(
+            title: t('bg.finding'), text: t('bg.starting'), onStop: cancel));
+      }
+      var lastLabel = '';
       final report = await job(svc, (label, r) {
         if (stopped()) return; // the banner already says Stopped
         state = IngestionState(status: IngestionStatus.running, label: label, report: r, round: state.round);
+        if (!quiet && label != lastLabel) {
+          lastLabel = label;
+          unawaited(ref.read(backgroundKeeperProvider).update(state.round > 0
+              ? t('bg.round', {'round': state.round, 'concept': label, 'accepted': r.accepted})
+              : t('bg.concept', {'concept': label, 'accepted': r.accepted})));
+        }
         // Show new shorts as soon as they're accepted.
         ref.invalidate(shortsFeedProvider);
       }, stopped);
@@ -303,6 +327,7 @@ class IngestionController extends Notifier<IngestionState> {
       if (!stopped()) state = IngestionState(status: IngestionStatus.failed, report: state.report, message: '$e');
     } finally {
       done.complete();
+      if (!quiet) unawaited(ref.read(backgroundKeeperProvider).stop());
       ref.invalidate(longformFeedProvider);
       ref.invalidate(shortsFeedProvider);
       ref.invalidate(conceptDetailProvider);
@@ -490,10 +515,14 @@ class MaterialController extends Notifier<UploadState> {
     _lastPath = path;
     final done = Completer<void>();
     _current = done.future;
+    final keeper = ref.read(backgroundKeeperProvider);
+    unawaited(keeper.start(title: t('bg.reading'), text: p.basename(path), onStop: cancel));
     try {
       await _upload(path, stopped);
     } finally {
       done.complete();
+      // Finding videos starts right after a successful upload and takes over the notification.
+      if (!ref.read(ingestionControllerProvider).isBusy) unawaited(keeper.stop());
     }
   }
 
