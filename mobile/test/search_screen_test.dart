@@ -69,4 +69,31 @@ void main() {
     await type(tester, 'taylor series');
     expect(find.textContaining('No active material'), findsOneWidget);
   });
+
+  testWidgets('shorts show in a Shorts row, even when a concept has many long videos', (tester) async {
+    final m = addMaterial(db);
+    addMaterialConcept(db, m, cid('Integration by Parts'));
+    recomputeUserActiveConcepts(db);
+    for (var i = 0; i < 7; i++) {
+      final v = addVideo(db, 'long$i');
+      db.execute("UPDATE videos SET title = 'Integration by parts lesson $i', "
+          "transcript = 'integration by parts integration by parts worked examples' WHERE id = ?", [v]);
+      tag(db, v, cid('Integration by Parts'));
+    }
+    for (var i = 0; i < 2; i++) {
+      final v = addVideo(db, 'short$i', short: true);
+      db.execute("UPDATE videos SET title = 'IBP in 60 seconds $i' WHERE id = ?", [v]);
+      tag(db, v, cid('Integration by Parts'));
+    }
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(db)],
+      child: const MaterialApp(home: SearchScreen()),
+    ));
+    await tester.pumpAndSettle();
+    await type(tester, 'integration by parts');
+    expect(find.text('Shorts'), findsOneWidget);
+    expect(find.text('IBP in 60 seconds 0'), findsOneWidget);
+    expect(find.text('IBP in 60 seconds 1'), findsOneWidget);
+  });
 }

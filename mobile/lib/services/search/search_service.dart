@@ -195,7 +195,8 @@ class SearchService {
 
   // --- the pipeline -------------------------------------------------------------
 
-  SearchResponse search(String query, {bool theoremOnly = false, int maxGroups = 8, int perGroup = 5}) {
+  SearchResponse search(String query,
+      {bool theoremOnly = false, int maxGroups = 8, int perGroup = 5, int shortsPerGroup = 10}) {
     final u = understand(query);
     final materialInactive = !hasActiveMaterial;
     final restrict = theoremOnly || materialInactive;
@@ -219,7 +220,8 @@ class SearchService {
 
     final cands = _retrieve(effective, restrict);
     _rerank(effective, cands);
-    final groups = _group(effective, cands, restrict: restrict, maxGroups: maxGroups, perGroup: perGroup);
+    final groups = _group(effective, cands,
+        restrict: restrict, maxGroups: maxGroups, perGroup: perGroup, shortsPerGroup: shortsPerGroup);
 
     final response = groups.isEmpty
         ? SearchResponse(understanding: u, outOfScope: OutOfScope(alreadyTheoremOnly: theoremOnly),
@@ -304,7 +306,7 @@ class SearchService {
   // --- Stage 5: group + coverage gaps ----------------------------------------------
 
   List<SearchGroup> _group(QueryUnderstanding u, List<_Cand> cands,
-      {required bool restrict, required int maxGroups, required int perGroup}) {
+      {required bool restrict, required int maxGroups, required int perGroup, int shortsPerGroup = 10}) {
     final groups = <String, List<_Cand>>{};
     final kinds = <String, GroupKind>{};
 
@@ -358,8 +360,13 @@ class SearchService {
           conceptName: nameOf(id),
           kind: kinds[id]!,
           chapter: kinds[id] == GroupKind.material ? _chapterOf(id) : null,
+          // Long videos and shorts are counted separately: shorts have short captions
+          // and rank below long videos, so a shared limit would leave none.
           videos: [
-            for (final c in groups[id]!.take(perGroup))
+            for (final c in [
+              ...groups[id]!.where((c) => !c.isShort).take(perGroup),
+              ...groups[id]!.where((c) => c.isShort).take(shortsPerGroup),
+            ])
               FeedCard(
                 videoId: c.id,
                 title: c.row['title']! as String,

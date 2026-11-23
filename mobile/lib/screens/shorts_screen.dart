@@ -91,6 +91,57 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   }
 }
 
+/// Shorts opened from somewhere else (search results): swipe through [items],
+/// starting at [initialIndex], with the same full-screen player as the Shorts tab.
+class ShortsViewer extends ConsumerStatefulWidget {
+  const ShortsViewer({super.key, required this.items, this.initialIndex = 0});
+  final List<FeedCard> items;
+  final int initialIndex;
+
+  @override
+  ConsumerState<ShortsViewer> createState() => _ShortsViewerState();
+}
+
+class _ShortsViewerState extends ConsumerState<ShortsViewer> {
+  late int _current = widget.initialIndex;
+  late final _pages = PageController(initialPage: widget.initialIndex);
+  late final Preloader _preloader = Preloader((id) => ref.read(resolverProvider).resolve(id));
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _preloader.around([for (final c in widget.items) c.videoId], _current));
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(children: [
+        PageView.builder(
+          controller: _pages,
+          scrollDirection: Axis.vertical,
+          itemCount: widget.items.length,
+          onPageChanged: (i) => setState(() => _current = i),
+          itemBuilder: (context, i) => _ShortPage(
+            key: ValueKey(widget.items[i].videoId),
+            card: widget.items[i],
+            active: i == _current,
+          ),
+        ),
+        SafeArea(
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 class _EmptyShorts extends ConsumerWidget {
   const _EmptyShorts();
 

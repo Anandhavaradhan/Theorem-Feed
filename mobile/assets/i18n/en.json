@@ -54,6 +54,7 @@
   "scope.search_pdf": "Search this PDF",
   "scope.find_more": "Find more videos",
   "search.in": "Search in {scope}",
+  "search.shorts": "Shorts",
   "home.filling": "Finding videos for your notes. They appear here as they're added.",
   "home.no_videos_yet": "No videos here yet. Tap Find more videos, or check back while videos are added.",
   "upload.stopped": "Reading stopped. Nothing was saved; Continue reads the PDF again.",
