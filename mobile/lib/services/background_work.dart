@@ -73,6 +73,10 @@ class ForegroundServiceKeeper implements BackgroundKeeper {
   void Function()? _onStop;
   var _asked = false;
 
+  /// Several kinds of work can hold the service at once (the model download,
+  /// reading a PDF, finding videos); it stops when the last one lets go.
+  var _holders = 0;
+
   void _onData(Object data) {
     if (data == _stopButtonId) _onStop?.call();
   }
@@ -80,6 +84,7 @@ class ForegroundServiceKeeper implements BackgroundKeeper {
   @override
   Future<void> start({required String title, required String text, required void Function() onStop}) async {
     _onStop = onStop;
+    _holders++;
     try {
       if (!_asked) {
         _asked = true;
@@ -117,6 +122,8 @@ class ForegroundServiceKeeper implements BackgroundKeeper {
 
   @override
   Future<void> stop() async {
+    if (_holders > 0) _holders--;
+    if (_holders > 0) return; // other work still running
     _onStop = null;
     try {
       await FlutterForegroundTask.stopService();

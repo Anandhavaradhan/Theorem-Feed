@@ -279,6 +279,10 @@ The guardrail tests run on every change:
   pH"); labels, constants boxes, table cells, worked-example steps and symbols are not concepts. Each PDF's
   topic (chemistry, physics, biology, math, computer science) is detected from its words and used in its
   searches ("Molarity chemistry"); the AI is told chemistry and biology count.
+- **The AI model downloads in the background.** On a device without it, the download starts when the app
+  opens, keeps going with the screen off or another app open (a notification shows the percentage), and
+  shows its progress in Settings. There is only ever one download: finding videos, reading a PDF and the
+  relevance check all wait for the same one.
 - **Keeps working in the background.** While it finds videos or reads a PDF, an Android foreground service
   (a notification with the progress and a Stop button) keeps the app alive with the screen off or another
   app open; the first time, Android asks to allow notifications and to let the app run in the background.

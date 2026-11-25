@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -29,6 +30,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(materialControllerProvider.notifier).autoArchive();
       // English only: drop videos added before the stricter checks (background, once each).
+      // First start on this device: download the AI model in the background right away,
+      // so it's ready before it's needed (finding videos waits for the same download).
+      if (!ref.read(modelReadyProvider) && Platform.environment['FLUTTER_TEST'] != 'true') {
+        unawaited(ref.read(modelDownloadProvider.notifier).ensure((_) {}).catchError((Object _) {}));
+      }
       final ingest = ref.read(ingestionControllerProvider.notifier);
       unawaited(() async {
         try {

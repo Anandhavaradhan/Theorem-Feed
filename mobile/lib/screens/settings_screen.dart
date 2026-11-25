@@ -30,7 +30,12 @@ class SettingsScreen extends ConsumerWidget {
             Text(t('settings.model.body', {'name': defaultLocalModel.name, 'size': defaultLocalModel.approxSizeMb})),
             const SizedBox(height: 8),
             Text(ready ? t('settings.model.ready') : t('settings.model.missing'), style: theme.textTheme.bodySmall),
-            if (!ready) ...[
+            if (ref.watch(modelDownloadProvider) case final double f) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: f),
+              const SizedBox(height: 4),
+              Text(t('bg.model_progress', {'percent': (f * 100).floor()}), style: theme.textTheme.bodySmall),
+            ] else if (!ready) ...[
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: busy ? null : controller.prepareModel,

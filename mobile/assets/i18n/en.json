@@ -53,6 +53,8 @@
   "bg.finding": "TheoremFeed: finding videos",
   "bg.reading": "TheoremFeed: reading your PDF",
   "bg.starting": "Starting…",
+  "bg.model": "TheoremFeed: downloading the AI model",
+  "bg.model_progress": "{percent}% · keeps going in the background",
   "bg.round": "Round {round} · {concept} · {accepted} added",
   "bg.concept": "{concept} · {accepted} added",
   "scope.search_chapter": "Search this chapter",

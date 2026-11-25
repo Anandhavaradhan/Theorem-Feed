@@ -92,8 +92,56 @@ final jsonModelProvider = Provider<JsonModel>((ref) => ref.watch(localModelProvi
 
 /// Downloads (once) and loads the on-device model; overridden in tests.
 final modelLoaderProvider = Provider<Future<void> Function(void Function(double? fraction) onProgress)>(
-  (ref) => (onProgress) => ref.read(localModelProvider).ensureLoaded(onProgress: onProgress),
+  (ref) => (onProgress) => ref.read(modelDownloadProvider.notifier).ensure(onProgress),
 );
+
+/// The AI model download: one at a time (everyone who needs the model waits
+/// for the same download), kept going in the background with a notification
+/// showing the progress. State: the download's progress (0..1), null when idle.
+class ModelDownload extends Notifier<double?> {
+  Future<void>? _inFlight;
+  final _listeners = <void Function(double?)>{};
+
+  @override
+  double? build() => null;
+
+  Future<void> ensure(void Function(double? fraction) onProgress) async {
+    _listeners.add(onProgress);
+    try {
+      await (_inFlight ??= _download().whenComplete(() => _inFlight = null));
+    } finally {
+      _listeners.remove(onProgress);
+    }
+  }
+
+  Future<void> _download() async {
+    final firstTime = !ref.read(modelReadyProvider);
+    final keeper = ref.read(backgroundKeeperProvider);
+    // Only a real download needs the background service (loading from the device takes seconds).
+    if (firstTime) unawaited(keeper.start(title: t('bg.model'), text: t('bg.starting'), onStop: () {}));
+    var lastPercent = -1;
+    try {
+      await ref.read(localModelProvider).ensureLoaded(onProgress: (f) {
+        state = f;
+        for (final l in List.of(_listeners)) {
+          l(f);
+        }
+        final percent = f == null ? null : (f * 100).floor();
+        if (firstTime && percent != null && percent >= lastPercent + 5) {
+          lastPercent = percent;
+          unawaited(keeper.update(t('bg.model_progress', {'percent': percent})));
+        }
+      });
+      ref.read(databaseProvider).setSetting(_modelReadyKey, '1');
+      ref.invalidate(modelReadyProvider);
+    } finally {
+      state = null;
+      if (firstTime) unawaited(keeper.stop());
+    }
+  }
+}
+
+final modelDownloadProvider = NotifierProvider<ModelDownload, double?>(ModelDownload.new);
 
 const _modelReadyKey = 'local_model_ready';
 
@@ -524,8 +572,8 @@ class MaterialController extends Notifier<UploadState> {
       await _upload(path, stopped);
     } finally {
       done.complete();
-      // Finding videos starts right after a successful upload and takes over the notification.
-      if (!ref.read(ingestionControllerProvider).isBusy) unawaited(keeper.stop());
+      // Finding videos (started after a successful upload) holds the notification itself.
+      unawaited(keeper.stop());
     }
   }
 
